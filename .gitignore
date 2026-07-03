@@ -1,0 +1,26 @@
+# Data — transfer to cluster separately via rsync
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+
+# OS
+.DS_Store
+
+# Logs, checkpoints, embeddings (generated at runtime)
+logs/
+checkpoints/
+*.pt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# CSV/zip source data
+*.csv.zip
+protein_sequences_table.csv
+all_proteins.txt
+proteins.txt
