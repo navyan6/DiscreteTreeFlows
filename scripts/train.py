@@ -113,7 +113,7 @@ def forward_bridge_step(
     lap_t    = compute_laplacian_pe(tree_t, node_to_idx_t, lap_dim, device=device)
 
     # ── 5. PLM embeddings for T_t nodes (use T1 embeddings, no re-embedding) ─
-    plm_t = torch.stack([plm_T1[plm_map[nid]] for nid in node_ids_t])  # [N_t, 320]
+    plm_t = torch.stack([plm_T1[plm_map[nid]] for nid in node_ids_t]).to(device)  # [N_t, 320]
 
     # ── 6. NodeEncoder ────────────────────────────────────────────────────────
     h_t = node_enc(plm_t, struct_t, lap_t)  # [N_t, 128]
