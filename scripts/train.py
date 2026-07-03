@@ -108,9 +108,9 @@ def forward_bridge_step(
     )
     node_to_idx_t = {nid: i for i, nid in enumerate(node_ids_t)}
 
-    # ── 4. Structural features + Laplacian PE for T_t (recomputed) ───────────
+    # ── 4. Structural features + Laplacian PE for T_t (recomputed on device) ─
     struct_t = compute_structural_features(tree_t, node_to_idx_t).to(device)
-    lap_t    = compute_laplacian_pe(tree_t, node_to_idx_t, lap_dim).to(device)
+    lap_t    = compute_laplacian_pe(tree_t, node_to_idx_t, lap_dim, device=device)
 
     # ── 5. PLM embeddings for T_t nodes (use T1 embeddings, no re-embedding) ─
     plm_t = torch.stack([plm_T1[plm_map[nid]] for nid in node_ids_t])  # [N_t, 320]
@@ -162,6 +162,8 @@ def main():
     parser.add_argument("--lambda-top",  type=float, default=0.1)
     parser.add_argument("--lambda-br",   type=float, default=0.1)
     parser.add_argument("--max-seq-len", type=int,   default=566)
+    parser.add_argument("--patience",    type=int,   default=30,
+                        help="Early stopping: stop if val loss doesn't improve for this many epochs")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -207,6 +209,7 @@ def main():
     ckpt_dir = Path(args.ckpt_dir)
     ckpt_dir.mkdir(exist_ok=True)
     best_val = float("inf")
+    patience_counter = 0
 
     # ── training loop ─────────────────────────────────────────────────────────
     for epoch in range(1, args.epochs + 1):
@@ -277,6 +280,7 @@ def main():
 
         if val_loss < best_val:
             best_val = val_loss
+            patience_counter = 0
             torch.save({
                 "epoch": epoch,
                 "node_enc": node_enc.state_dict(),
@@ -285,6 +289,11 @@ def main():
                 "optimizer": optimizer.state_dict(),
                 "val_loss": val_loss,
             }, ckpt_dir / "best.pt")
+        else:
+            patience_counter += 1
+            if patience_counter >= args.patience:
+                print(f"\nEarly stopping at epoch {epoch} (no improvement for {args.patience} epochs)")
+                break
 
     print(f"\nBest val loss: {best_val:.4f}  →  {ckpt_dir}/best.pt")
 
@@ -338,7 +347,7 @@ def export_embeddings(
             n2i = {nid: j for j, nid in enumerate(node_ids)}
 
             struct = compute_structural_features(tree_T1, n2i).to(device)
-            lap    = compute_laplacian_pe(tree_T1, n2i, 8).to(device)
+            lap    = compute_laplacian_pe(tree_T1, n2i, 8, device=device)
 
             # NodeEncoder: fuse PLM + structural + Laplacian → [N, 128]
             node_emb = node_enc(plm_T1, struct, lap)
