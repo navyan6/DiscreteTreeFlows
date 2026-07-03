@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import traceback
@@ -32,7 +33,7 @@ from Bio.Seq import Seq
 
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data" / "train"
-AUGUR_BIN = "/Users/navyanori/.nextstrain/runtimes/conda/env/bin/augur"
+AUGUR_BIN = os.environ.get("AUGUR_BIN", "augur")  # override with full path if needed
 FASTTREE_BIN = "fasttree"
 
 # ── helpers ───────────────────────────────────────────────────────────────────
