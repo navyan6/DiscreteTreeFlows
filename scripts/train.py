@@ -116,7 +116,7 @@ def forward_bridge_step(
     plm_t = torch.stack([plm_T1[plm_map[nid]] for nid in node_ids_t]).to(device)  # [N_t, 320]
 
     # ── 6. NodeEncoder ────────────────────────────────────────────────────────
-    h_t = node_enc(plm_t, struct_t, lap_t)  # [N_t, 128]
+    h_t = node_enc(plm_t.to(device), struct_t.to(device), lap_t.to(device))  # [N_t, 128]
 
     # ── 7. Edge tensors for T_t ───────────────────────────────────────────────
     edge_index_t, _, edge_attr_t = build_edges(tree_t, node_to_idx_t)
