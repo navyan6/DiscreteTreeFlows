@@ -288,6 +288,80 @@ def main():
 
     print(f"\nBest val loss: {best_val:.4f}  →  {ckpt_dir}/best.pt")
 
+    # ── export embeddings for all trees using trained weights ─────────────────
+    print("\nExporting embeddings with trained weights...")
+    export_embeddings(dataset, node_enc, tree_enc, device, Path(args.data))
+    print("Done.")
+
+
+def export_embeddings(
+    dataset: TreeDataset,
+    node_enc: NodeEncoder,
+    tree_enc: TreeEncoder,
+    device: str,
+    data_dir: Path,
+):
+    """
+    For each tree in the dataset, save:
+      - plm:       [N, 320]  raw ESM2 embeddings (already cached, just copied)
+      - node_emb:  [N, 128]  NodeEncoder output (PLM + structural + Laplacian PE fused)
+      - ctx_emb:   [N, 128]  TreeEncoder output at t=1.0 (fully contextualized)
+
+    Saved to data_dir/group_NNN_trained_emb.pt
+    """
+    node_enc.eval()
+    tree_enc.eval()
+
+    with torch.no_grad():
+        for i in range(len(dataset)):
+            batch = dataset[i]
+            g = batch["group"]
+            out_path = data_dir / f"group_{g:03d}_trained_emb.pt"
+
+            node_ids      = batch["node_ids"]
+            node_times_t  = batch["node_times"]
+            edges         = batch["edges"]
+            branch_lengths = batch["branch_lengths"]
+            plm_T1        = batch["plm_embeddings"].to(device)  # [N, 320]
+
+            node_times_dict = {nid: node_times_t[i].item() for i, nid in enumerate(node_ids)}
+            root_id = node_ids[batch["root_index"]]
+
+            # Build full T1 TreeState for structural features / Laplacian
+            has_children = {p for p, c in edges}
+            tree_T1 = TreeState(
+                node_ids=node_ids, root_id=root_id,
+                edges=edges, branch_lengths=branch_lengths,
+                node_seqs=batch["seqs"],
+                active_leaves=[nid for nid in node_ids if nid not in has_children],
+            )
+            n2i = {nid: j for j, nid in enumerate(node_ids)}
+
+            struct = compute_structural_features(tree_T1, n2i).to(device)
+            lap    = compute_laplacian_pe(tree_T1, n2i, 8).to(device)
+
+            # NodeEncoder: fuse PLM + structural + Laplacian → [N, 128]
+            node_emb = node_enc(plm_T1, struct, lap)
+
+            # TreeEncoder at t=1.0 (full tree, no bridge sampling)
+            edge_index, _, edge_attr = build_edges(tree_T1, n2i)
+            edge_index = edge_index.to(device)
+            branch_lens = edge_attr.squeeze(-1).to(device)
+
+            ctx_emb, _ = tree_enc(
+                node_emb, node_ids, node_times_dict,
+                edge_index, branch_lens, t_scalar=1.0,
+            )
+
+            torch.save({
+                "node_ids":  node_ids,
+                "plm":       plm_T1.cpu(),       # [N, 320] raw ESM2
+                "node_emb":  node_emb.cpu(),     # [N, 128] NodeEncoder (PLM+struct+lap)
+                "ctx_emb":   ctx_emb.cpu(),      # [N, 128] TreeEncoder contextual
+            }, out_path)
+            print(f"  group_{g:03d}: plm={tuple(plm_T1.shape)}  "
+                  f"node_emb={tuple(node_emb.shape)}  ctx_emb={tuple(ctx_emb.shape)}")
+
 
 if __name__ == "__main__":
     main()

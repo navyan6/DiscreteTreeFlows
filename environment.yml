@@ -1,27 +1,28 @@
 name: treesbm
 channels:
-  - bioconda
   - conda-forge
   - defaults
 dependencies:
-  - python=3.10
-  - mafft
-  - fasttree
+  - python=3.11
   - pip
+
   - pip:
-    - fair-esm>=2.0.0
-    - pastml>=1.9.51
-    - ete3>=3.1.3
-    - torch-geometric>=2.4.0
-    - biopython>=1.83
-    - numpy>=1.26.0
-    - pandas>=2.1.0
-    - scipy>=1.14.0
-    - scikit-learn>=1.3.0
-    - matplotlib>=3.8.0
-    - seaborn>=0.13.0
-    - requests>=2.31.0
-    - gget>=0.28.0
-    - pyyaml>=6.0
-    - tqdm>=4.66.0
+    # Deep learning — after env creation, reinstall torch with CUDA:
+    #   pip install torch --index-url https://download.pytorch.org/whl/cu121
     - torch>=2.0
+    - transformers>=4.30.0
+
+    # Bioinformatics
+    - biopython>=1.83
+    - ete3>=3.1.3
+
+    # Scientific computing
+    - numpy>=1.26.0
+    - scipy>=1.14.0
+
+    # Data / utilities
+    - pandas>=2.2.0
+    - requests>=2.31.0
+
+    # Dev / testing
+    - pytest>=7.0.0
