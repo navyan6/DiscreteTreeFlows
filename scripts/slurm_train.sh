@@ -4,12 +4,13 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=48G
-#SBATCH --time=24:00:00
+#SBATCH --time=4:00:00
 #SBATCH --output=logs/slurm_train_%j.log
 #SBATCH --error=logs/slurm_train_%j.log
 
+source ~/.bashrc
 module load miniconda3/25.5.1
-conda activate treesbm
+source activate treesbm
 
 cd ~/DiscreteTreeFlows
 mkdir -p logs checkpoints
