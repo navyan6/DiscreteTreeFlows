@@ -231,8 +231,13 @@ def main():
             )
             if losses is None or n_active == 0:
                 continue
+            if torch.isnan(losses["total"]):
+                continue
 
             losses["total"].backward()
+            for p in params:
+                if p.grad is not None:
+                    p.grad.nan_to_num_(0.0, 0.0, 0.0)
             nn.utils.clip_grad_norm_(params, max_norm=1.0)
             optimizer.step()
 

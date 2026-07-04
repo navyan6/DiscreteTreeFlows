@@ -42,7 +42,7 @@ def scaled_dot_product_attention_with_edges(
     scores = torch.matmul(q, k.transpose(-2, -1)) / (d_k ** 0.5)
 
     # Apply sparse mask: set masked positions to -inf
-    scores = scores.masked_fill(~attn_mask.unsqueeze(0).unsqueeze(0), float("-inf"))
+    scores = scores.masked_fill(~attn_mask.unsqueeze(0).unsqueeze(0), -1e9)
 
     # Apply learned edge weights if provided
     if edge_index is not None and edge_weights_per_head is not None:
