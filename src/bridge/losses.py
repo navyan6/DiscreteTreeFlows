@@ -1,14 +1,12 @@
 """
-Bridge matching training losses (Algorithm 1 of TreeSBM).
+Bridge matching training losses
 
 L_seq:  CE on log R_theta_mut vs. T1 AA targets, Doob h-transform weighted 1/(1-t)
 L_top:  Poisson NLL on branching rate vs. T1 child count
-        NOTE: trees are bifurcating -- T1_child_counts is always in {0, 2}.
-              Poisson still converges (learns lambda~0 for leaves, ~2 for internal).
-              Inference must clamp sampled children to max 2.
+importnant note: fasttree assumes a bifurcating tree, so each parent can either have 0, 1, or max two chldren
 L_br:   MSE on predicted branch length vs. mean T1 child branch length
 L_stop: BCE on stop_prob vs. whether leaf has no children in T1
-L_pll:  ESM PLL regularizer -- penalizes sequences drifting from ESM fitness landscape
+L_pll:  ESM PLL regularizer - penalizes sequences drifting from ESM fitness landscape (we dont want nonsensical sequences!)
 total:  weighted sum of all five terms
 """
 
@@ -31,7 +29,7 @@ def _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device):
 
 
 def _build_seq_indices(seqs_t, max_seq_len, device):
-    """Convert current T_t sequences to integer index tensor [n, max_seq_len]."""
+    #Convert current T_t sequences to integer index tensor [n, max_seq_len].
     n = len(seqs_t)
     indices = torch.full((n, max_seq_len), PAD_IDX, dtype=torch.long, device=device)
     for i, seq in enumerate(seqs_t):
@@ -67,7 +65,7 @@ def bridge_losses(
         z = torch.zeros((), device=device, requires_grad=True)
         return {"L_seq": z, "L_top": z, "L_br": z, "L_stop": z, "L_pll": z, "total": z}
 
-    # ── L_seq ─────────────────────────────────────────────────────────────────
+    # ── L_seq 
     targets = _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device)
     L_seq = F.cross_entropy(
         log_R_theta_mut.reshape(n * max_seq_len, 20),
@@ -76,7 +74,7 @@ def bridge_losses(
     )
     L_seq = L_seq / (1.0 - t + eps_t)
 
-    # ── L_top ─────────────────────────────────────────────────────────────────
+    # ── L_top 
     child_counts = torch.tensor(
         [T1_child_counts[nid] for nid in active_leaves],
         dtype=torch.float32, device=device,
@@ -88,7 +86,7 @@ def bridge_losses(
         full=False,
     )
 
-    # ── L_br ──────────────────────────────────────────────────────────────────
+    # ── L_br 
     target_bls = torch.tensor(
         [
             (sum(T1_child_bls[nid]) / len(T1_child_bls[nid]))
@@ -99,29 +97,26 @@ def bridge_losses(
     )
     L_br = F.mse_loss(branch_length_pred, target_bls)
 
-    # ── L_stop ────────────────────────────────────────────────────────────────
+    # ── L_stop 
     has_no_children = torch.tensor(
         [T1_child_counts[nid] == 0 for nid in active_leaves],
         dtype=torch.float32, device=device,
     )
     L_stop = F.binary_cross_entropy(stop_prob, has_no_children)
 
-    # ── L_pll ─────────────────────────────────────────────────────────────────
+    # ── L_pll 
     if log_R0_mut is not None:
-        aa_indices = _build_seq_indices(seqs_t, max_seq_len, device)              # [n, L]
-        pll_scores = log_R0_mut.gather(-1, aa_indices.unsqueeze(-1)).squeeze(-1)  # [n, L]
+        aa_indices = _build_seq_indices(seqs_t, max_seq_len, device)
         pll_mask   = aa_indices != PAD_IDX
+        # clamp before gather so PAD_IDX=20 doesn't go out-of-bounds on dim size 20
+        aa_safe    = aa_indices.clamp(0, 19)
+        pll_scores = log_R0_mut.gather(-1, aa_safe.unsqueeze(-1)).squeeze(-1)
         L_pll = -pll_scores[pll_mask].mean()
     else:
         L_pll = torch.zeros((), device=device)
 
     total = (
-        L_seq
-        + lambda_top  * L_top
-        + lambda_br   * L_br
-        + lambda_stop * L_stop
-        + lambda_pll  * L_pll
-    )
+        L_seq + lambda_top  * L_top + lambda_br   * L_br + lambda_stop * L_stop + lambda_pll  * L_pll)
     return {
         "L_seq": L_seq, "L_top": L_top, "L_br": L_br,
         "L_stop": L_stop, "L_pll": L_pll, "total": total,
