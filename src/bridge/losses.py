@@ -1,11 +1,15 @@
 """
 Bridge matching training losses (Algorithm 1 of TreeSBM).
 
-L_seq: cross-entropy on predicting T1 AA sequence at active leaves,
-       time-weighted by 1/(1-t) (Doob h-transform)
-L_top: Poisson NLL on branching rate vs. actual T1 child count
-L_br:  MSE on predicted branch length vs. mean T1 child branch length
-total: L_seq + lambda_top * L_top + lambda_br * L_br
+L_seq:  CE on log R_theta_mut vs. T1 AA targets, Doob h-transform weighted 1/(1-t)
+L_top:  Poisson NLL on branching rate vs. T1 child count
+        NOTE: trees are bifurcating -- T1_child_counts is always in {0, 2}.
+              Poisson still converges (learns lambda~0 for leaves, ~2 for internal).
+              Inference must clamp sampled children to max 2.
+L_br:   MSE on predicted branch length vs. mean T1 child branch length
+L_stop: BCE on stop_prob vs. whether leaf has no children in T1
+L_pll:  ESM PLL regularizer -- penalizes sequences drifting from ESM fitness landscape
+total:  weighted sum of all five terms
 """
 
 import torch
@@ -16,8 +20,33 @@ AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
 PAD_IDX = 20
 
 
+def _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device):
+    n = len(active_leaves)
+    targets = torch.full((n, max_seq_len), PAD_IDX, dtype=torch.long, device=device)
+    for i, nid in enumerate(active_leaves):
+        seq = T1_seqs.get(nid, "")
+        for j, aa in enumerate(seq[:max_seq_len]):
+            targets[i, j] = AA_TO_IDX.get(aa, PAD_IDX)
+    return targets
+
+
+def _build_seq_indices(seqs_t, max_seq_len, device):
+    """Convert current T_t sequences to integer index tensor [n, max_seq_len]."""
+    n = len(seqs_t)
+    indices = torch.full((n, max_seq_len), PAD_IDX, dtype=torch.long, device=device)
+    for i, seq in enumerate(seqs_t):
+        for j, aa in enumerate(seq[:max_seq_len]):
+            indices[i, j] = AA_TO_IDX.get(aa, PAD_IDX)
+    return indices
+
+
 def bridge_losses(
-    out: dict,
+    log_R_theta_mut: torch.Tensor,
+    log_R_theta_branch: torch.Tensor,
+    branch_length_pred: torch.Tensor,
+    stop_prob: torch.Tensor,
+    log_R0_mut: torch.Tensor | None,
+    seqs_t: list[str],
     active_leaves: list[str],
     T1_seqs: dict[str, str],
     T1_child_counts: dict[str, int],
@@ -26,61 +55,40 @@ def bridge_losses(
     max_seq_len: int,
     lambda_top: float = 0.1,
     lambda_br: float = 0.1,
+    lambda_stop: float = 0.1,
+    lambda_pll: float = 0.01,
     device: str = "cpu",
 ) -> dict:
-    """
-    Args:
-        out:               RateHeads output dict (mutation_logits, branching_rate, branch_length)
-        active_leaves:     list of active leaf node IDs in T_t (ordered to match out tensors)
-        T1_seqs:           T1 AA sequences (prediction targets)
-        T1_child_counts:   n_children in T1 per active leaf
-        T1_child_bls:      branch lengths to T1 children per active leaf
-        t:                 current interpolation time
-        max_seq_len:       sequence length (same as RateHeads.max_seq_len)
-        lambda_top/br:     auxiliary loss weights
-        device:            torch device string
-    """
     n = len(active_leaves)
-    eps_t = 1e-2
+    eps_t    = 1e-2
     eps_rate = 1e-6
 
     if n == 0:
         z = torch.zeros((), device=device, requires_grad=True)
-        return {"L_seq": z, "L_top": z, "L_br": z, "total": z}
+        return {"L_seq": z, "L_top": z, "L_br": z, "L_stop": z, "L_pll": z, "total": z}
 
     # ── L_seq ─────────────────────────────────────────────────────────────────
-    logits = out["mutation_logits"]  # [n, max_seq_len, 20]
-
-    targets = torch.full((n, max_seq_len), PAD_IDX, dtype=torch.long, device=device)
-    for i, nid in enumerate(active_leaves):
-        seq = T1_seqs.get(nid, "")
-        for j, aa in enumerate(seq[:max_seq_len]):
-            targets[i, j] = AA_TO_IDX.get(aa, PAD_IDX)
-
+    targets = _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device)
     L_seq = F.cross_entropy(
-        logits.reshape(n * max_seq_len, 20),
+        log_R_theta_mut.reshape(n * max_seq_len, 20),
         targets.reshape(n * max_seq_len),
         ignore_index=PAD_IDX,
     )
-    # Doob h-transform time-weighting: loss diverges near t=1, clip with eps_t
     L_seq = L_seq / (1.0 - t + eps_t)
 
     # ── L_top ─────────────────────────────────────────────────────────────────
-    br_rate = out["branching_rate"]  # [n], Softplus output > 0
     child_counts = torch.tensor(
         [T1_child_counts[nid] for nid in active_leaves],
         dtype=torch.float32, device=device,
     )
-    # Poisson NLL with log-rate input
     L_top = F.poisson_nll_loss(
-        torch.log(br_rate + eps_rate),
+        torch.log(log_R_theta_branch + eps_rate),
         child_counts,
         log_input=True,
         full=False,
     )
 
     # ── L_br ──────────────────────────────────────────────────────────────────
-    bl_pred = out["branch_length"]  # [n], Softplus output > 0
     target_bls = torch.tensor(
         [
             (sum(T1_child_bls[nid]) / len(T1_child_bls[nid]))
@@ -89,7 +97,32 @@ def bridge_losses(
         ],
         dtype=torch.float32, device=device,
     )
-    L_br = F.mse_loss(bl_pred, target_bls)
+    L_br = F.mse_loss(branch_length_pred, target_bls)
 
-    total = L_seq + lambda_top * L_top + lambda_br * L_br
-    return {"L_seq": L_seq, "L_top": L_top, "L_br": L_br, "total": total}
+    # ── L_stop ────────────────────────────────────────────────────────────────
+    has_no_children = torch.tensor(
+        [T1_child_counts[nid] == 0 for nid in active_leaves],
+        dtype=torch.float32, device=device,
+    )
+    L_stop = F.binary_cross_entropy(stop_prob, has_no_children)
+
+    # ── L_pll ─────────────────────────────────────────────────────────────────
+    if log_R0_mut is not None:
+        aa_indices = _build_seq_indices(seqs_t, max_seq_len, device)              # [n, L]
+        pll_scores = log_R0_mut.gather(-1, aa_indices.unsqueeze(-1)).squeeze(-1)  # [n, L]
+        pll_mask   = aa_indices != PAD_IDX
+        L_pll = -pll_scores[pll_mask].mean()
+    else:
+        L_pll = torch.zeros((), device=device)
+
+    total = (
+        L_seq
+        + lambda_top  * L_top
+        + lambda_br   * L_br
+        + lambda_stop * L_stop
+        + lambda_pll  * L_pll
+    )
+    return {
+        "L_seq": L_seq, "L_top": L_top, "L_br": L_br,
+        "L_stop": L_stop, "L_pll": L_pll, "total": total,
+    }

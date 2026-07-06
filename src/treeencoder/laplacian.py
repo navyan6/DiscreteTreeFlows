@@ -59,13 +59,8 @@ def compute_laplacian_pe(
         degree[nonzero_degree].pow(-0.5)
     )
 
-    # Move to target device before eigendecomp (GPU eigh is ~20x faster for N~700)
-    adjacency = adjacency.to(device)
-    degree = degree.to(device)
-    inverse_sqrt_degree = inverse_sqrt_degree.to(device)
-
     degree_inv_sqrt = torch.diag(inverse_sqrt_degree)
-    identity = torch.eye(num_nodes, dtype=torch.float32, device=device)
+    identity = torch.eye(num_nodes, dtype=torch.float32)
 
     laplacian = (
         identity
@@ -74,6 +69,7 @@ def compute_laplacian_pe(
         @ degree_inv_sqrt
     )
 
+    # Eigendecomp on CPU — GPU eigh is numerically unstable on B200 (sm_100)
     eigenvalues, eigenvectors = torch.linalg.eigh(laplacian)
 
     available = min(
@@ -90,7 +86,6 @@ def compute_laplacian_pe(
         padding = torch.zeros(
             (num_nodes, num_eigenvectors - available),
             dtype=positional_encoding.dtype,
-            device=positional_encoding.device,
         )
 
         positional_encoding = torch.cat(
@@ -98,4 +93,4 @@ def compute_laplacian_pe(
             dim=1,
         )
 
-    return positional_encoding
+    return positional_encoding.to(device)

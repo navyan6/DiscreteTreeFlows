@@ -145,6 +145,13 @@ class TreeDataset(Dataset):
         else:
             plm_embeddings = None
 
+        # Load cached reference mutation log-rates if available
+        ref_path = d / f"group_{g:03d}_ref_rates.pt"
+        if ref_path.exists():
+            log_ref_mut_rates = torch.load(ref_path, weights_only=True)["log_mut_rates"]
+        else:
+            log_ref_mut_rates = None  # [N, 566, 20] or None
+
         return {
             "group": g,
             "node_ids": node_ids,
@@ -162,4 +169,6 @@ class TreeDataset(Dataset):
             "branch_lengths": branch_lengths,
             # precomputed ESM2 [N, 320] or None if not yet cached
             "plm_embeddings": plm_embeddings,
+            # precomputed log R0 mutation rates [N, 566, 20] or None
+            "log_ref_mut_rates": log_ref_mut_rates,
         }

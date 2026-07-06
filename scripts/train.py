@@ -7,7 +7,7 @@ Each step:
   2. Sample t ~ U(0, t_max_clip).
   3. Construct T_t via SampleBridgeState (Algorithm 2).
   4. Rebuild TreeState / structural features / Laplacian PE for T_t.
-  5. Run NodeEncoder → TreeEncoder (with time conditioning) → H_t.
+  5. Run NodeEncoder and TreeEncoder (with time conditioning) to get H_t.
   6. Run RateHeads for active leaves of T_t.
   7. Compute bridge matching loss vs. T1 targets.
 
@@ -49,15 +49,16 @@ def forward_bridge_step(
     max_seq_len: int = 566,
     lambda_top: float = 0.1,
     lambda_br: float = 0.1,
+    lambda_stop: float = 0.1,
+    lambda_pll: float = 0.01,
     embedder: ESM2Embedder | None = None,
 ) -> tuple[dict | None, int]:
     """
     One forward pass of Algorithm 1.
-
+    or
     Returns (losses_dict, n_active_leaves).
-    Returns (None, 0) if T_t has no usable structure.
     """
-    node_ids        = batch["node_ids"]              # list[str], N
+    node_ids= batch["node_ids"]              # list[str], N
     node_times_t    = batch["node_times"]            # [N] tensor
     seqs            = batch["seqs"]                  # dict[str, str]
     edges           = batch["edges"]                 # list[(parent, child)]
@@ -66,7 +67,6 @@ def forward_bridge_step(
 
     node_times_dict = {nid: node_times_t[i].item() for i, nid in enumerate(node_ids)}
 
-    # ── 1. PLM embeddings for all T1 nodes ───────────────────────────────────
     if batch.get("plm_embeddings") is not None:
         plm_T1 = batch["plm_embeddings"].to(device)              # [N, 320] cached
     elif embedder is not None:
@@ -77,7 +77,6 @@ def forward_bridge_step(
         raise RuntimeError("No PLM embeddings: run scripts/precompute_plm.py first")
     plm_map = {nid: i for i, nid in enumerate(node_ids)}
 
-    # ── 2. Sample intermediate tree T_t ───────────────────────────────────────
     T_t = sample_bridge_state(
         t=t,
         node_ids=node_ids,
@@ -97,7 +96,6 @@ def forward_bridge_step(
     if len(node_ids_t) == 0 or len(active_leaves_t) == 0:
         return None, 0
 
-    # ── 3. Build TreeState for T_t ────────────────────────────────────────────
     tree_t = TreeState(
         node_ids=node_ids_t,
         root_id=root_id,
@@ -108,33 +106,49 @@ def forward_bridge_step(
     )
     node_to_idx_t = {nid: i for i, nid in enumerate(node_ids_t)}
 
-    # ── 4. Structural features + Laplacian PE for T_t (recomputed on device) ─
-    struct_t = compute_structural_features(tree_t, node_to_idx_t).to(device)
-    lap_t    = compute_laplacian_pe(tree_t, node_to_idx_t, lap_dim, device=device)
+    #compute necessary features
 
-    # ── 5. PLM embeddings for T_t nodes (use T1 embeddings, no re-embedding) ─
+    struct_t = compute_structural_features(tree_t, node_to_idx_t).to(device)
+    lap_t = compute_laplacian_pe(tree_t, node_to_idx_t, lap_dim, device=device)
+
     plm_t = torch.stack([plm_T1[plm_map[nid]] for nid in node_ids_t]).to(device)  # [N_t, 320]
 
-    # ── 6. NodeEncoder ────────────────────────────────────────────────────────
+    
     h_t = node_enc(plm_t.to(device), struct_t.to(device), lap_t.to(device))  # [N_t, 128]
 
-    # ── 7. Edge tensors for T_t ───────────────────────────────────────────────
+    # edge tensors
     edge_index_t, _, edge_attr_t = build_edges(tree_t, node_to_idx_t)
     edge_index_t = edge_index_t.to(device)
-    branch_lens_t = edge_attr_t.squeeze(-1).to(device)  # [2E_t]
+    branch_lens_t = edge_attr_t.squeeze(-1).to(device) 
 
-    # ── 8. TreeEncoder with time conditioning ────────────────────────────────
+    # treeencoder + time
     H_t, _ = tree_enc(
         h_t, node_ids_t, node_times_dict, edge_index_t, branch_lens_t, t_scalar=t
-    )  # [N_t, 128]
+    ) 
 
-    # ── 9. RateHeads for active leaves of T_t ─────────────────────────────────
+    # rate heads 
     active_idx_t = [node_to_idx_t[nid] for nid in active_leaves_t]
     out = rate_heads(H_t, active_idx_t)
 
-    # ── 10. Bridge matching loss ───────────────────────────────────────────────
+    # r0
+    if batch.get("log_ref_mut_rates") is not None:
+        log_R0_mut = torch.stack([
+            batch["log_ref_mut_rates"][plm_map[nid]] for nid in active_leaves_t
+        ]).to(device)                                      
+        log_R_theta_mut = log_R0_mut + out["mutation_logits"] 
+    else:
+        log_R0_mut = None
+        log_R_theta_mut = out["mutation_logits"]                
+
+    log_R_theta_branch = out["branching_rate"]
+
     losses = bridge_losses(
-        out=out,
+        log_R_theta_mut=log_R_theta_mut,
+        log_R_theta_branch=log_R_theta_branch,
+        branch_length_pred=out["branch_length"],
+        stop_prob=out["stop_prob"],
+        log_R0_mut=log_R0_mut,
+        seqs_t=[seqs_t[nid] for nid in active_leaves_t],
         active_leaves=active_leaves_t,
         T1_seqs=seqs,
         T1_child_counts=T_t["T1_child_counts"],
@@ -143,6 +157,8 @@ def forward_bridge_step(
         max_seq_len=max_seq_len,
         lambda_top=lambda_top,
         lambda_br=lambda_br,
+        lambda_stop=lambda_stop,
+        lambda_pll=lambda_pll,
         device=device,
     )
 
@@ -161,6 +177,8 @@ def main():
                         help="Max t to sample (avoids 1/(1-t) blow-up near t=1)")
     parser.add_argument("--lambda-top",  type=float, default=0.1)
     parser.add_argument("--lambda-br",   type=float, default=0.1)
+    parser.add_argument("--lambda-stop", type=float, default=0.1)
+    parser.add_argument("--lambda-pll",  type=float, default=0.01)
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -171,7 +189,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    # ── data ──────────────────────────────────────────────────────────────────
+    # ── data 
     dataset = TreeDataset(args.data, max_seq_len=args.max_seq_len)
     n_val   = max(1, int(len(dataset) * args.val_frac))
     n_train = len(dataset) - n_val
@@ -182,7 +200,7 @@ def main():
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=True,  collate_fn=lambda x: x[0])
     val_loader   = DataLoader(val_ds,   batch_size=1, shuffle=False, collate_fn=lambda x: x[0])
 
-    # ── models ────────────────────────────────────────────────────────────────
+    # ── models 
     # Only instantiate ESM2 if PLM caches are missing (fallback)
     first_batch = dataset[0]
     if first_batch.get("plm_embeddings") is None:
@@ -211,12 +229,12 @@ def main():
     best_val = float("inf")
     patience_counter = 0
 
-    # ── training loop ─────────────────────────────────────────────────────────
+    # ── training loop 
     for epoch in range(1, args.epochs + 1):
         node_enc.train(); tree_enc.train(); rate_heads.train()
         train_loss = 0.0
         n_steps = 0
-        loss_breakdown = {"L_seq": 0.0, "L_top": 0.0, "L_br": 0.0}
+        loss_breakdown = {"L_seq": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0}
 
         for batch in train_loader:
             t = random.uniform(0.0, args.t_max)
@@ -227,6 +245,8 @@ def main():
                 max_seq_len=args.max_seq_len,
                 lambda_top=args.lambda_top,
                 lambda_br=args.lambda_br,
+                lambda_stop=args.lambda_stop,
+                lambda_pll=args.lambda_pll,
                 embedder=embedder,
             )
             if losses is None or n_active == 0:
@@ -251,7 +271,7 @@ def main():
             for k in loss_breakdown:
                 loss_breakdown[k] /= n_steps
 
-        # ── validation (fixed t=0.5 for reproducibility) ─────────────────────
+        # ── validation (fixed t=0.5 for reproducibility) 
         node_enc.eval(); tree_enc.eval(); rate_heads.eval()
         val_loss = 0.0
         n_val_steps = 0
@@ -262,6 +282,7 @@ def main():
                     node_enc=node_enc, tree_enc=tree_enc, rate_heads=rate_heads,
                     device=device, max_seq_len=args.max_seq_len,
                     lambda_top=args.lambda_top, lambda_br=args.lambda_br,
+                    lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -279,7 +300,9 @@ def main():
             f"train={train_loss:.4f} "
             f"(seq={loss_breakdown['L_seq']:.3f} "
             f"top={loss_breakdown['L_top']:.3f} "
-            f"br={loss_breakdown['L_br']:.3f})  "
+            f"br={loss_breakdown['L_br']:.3f} "
+            f"stop={loss_breakdown['L_stop']:.3f} "
+            f"pll={loss_breakdown['L_pll']:.3f})  "
             f"val={val_loss:.4f}  lr={lr:.2e}"
         )
 
@@ -300,10 +323,10 @@ def main():
                 print(f"\nEarly stopping at epoch {epoch} (no improvement for {args.patience} epochs)")
                 break
 
-    print(f"\nBest val loss: {best_val:.4f}  →  {ckpt_dir}/best.pt")
+    print(f"\nBest val loss: {best_val:.4f}  -> {ckpt_dir}/best.pt")
 
-    # ── export embeddings for all trees using trained weights ─────────────────
-    print("\nExporting embeddings with trained weights...")
+    # export embeddings
+    print("\nExporting embeddings with trained weights")
     export_embeddings(dataset, node_enc, tree_enc, device, Path(args.data))
     print("Done.")
 
@@ -315,14 +338,7 @@ def export_embeddings(
     device: str,
     data_dir: Path,
 ):
-    """
-    For each tree in the dataset, save:
-      - plm:       [N, 320]  raw ESM2 embeddings (already cached, just copied)
-      - node_emb:  [N, 128]  NodeEncoder output (PLM + structural + Laplacian PE fused)
-      - ctx_emb:   [N, 128]  TreeEncoder output at t=1.0 (fully contextualized)
 
-    Saved to data_dir/group_NNN_trained_emb.pt
-    """
     node_enc.eval()
     tree_enc.eval()
 
@@ -341,7 +357,6 @@ def export_embeddings(
             node_times_dict = {nid: node_times_t[i].item() for i, nid in enumerate(node_ids)}
             root_id = node_ids[batch["root_index"]]
 
-            # Build full T1 TreeState for structural features / Laplacian
             has_children = {p for p, c in edges}
             tree_T1 = TreeState(
                 node_ids=node_ids, root_id=root_id,

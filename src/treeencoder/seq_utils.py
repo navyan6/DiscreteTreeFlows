@@ -1,22 +1,10 @@
-"""Nucleotide → amino acid translation utilities for influenza HA sequences."""
+#Nucleotide to amino acid translation utilities for influenza HA sequences.
 
 from Bio.Seq import Seq
 
 
 def nt_to_aa(nt_seq: str, cds_start: int | None = None) -> str:
-    """
-    Translate a nucleotide sequence to amino acids.
-
-    Finds the first ATG automatically if cds_start is not given.
-    Returns the AA sequence up to (not including) the first stop codon.
-
-    Args:
-        nt_seq:    nucleotide string (may contain leading/trailing UTR)
-        cds_start: position of the first ATG; auto-detected if None
-
-    Returns:
-        amino acid string (no stop codon)
-    """
+    #translates a nucleotide sequence to amino acids, starting at the first ATG if cds_start is None
     seq = nt_seq.upper().replace('-', '')
 
     if cds_start is None:
@@ -25,11 +13,9 @@ def nt_to_aa(nt_seq: str, cds_start: int | None = None) -> str:
             raise ValueError("No ATG start codon found in sequence")
 
     cds = seq[cds_start:]
-    # Trim to multiple of 3
     cds = cds[:len(cds) - len(cds) % 3]
     aa = str(Seq(cds).translate())
 
-    # Trim at first stop codon
     stop_idx = aa.find('*')
     if stop_idx != -1:
         aa = aa[:stop_idx]
@@ -38,11 +24,6 @@ def nt_to_aa(nt_seq: str, cds_start: int | None = None) -> str:
 
 
 def translate_asr_fasta(input_fasta: str, output_fasta: str) -> int:
-    """
-    Translate all sequences in an ASR nucleotide FASTA to amino acids.
-
-    Returns number of sequences written.
-    """
     from Bio import SeqIO
     from Bio.SeqRecord import SeqRecord
 

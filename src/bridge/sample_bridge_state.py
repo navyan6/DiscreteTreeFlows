@@ -21,26 +21,7 @@ def sample_bridge_state(
     seqs: dict[str, str],
     root_id: str,
 ) -> dict:
-    """
-    Args:
-        t:               interpolation time in [0, 1]
-        node_ids:        BFS-ordered list of all T1 node IDs
-        node_times_dict: numdate per node
-        edges:           (parent, child) tuples for T1
-        branch_lengths:  branch length per (parent, child) for T1
-        seqs:            AA sequence per node for T1 (after ASR)
-        root_id:         root node ID
-
-    Returns dict with:
-        node_ids_t:       retained node IDs (BFS order)
-        edges_t:          retained (parent, child) tuples
-        branch_lengths_t: {(p,c): t * ℓ(e)} for retained edges
-        seqs_t:           partial sequences for retained nodes
-        active_leaves_t:  frontier nodes (leaves of T_t with no retained children)
-        T1_child_counts:  {leaf: n_children_in_T1} for each active leaf
-        T1_child_bls:     {leaf: [branch_lengths_to_T1_children]} for each active leaf
-        t_cut:            absolute calendar time cutoff
-    """
+#    Sample a bridge state T_t at time t in [0,1] between T0 and T1.
     # 1. Time cutoff
     times = [node_times_dict[nid] for nid in node_ids]
     t_root_val = min(times)
@@ -57,8 +38,8 @@ def sample_bridge_state(
     # 3. Retain edges where both parent and child are retained
     retained_edges = [(p, c) for p, c in edges if p in retained and c in retained]
 
-    # 4. Scale branch lengths by t (ℓ_t(e) = t * ℓ(e))
-    branch_lengths_t = {(p, c): t * branch_lengths[(p, c)] for p, c in retained_edges}
+    # 4. Branch lengths for retained edges are their full T1 values (branch is fully elapsed)
+    branch_lengths_t = {(p, c): branch_lengths[(p, c)] for p, c in retained_edges}
 
     # 5. Partial sequences via Bernoulli-sampling mutations per branch
     parent_map = {c: p for p, c in retained_edges}
@@ -89,7 +70,7 @@ def sample_bridge_state(
                 partial[pos] = c_seq[pos]
         seqs_t[nid] = "".join(partial)
 
-    # 6. Active leaves of T_t (frontier: no retained children)
+    # 6. Active leaves of T_t 
     has_children_t = {p for p, c in retained_edges}
     active_leaves_t = [nid for nid in node_ids_t if nid not in has_children_t]
 
