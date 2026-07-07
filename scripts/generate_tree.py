@@ -170,25 +170,7 @@ def generate_tree(args):
             seq     = tree.node_seqs[leaf_id]
             seq_len = min(len(seq), args.max_seq_len)
 
-            #  PLL check 
-            aa_idx_i = torch.tensor(
-                [AA_TO_IDX.get(aa, 20) for aa in seq[:seq_len]],
-                dtype=torch.long, device=device,
-            )
-            valid = aa_idx_i < 20
-            if valid.any():
-                pll_i = (
-                    log_R0_mut[i, :seq_len]
-                    .gather(-1, aa_idx_i.clamp(max=19).unsqueeze(-1))
-                    .squeeze(-1)[valid]
-                    .mean()
-                    .item()
-                )
-                if pll_i < args.pll_threshold:
-                    tree = tree.terminate_leaf(leaf_id)
-                    continue
-
-            #  Stop 
+            #  Stop
             if torch.bernoulli(out["stop_prob"][i]).item():
                 tree = tree.terminate_leaf(leaf_id)
                 continue
@@ -277,8 +259,6 @@ def main():
                         help="Root amino acid sequence")
     parser.add_argument("--n-steps",       type=int,   default=50)
     parser.add_argument("--output",        default="generated_tree.nwk")
-    parser.add_argument("--pll-threshold", type=float, default=-2.5,
-                        help="Terminate branch if mean ESM PLL < this (nats/position)")
     parser.add_argument("--max-seq-len",   type=int,   default=566)
     parser.add_argument("--beta",          type=float, default=1.0,
                         help="MH acceptance temperature (higher = stricter ESM fitness gate)")
