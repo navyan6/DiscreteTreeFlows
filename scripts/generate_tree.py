@@ -256,6 +256,16 @@ def generate_tree(args):
     out_path = Path(args.output)
     out_path.write_text(nwk)
     print(f"Saved to {out_path}")
+
+    # Save all node sequences as FASTA
+    fasta_path = out_path.with_suffix(".fasta")
+    has_children = {p for p, c in tree.edges}
+    with open(fasta_path, "w") as f:
+        for nid in tree.node_ids:
+            tag = "root" if nid == tree.root_id else ("leaf" if nid not in has_children else "internal")
+            f.write(f">{nid}|{tag}\n{tree.node_seqs[nid]}\n")
+    print(f"Sequences saved to {fasta_path}")
+
     return tree
 
 
