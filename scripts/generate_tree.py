@@ -170,25 +170,18 @@ def generate_tree(args):
             seq     = tree.node_seqs[leaf_id]
             seq_len = min(len(seq), args.max_seq_len)
 
-            #  Stop
-            if torch.bernoulli(out["stop_prob"][i]).item():
-                tree = tree.terminate_leaf(leaf_id)
-                continue
-
-            #  Mutations (Metropolis-Hastings: model-guided proposal + ESM fitness gate) ──
+            # ── Mutations (M-H: model-guided proposal + ESM fitness gate) ──
             new_seq = list(seq)
             for pos in range(seq_len):
                 curr_idx = AA_TO_IDX.get(seq[pos], -1)
                 if curr_idx < 0:
                     continue
 
-                # Propose from model distribution (log R0 + c_theta)
                 probs = log_R_theta_mut[i, pos].softmax(-1)
                 proposed_idx = torch.multinomial(probs, 1).item()
                 if proposed_idx == curr_idx:
                     continue
 
-                # Accept/reject by ESM fitness (Metropolis-Hastings)
                 delta_pll = (log_R0_mut[i, pos, proposed_idx]
                              - log_R0_mut[i, pos, curr_idx]).item()
                 accept_prob = min(1.0, math.exp(args.beta * delta_pll))
@@ -197,13 +190,11 @@ def generate_tree(args):
                     new_seq[pos] = AA_VOCAB[proposed_idx]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
-            # Branch 
-            # Clamp to 2: phylogenetic trees are bifurcating
+            # ── Branch ──
             lam  = out["branching_rate"][i].item()
             n_ch = min(int(torch.poisson(torch.tensor(lam * dt)).item()), 2)
             if n_ch > 0:
                 child_seqs = [new_node_seqs[leaf_id]] * n_ch
-                # Rebuild tree with updated sequences before branching
                 tree = TreeState(
                     node_ids=tree.node_ids, root_id=tree.root_id,
                     edges=tree.edges, branch_lengths=tree.branch_lengths,
@@ -212,7 +203,6 @@ def generate_tree(args):
                 )
                 tree = tree.branch_node(leaf_id, child_seqs)
 
-                # Assign predicted branch length to new edges
                 bl_pred = out["branch_length"][i].item()
                 new_children = tree.get_children(leaf_id)
                 new_bls = {(leaf_id, c): bl_pred for c in new_children}
@@ -225,8 +215,26 @@ def generate_tree(args):
                 )
                 new_node_seqs = dict(tree.node_seqs)
 
+                # ── ESM fitness gate: terminate new children with very low PLL ──
                 for child_id in new_children:
                     node_birth_step.setdefault(child_id, step + 1)
+                    child_seq = new_node_seqs[child_id]
+                    child_len = min(len(child_seq), args.max_seq_len)
+                    aa_idx_c = torch.tensor(
+                        [AA_TO_IDX.get(aa, 20) for aa in child_seq[:child_len]],
+                        dtype=torch.long, device=device,
+                    )
+                    valid = aa_idx_c < 20
+                    if valid.any():
+                        child_pll = (
+                            log_R0_mut[i, :child_len]
+                            .gather(-1, aa_idx_c.clamp(max=19).unsqueeze(-1))
+                            .squeeze(-1)[valid]
+                            .mean()
+                            .item()
+                        )
+                        if child_pll < args.pll_threshold:
+                            tree = tree.terminate_leaf(child_id)
 
         # Flush sequence updates for non-branching leaves
         tree = TreeState(
@@ -260,6 +268,8 @@ def main():
     parser.add_argument("--n-steps",       type=int,   default=50)
     parser.add_argument("--output",        default="generated_tree.nwk")
     parser.add_argument("--max-seq-len",   type=int,   default=566)
+    parser.add_argument("--pll-threshold", type=float, default=-4.0,
+                        help="Terminate new child immediately if its ESM PLL < this (nats/position)")
     parser.add_argument("--beta",          type=float, default=1.0,
                         help="MH acceptance temperature (higher = stricter ESM fitness gate)")
     args = parser.parse_args()
