@@ -7,6 +7,7 @@
 #SBATCH --time=4:00:00
 #SBATCH --output=logs/slurm_eval_%j.log
 #SBATCH --error=logs/slurm_eval_%j.log
+#SBATCH --exclude=dgx024
 
 source ~/.bashrc
 module load miniconda3/25.5.1
