@@ -20,12 +20,12 @@ echo "Node:   $SLURMD_NODENAME"
 echo "GPU:    $CUDA_VISIBLE_DEVICES"
 echo "Start:  $(date)"
 
-python scripts/train.py \
+python -u scripts/train.py \
     --data        data/train \
     --epochs      300 \
     --lr          1e-4 \
     --t-max       0.95 \
-    --lambda-top  0.1 \
+    --lambda-top  0.5 \
     --lambda-br   0.1 \
     --ckpt-dir    checkpoints \
     --max-seq-len 566 \

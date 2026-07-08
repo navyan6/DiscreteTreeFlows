@@ -22,7 +22,8 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import json
-from torch.utils.data import DataLoader, random_split
+from collections import defaultdict
+from torch.utils.data import DataLoader, Subset
 
 ROOT = Path(__file__).parent.parent
 import sys; sys.path.insert(0, str(ROOT))
@@ -193,12 +194,44 @@ def main():
 
     # ── data
     dataset = TreeDataset(args.data, max_seq_len=args.max_seq_len)
-    n_test  = max(1, int(len(dataset) * args.test_frac))
-    n_val   = max(1, int(len(dataset) * args.val_frac))
-    n_train = len(dataset) - n_val - n_test
-    generator = torch.Generator().manual_seed(args.seed)
-    train_ds, val_ds, test_ds = random_split(dataset, [n_train, n_val, n_test], generator=generator)
-    print(f"Train: {n_train}  Val: {n_val}  Test: {n_test}")
+
+    def subtype_of(group: int) -> str:
+        if   1   <= group <= 48:  return "h3n2"
+        elif 49  <= group <= 55:  return "swine"
+        elif group == 56:         return "avian"
+        elif 57  <= group <= 106: return "h1n1_ha"
+        elif 107 <= group <= 156: return "h1n1_na"
+        elif 157 <= group <= 206: return "h1n1_2015"
+        elif 207 <= group <= 238: return "fluB_yam"
+        elif 239 <= group <= 284: return "fluB_vic"
+        return "unknown"
+
+    bins: dict[str, list[int]] = defaultdict(list)
+    for i in range(len(dataset)):
+        bins[subtype_of(dataset.groups[i])].append(i)
+
+    rng = random.Random(args.seed)
+    train_idx, val_idx, test_idx = [], [], []
+    for subtype in sorted(bins):
+        indices = bins[subtype]
+        rng.shuffle(indices)
+        n = len(indices)
+        if n < 3:
+            train_idx += indices
+            print(f"  {subtype}: {n} tree(s) → all train (too small to split)")
+            continue
+        n_t  = max(1, int(n * args.test_frac))
+        n_v  = max(1, int(n * args.val_frac))
+        n_tr = n - n_t - n_v
+        train_idx += indices[:n_tr]
+        val_idx   += indices[n_tr:n_tr + n_v]
+        test_idx  += indices[n_tr + n_v:]
+        print(f"  {subtype}: {n} trees → {n_tr} train / {n_v} val / {n_t} test")
+
+    train_ds = Subset(dataset, train_idx)
+    val_ds   = Subset(dataset, val_idx)
+    test_ds  = Subset(dataset, test_idx)
+    print(f"Total — Train: {len(train_idx)}  Val: {len(val_idx)}  Test: {len(test_idx)}")
 
     # save split indices so the held-out test set is always recoverable
     split_path = Path(args.ckpt_dir) / "split_indices.json"
