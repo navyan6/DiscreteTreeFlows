@@ -29,12 +29,12 @@ def compute_laplacian_pe(
         return torch.empty(
             (num_nodes, 0),
             dtype=torch.float32,
-        )
+        ).to(device)
     if num_nodes == 1:
         return torch.zeros(
             (1, num_eigenvectors),
             dtype=torch.float32,
-        )
+        ).to(device)
 
     # A[i, j] = 1 when nodes i and j share a tree edge.
     adjacency = torch.zeros(
