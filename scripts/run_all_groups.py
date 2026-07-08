@@ -36,6 +36,10 @@ DATA = ROOT / "data" / "train"
 AUGUR_BIN = os.environ.get("AUGUR_BIN", "augur")  # override with full path if needed
 FASTTREE_BIN = "fasttree"
 
+# Set by main() before workers are spawned
+INPUT_PREFIX = "master_h3n2"   # prefix of split input files: {PREFIX}_group_{NNN}.fasta
+GROUP_OFFSET = 0                # local group 1 → global group 1+OFFSET
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 LOG_DIR = ROOT / "logs"
@@ -71,11 +75,11 @@ def done(path: Path) -> bool:
 def stage_clean(g: int) -> tuple[Path, Path]:
     """
     Returns (clean_fasta, meta_csv) — both deduplicated on EPI_ISL ID.
-    The meta_csv is used downstream by augur refine so IDs are consistent
-    across FASTA, tree leaves, metadata, and all augur outputs.
+    g is the GLOBAL group number. Local source file uses g - GROUP_OFFSET.
     """
-    src_fasta = DATA / f"master_h3n2_group_{g:03d}.fasta"
-    src_csv   = DATA / f"master_h3n2_group_{g:03d}.csv"
+    local_g   = g - GROUP_OFFSET
+    src_fasta = DATA / f"{INPUT_PREFIX}_group_{local_g:03d}.fasta"
+    src_csv   = DATA / f"{INPUT_PREFIX}_group_{local_g:03d}.csv"
     out_fasta = DATA / f"group_{g:03d}_clean.fasta"
     out_csv   = DATA / f"group_{g:03d}_meta.csv"
 
@@ -284,16 +288,39 @@ def run_group(g: int, stop_after: str | None) -> str:
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    global INPUT_PREFIX, GROUP_OFFSET
+
     parser = argparse.ArgumentParser()
+    parser.add_argument("--prefix", default="master_h3n2",
+                        help="Input file prefix from split_fasta_by_date.py (e.g. h3n2_swine_all)")
+    parser.add_argument("--group-offset", type=int, default=0,
+                        help="Add this to local group numbers to get global group numbers "
+                             "(e.g. 48 if 48 groups already exist)")
     parser.add_argument("--groups", nargs="+", type=int,
-                        help="group numbers (default: 1–48)")
+                        help="Explicit global group numbers to process (default: auto-detect)")
     parser.add_argument("--workers", type=int, default=4,
                         help="parallel workers (default: 4)")
     parser.add_argument("--stop-after", choices=STAGES,
                         help="stop each group after this stage")
     args = parser.parse_args()
 
-    groups = args.groups or list(range(1, 49))
+    INPUT_PREFIX = args.prefix
+    GROUP_OFFSET = args.group_offset
+
+    if args.groups:
+        groups = args.groups
+    else:
+        # Auto-detect: find all {prefix}_group_NNN.fasta files
+        local_groups = sorted([
+            int(p.stem.split("_group_")[1])
+            for p in DATA.glob(f"{INPUT_PREFIX}_group_*.fasta")
+        ])
+        if not local_groups:
+            print(f"No files matching {DATA}/{INPUT_PREFIX}_group_*.fasta found.")
+            return
+        groups = [lg + GROUP_OFFSET for lg in local_groups]
+        print(f"Auto-detected {len(groups)} groups: {groups[0]}–{groups[-1]}")
+
     stop_after = args.stop_after
 
     print(f"Processing {len(groups)} groups with {args.workers} workers")

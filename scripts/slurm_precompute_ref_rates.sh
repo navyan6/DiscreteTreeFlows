@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=treesbm_ref_rates
-#SBATCH --partition=b200-mig45
+#SBATCH --partition=dgx-b200
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=24G
-#SBATCH --time=01:00:00
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=48G
+#SBATCH --time=4:00:00
 #SBATCH --output=logs/slurm_ref_rates_%j.log
 #SBATCH --error=logs/slurm_ref_rates_%j.log
 

@@ -10,7 +10,7 @@ def split_fasta_by_date(input_fasta, group_size=400, output_dir='data/train'):
 
     records = []
     for rec in SeqIO.parse(input_fasta, 'fasta'):
-        # Headers are already >EPI_ISL_XXXXXX,DATE
+        # Headers: >EPI_ISL_XXXXXX,YYYY-MM-DD
         parts = rec.description.split(',', 1)
         name = parts[0].strip()
         date_str = parts[1].strip() if len(parts) > 1 else "2000-01-01"

@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=treesbm_train
-#SBATCH --partition=b200-mig45
+#SBATCH --partition=dgx-b200
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=48G
-#SBATCH --time=4:00:00
+#SBATCH --time=48:00:00
 #SBATCH --output=logs/slurm_train_%j.log
 #SBATCH --error=logs/slurm_train_%j.log
 
@@ -28,6 +28,8 @@ python scripts/train.py \
     --lambda-top  0.1 \
     --lambda-br   0.1 \
     --ckpt-dir    checkpoints \
-    --max-seq-len 566
+    --max-seq-len 566 \
+    --patience    50 \
+    --test-frac   0.1
 
 echo "Done: $(date)"

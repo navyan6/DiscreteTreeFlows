@@ -60,15 +60,16 @@ def load_checkpoint(path, device, max_seq_len=566):
 
 
 def get_lm_logits(tokenizer, esm_model, aa_token_ids, sequences, max_seq_len, device):
-#get ESM logits
     N, L = len(sequences), max_seq_len
     log_rates = torch.zeros(N, L, 20, dtype=torch.float32, device=device)
-    for i, seq in enumerate(sequences):
-        with torch.no_grad():
-            tokens = tokenizer(seq, return_tensors="pt").to(device)
-            logits = esm_model(**tokens).logits          # [1, actual_L+2, 33]
-        actual_L = int(tokens["attention_mask"].sum().item()) - 2
-        aa_logits = logits[0, 1:actual_L + 1, :][:, aa_token_ids]  # [actual_L, 20]
+    with torch.no_grad():
+        tokens = tokenizer(sequences, return_tensors="pt", padding=True,
+                           truncation=False).to(device)
+        logits = esm_model(**tokens).logits          # [N, max_len+2, vocab]
+    seq_lens = tokens["attention_mask"].sum(dim=1)
+    for i in range(N):
+        actual_L = int(seq_lens[i].item()) - 2
+        aa_logits = logits[i, 1:actual_L + 1, :][:, aa_token_ids]
         log_probs = F.log_softmax(aa_logits, dim=-1)
         clip = min(actual_L, L)
         log_rates[i, :clip, :] = log_probs[:clip]
@@ -96,6 +97,17 @@ def tree_to_newick(tree: TreeState) -> str:
 
 
 def generate_tree(args):
+    seq = args.root_seq.upper()
+    nt_chars = set("ACGTU")
+    nt_frac = sum(c in nt_chars for c in seq) / max(len(seq), 1)
+    if nt_frac > 0.85:
+        raise ValueError(
+            f"root-seq looks like a nucleotide sequence ({nt_frac:.0%} ACGTU). "
+            "Translate to amino acids first."
+        )
+    aa_frac = sum(c in AA_VOCAB for c in seq) / max(len(seq), 1)
+    print(f"Root sequence: {len(seq)} aa  ({aa_frac:.0%} standard AA)")
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 

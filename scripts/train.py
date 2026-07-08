@@ -21,6 +21,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
+import json
 from torch.utils.data import DataLoader, random_split
 
 ROOT = Path(__file__).parent.parent
@@ -171,6 +172,7 @@ def main():
     parser.add_argument("--epochs",      type=int,   default=100)
     parser.add_argument("--lr",          type=float, default=1e-4)
     parser.add_argument("--val-frac",    type=float, default=0.1)
+    parser.add_argument("--test-frac",   type=float, default=0.1)
     parser.add_argument("--ckpt-dir",    default="checkpoints")
     parser.add_argument("--seed",        type=int,   default=42)
     parser.add_argument("--t-max",       type=float, default=0.95,
@@ -189,16 +191,25 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    # ── data 
+    # ── data
     dataset = TreeDataset(args.data, max_seq_len=args.max_seq_len)
+    n_test  = max(1, int(len(dataset) * args.test_frac))
     n_val   = max(1, int(len(dataset) * args.val_frac))
-    n_train = len(dataset) - n_val
-    train_ds, val_ds = random_split(dataset, [n_train, n_val])
-    print(f"Train: {n_train}  Val: {n_val}")
+    n_train = len(dataset) - n_val - n_test
+    generator = torch.Generator().manual_seed(args.seed)
+    train_ds, val_ds, test_ds = random_split(dataset, [n_train, n_val, n_test], generator=generator)
+    print(f"Train: {n_train}  Val: {n_val}  Test: {n_test}")
+
+    # save split indices so the held-out test set is always recoverable
+    split_path = Path(args.ckpt_dir) / "split_indices.json"
+    split_path.parent.mkdir(exist_ok=True)
+    with open(split_path, "w") as f:
+        json.dump({"train": train_ds.indices, "val": val_ds.indices, "test": test_ds.indices}, f)
 
     # batch_size=1 (trees vary in node count — no collation)
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=True,  collate_fn=lambda x: x[0])
     val_loader   = DataLoader(val_ds,   batch_size=1, shuffle=False, collate_fn=lambda x: x[0])
+    test_loader  = DataLoader(test_ds,  batch_size=1, shuffle=False, collate_fn=lambda x: x[0])
 
     # ── models 
     # Only instantiate ESM2 if PLM caches are missing (fallback)
@@ -324,6 +335,32 @@ def main():
                 break
 
     print(f"\nBest val loss: {best_val:.4f}  -> {ckpt_dir}/best.pt")
+
+    # ── test evaluation on best checkpoint ──
+    ckpt = torch.load(ckpt_dir / "best.pt", map_location=device, weights_only=False)
+    node_enc.load_state_dict(ckpt["node_enc"])
+    tree_enc.load_state_dict(ckpt["tree_enc"])
+    rate_heads.load_state_dict(ckpt["rate_heads"])
+    node_enc.eval(); tree_enc.eval(); rate_heads.eval()
+    test_loss = 0.0
+    n_test_steps = 0
+    with torch.no_grad():
+        for batch in test_loader:
+            losses, n_active = forward_bridge_step(
+                batch, t=0.5,
+                node_enc=node_enc, tree_enc=tree_enc, rate_heads=rate_heads,
+                device=device, max_seq_len=args.max_seq_len,
+                lambda_top=args.lambda_top, lambda_br=args.lambda_br,
+                lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
+                embedder=embedder,
+            )
+            if losses is None or n_active == 0:
+                continue
+            test_loss += losses["total"].item()
+            n_test_steps += 1
+    if n_test_steps > 0:
+        test_loss /= n_test_steps
+    print(f"Test  loss: {test_loss:.4f}  ({n_test_steps} trees)")
 
     # export embeddings
     print("\nExporting embeddings with trained weights")
