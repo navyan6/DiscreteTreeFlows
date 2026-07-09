@@ -9,6 +9,7 @@ Mutations along each branch are Bernoulli-sampled with probability proportional
 to how far t_cut has advanced along the branch's time interval.
 """
 
+import math
 import random
 
 
@@ -79,7 +80,18 @@ def sample_bridge_state(
     for p, c in edges:
         T1_children_map.setdefault(p, []).append(c)
 
-    T1_child_counts = {v: len(T1_children_map.get(v, [])) for v in active_leaves_t}
+    def _count_descendants(node: str) -> int:
+        count = 0
+        stack = list(T1_children_map.get(node, []))
+        while stack:
+            child = stack.pop()
+            count += 1
+            stack.extend(T1_children_map.get(child, []))
+        return count
+
+    # log(total_T1_descendants + 1) gives the correct continuous-time birth rate scale:
+    # root with 400 leaf descendants → target ≈ ln(401) ≈ 6; terminal leaf → 0.
+    T1_child_counts = {v: math.log(_count_descendants(v) + 1) for v in active_leaves_t}
     T1_child_bls = {
         v: [branch_lengths[(v, c)] for c in T1_children_map.get(v, [])]
         for v in active_leaves_t
