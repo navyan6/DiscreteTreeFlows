@@ -88,7 +88,7 @@ def all_valid_aa(seq: str) -> bool:
     return all(c in AA_VOCAB for c in seq)
 
 
-def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta,
+def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rate_scale,
                  node_enc, tree_enc, rate_heads, embedder,
                  tokenizer, esm_model, aa_token_ids, device):
     tree = TreeState.root_only(root_seq)
@@ -144,7 +144,7 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta,
                     new_seq[pos] = AA_VOCAB[proposed_idx]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
-            lam  = out["branching_rate"][i].item()
+            lam  = out["branching_rate"][i].item() * branch_rate_scale
             p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
             n_ch = 2 if torch.rand(1).item() < p_branch else 0
             if n_ch > 0:
@@ -198,9 +198,12 @@ def main():
     parser.add_argument("--split",         default="checkpoints/split_indices.json")
     parser.add_argument("--n-steps",       type=int,   default=30)
     parser.add_argument("--max-seq-len",   type=int,   default=566)
-    parser.add_argument("--pll-threshold", type=float, default=-4.0)
-    parser.add_argument("--beta",          type=float, default=1.0)
-    parser.add_argument("--max-trees",     type=int,   default=None,
+    parser.add_argument("--pll-threshold",     type=float, default=-100.0,
+                        help="Terminate new child if ESM PLL < this; -100 disables gate")
+    parser.add_argument("--beta",              type=float, default=1.0)
+    parser.add_argument("--branch-rate-scale", type=float, default=6.0,
+                        help="Multiply model branching rate by this at inference")
+    parser.add_argument("--max-trees",         type=int,   default=None,
                         help="Cap number of test trees to evaluate (default: all)")
     args = parser.parse_args()
 
@@ -250,7 +253,7 @@ def main():
         try:
             gen_tree = generate_one(
                 root_seq, args.n_steps, args.max_seq_len,
-                args.pll_threshold, args.beta,
+                args.pll_threshold, args.beta, args.branch_rate_scale,
                 node_enc, tree_enc, rate_heads, embedder,
                 tokenizer, esm_model, aa_token_ids, device,
             )

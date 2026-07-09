@@ -203,7 +203,7 @@ def generate_tree(args):
             new_node_seqs[leaf_id] = "".join(new_seq)
 
             # ── Branch ──
-            lam  = out["branching_rate"][i].item()
+            lam  = out["branching_rate"][i].item() * args.branch_rate_scale
             p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
             n_ch = 2 if torch.rand(1).item() < p_branch else 0
             if n_ch > 0:
@@ -291,10 +291,12 @@ def main():
     parser.add_argument("--n-steps",       type=int,   default=50)
     parser.add_argument("--output",        default="generated_tree.nwk")
     parser.add_argument("--max-seq-len",   type=int,   default=566)
-    parser.add_argument("--pll-threshold", type=float, default=-4.0,
-                        help="Terminate new child immediately if its ESM PLL < this (nats/position)")
-    parser.add_argument("--beta",          type=float, default=1.0,
+    parser.add_argument("--pll-threshold",    type=float, default=-100.0,
+                        help="Terminate new child if ESM PLL < this (nats/position); -100 disables gate")
+    parser.add_argument("--beta",             type=float, default=1.0,
                         help="MH acceptance temperature (higher = stricter ESM fitness gate)")
+    parser.add_argument("--branch-rate-scale", type=float, default=6.0,
+                        help="Multiply model branching rate by this at inference (corrects lam≈1 → lam≈6)")
     args = parser.parse_args()
     generate_tree(args)
 
