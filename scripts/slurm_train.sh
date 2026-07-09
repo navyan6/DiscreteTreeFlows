@@ -8,9 +8,8 @@
 #SBATCH --output=logs/slurm_train_%j.log
 #SBATCH --error=logs/slurm_train_%j.log
 
-source ~/.bashrc
-module load miniconda3/25.5.1
-source activate treesbm
+export PATH=/vast/home/n/nnori/.conda/envs/treesbm/bin:$PATH
+PYTHON=/vast/home/n/nnori/.conda/envs/treesbm/bin/python
 
 cd ~/DiscreteTreeFlows
 mkdir -p logs checkpoints
@@ -20,7 +19,7 @@ echo "Node:   $SLURMD_NODENAME"
 echo "GPU:    $CUDA_VISIBLE_DEVICES"
 echo "Start:  $(date)"
 
-python -u scripts/train.py \
+$PYTHON -u scripts/train.py \
     --data        data/train \
     --epochs      300 \
     --lr          1e-4 \
