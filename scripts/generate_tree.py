@@ -162,18 +162,18 @@ def generate_tree(args):
         seqs_list = [tree.node_seqs[nid] for nid in node_ids_t]
         plm_t = embedder.embed_sequences(seqs_list).to(device)
 
+        # R0 log-rates computed first so mutation head can condition on them
+        active_seqs = [tree.node_seqs[v] for v in active_leaves]
+        log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
+                                     active_seqs, args.max_seq_len, device)
+
         # NodeEncoder → TreeEncoder → RateHeads
         with torch.no_grad():
             h_t  = node_enc(plm_t, struct_t, lap_t)
             H_t, _ = tree_enc(h_t, node_ids_t, node_times_dict,
                                edge_index_t, branch_lens_t, t_scalar=t)
-            out  = rate_heads(H_t, active_idx)
-
-        # R0 log-rates for active leaf sequences
-        active_seqs = [tree.node_seqs[v] for v in active_leaves]
-        log_R0_mut   = get_lm_logits(tokenizer, esm_model, aa_token_ids,
-                                      active_seqs, args.max_seq_len, device)
-        log_R_theta_mut = log_R0_mut + out["mutation_logits"]   # [n_active, L, 20]
+            out  = rate_heads(H_t, active_idx, log_R0_mut)
+        # out["log_R_theta_mut"] = log_R0 + c_θ  [n_active, L, 20]
 
         # Sample events for each active leaf
         new_node_seqs = dict(tree.node_seqs)
@@ -189,7 +189,7 @@ def generate_tree(args):
                 if curr_idx < 0:
                     continue
 
-                probs = log_R_theta_mut[i, pos].softmax(-1)
+                probs = out["log_R_theta_mut"][i, pos].softmax(-1)
                 proposed_idx = torch.multinomial(probs, 1).item()
                 if proposed_idx == curr_idx:
                     continue

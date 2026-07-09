@@ -113,16 +113,15 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta,
         branch_lens_t = edge_attr_t.squeeze(-1).to(device)
 
         plm_t = embedder.embed_sequences([tree.node_seqs[nid] for nid in node_ids_t]).to(device)
+        active_seqs   = [tree.node_seqs[v] for v in active_leaves]
+        log_R0_mut    = get_lm_logits(tokenizer, esm_model, aa_token_ids,
+                                      active_seqs, max_seq_len, device)
+
         with torch.no_grad():
             h_t  = node_enc(plm_t, struct_t, lap_t)
             H_t, _ = tree_enc(h_t, node_ids_t, node_times_dict,
                                edge_index_t, branch_lens_t, t_scalar=t)
-            out  = rate_heads(H_t, active_idx)
-
-        active_seqs   = [tree.node_seqs[v] for v in active_leaves]
-        log_R0_mut    = get_lm_logits(tokenizer, esm_model, aa_token_ids,
-                                      active_seqs, max_seq_len, device)
-        log_R_theta   = log_R0_mut + out["mutation_logits"]
+            out  = rate_heads(H_t, active_idx, log_R0_mut)
 
         new_node_seqs = dict(tree.node_seqs)
 
@@ -135,7 +134,7 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta,
                 curr_idx = AA_TO_IDX.get(seq[pos], -1)
                 if curr_idx < 0:
                     continue
-                probs = log_R_theta[i, pos].softmax(-1)
+                probs = out["log_R_theta_mut"][i, pos].softmax(-1)
                 proposed_idx = torch.multinomial(probs, 1).item()
                 if proposed_idx == curr_idx:
                     continue

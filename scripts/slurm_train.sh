@@ -29,6 +29,7 @@ $PYTHON -u scripts/train.py \
     --ckpt-dir    checkpoints \
     --max-seq-len 566 \
     --patience    50 \
-    --test-frac   0.1
+    --test-frac   0.1 \
+    --n-t-samples 4
 
 echo "Done: $(date)"

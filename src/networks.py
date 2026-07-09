@@ -232,20 +232,27 @@ class RateHeads(nn.Module):
     Four prediction heads for controlled rates R_θ(T, T', t).
 
     outputs:
-    - Mutation rates: (n_active, L, 20) logits over position × amino acid
-    - Branching rates: (n_active,) Poisson mean λ
-    - Branch length: (n_active,) continuous extension magnitude
-    - Stop probability: (n_active,) Bernoulli probability
+    - log_R_theta_mut: (n_active, L, 20) log R0 + c_θ, per-position over AA alphabet
+    - branching_rate:  (n_active,) Poisson mean λ
+    - branch_length:   (n_active,) continuous extension magnitude
+    - stop_prob:       (n_active,) Bernoulli probability
+
+    The mutation head takes log_R0_mut [n_active, L, 20] as a per-position input so
+    c_θ can condition on what ESM-2 already thinks at each position, rather than
+    reconstructing position-specific information from the mean-pooled 128-dim embedding.
     """
 
     def __init__(self, d_model: int = 256, max_seq_len: int = 512):
         super().__init__()
         self.d_model = d_model
         self.max_seq_len = max_seq_len
+
+        # Input: [h_node (d_model) ‖ log_R0 (20)] per position → c_θ correction (20)
+        # log_R_theta = log_R0 + c_θ  (addition happens inside forward)
         self.mutation_head = nn.Sequential(
-            nn.Linear(d_model, d_model),
+            nn.Linear(d_model + 20, 64),
             nn.ReLU(),
-            nn.Linear(d_model, max_seq_len * 20),
+            nn.Linear(64, 20),
         )
 
         # Branching head: Poisson parameter λ
@@ -273,32 +280,35 @@ class RateHeads(nn.Module):
         )
 
     def forward(
-        self, H_T: torch.Tensor, active_leaf_indices: list[int]
+        self,
+        H_T: torch.Tensor,
+        active_leaf_indices: list[int],
+        log_R0_mut: torch.Tensor,        # [n_active, L, 20] ESM-2 per-position log-probs
     ) -> dict[str, torch.Tensor]:
         """
         Predict rates for active leaves only.
+
+        log_R0_mut must be pre-computed and passed in so the mutation head can condition
+        its per-position correction c_θ on the ESM-2 baseline at each position.
+        Returns log_R_theta_mut = log_R0_mut + c_θ directly.
         """
-        # Extract active leaf embeddings
-        h_active = H_T[active_leaf_indices]  # (n_active, d_model)
+        h_active = H_T[active_leaf_indices]          # [n_active, d_model]
+        L = log_R0_mut.shape[1]
 
-        # Mutation head
-        mutation_logits = self.mutation_head(h_active)  # (n_active, L*20)
-        mutation_logits = mutation_logits.reshape(
-            -1, self.max_seq_len, 20
-        )  # (n_active, L, 20)
+        # Broadcast tree context to per-position, concatenate with per-position R0
+        h_expanded = h_active.unsqueeze(1).expand(-1, L, -1)  # [n_active, L, d_model]
+        h_pos = torch.cat([h_expanded, log_R0_mut], dim=-1)   # [n_active, L, d_model+20]
 
-        # Branching head
-        branching_rate = self.branching_head(h_active).squeeze(-1)  # (n_active,)
+        c_theta = self.mutation_head(h_pos)                    # [n_active, L, 20]
+        log_R_theta_mut = log_R0_mut + c_theta                 # [n_active, L, 20]
 
-        # Branch length head
-        branch_length = self.branch_length_head(h_active).squeeze(-1)  # (n_active,)
-
-        # Stop head
-        stop_prob = self.stop_head(h_active).squeeze(-1)  # (n_active,)
+        branching_rate = self.branching_head(h_active).squeeze(-1)   # [n_active]
+        branch_length  = self.branch_length_head(h_active).squeeze(-1)  # [n_active]
+        stop_prob      = self.stop_head(h_active).squeeze(-1)         # [n_active]
 
         return {
-            "mutation_logits": mutation_logits,
-            "branching_rate": branching_rate,
-            "branch_length": branch_length,
-            "stop_prob": stop_prob,
+            "log_R_theta_mut": log_R_theta_mut,
+            "branching_rate":  branching_rate,
+            "branch_length":   branch_length,
+            "stop_prob":       stop_prob,
         }

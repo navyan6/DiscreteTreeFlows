@@ -128,25 +128,21 @@ def forward_bridge_step(
         h_t, node_ids_t, node_times_dict, edge_index_t, branch_lens_t, t_scalar=t
     ) 
 
-    # rate heads 
+    # R0 must be computed before rate_heads so the mutation head can condition on it
     active_idx_t = [node_to_idx_t[nid] for nid in active_leaves_t]
-    out = rate_heads(H_t, active_idx_t)
-
-    # r0
     if batch.get("log_ref_mut_rates") is not None:
         log_R0_mut = torch.stack([
             batch["log_ref_mut_rates"][plm_map[nid]] for nid in active_leaves_t
-        ]).to(device)                                      
-        log_R_theta_mut = log_R0_mut + out["mutation_logits"] 
+        ]).to(device)                                      # [n_active, 566, 20]
     else:
-        log_R0_mut = None
-        log_R_theta_mut = out["mutation_logits"]                
+        log_R0_mut = torch.zeros(len(active_leaves_t), max_seq_len, 20, device=device)
 
-    log_R_theta_branch = out["branching_rate"]
+    out = rate_heads(H_t, active_idx_t, log_R0_mut)
+    # out["log_R_theta_mut"] = log_R0 + c_θ, computed inside RateHeads
 
     losses = bridge_losses(
-        log_R_theta_mut=log_R_theta_mut,
-        log_R_theta_branch=log_R_theta_branch,
+        log_R_theta_mut=out["log_R_theta_mut"],
+        log_R_theta_branch=out["branching_rate"],
         branch_length_pred=out["branch_length"],
         stop_prob=out["stop_prob"],
         log_R0_mut=log_R0_mut,
@@ -185,6 +181,8 @@ def main():
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
+    parser.add_argument("--n-t-samples", type=int,  default=4,
+                        help="Number of t values sampled per tree per epoch")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -281,34 +279,35 @@ def main():
         loss_breakdown = {"L_seq": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0}
 
         for batch in train_loader:
-            t = random.uniform(0.0, args.t_max)
-            optimizer.zero_grad()
+            for _ in range(args.n_t_samples):
+                t = random.uniform(0.0, args.t_max)
+                optimizer.zero_grad()
 
-            losses, n_active = forward_bridge_step(
-                batch, t, node_enc, tree_enc, rate_heads, device,
-                max_seq_len=args.max_seq_len,
-                lambda_top=args.lambda_top,
-                lambda_br=args.lambda_br,
-                lambda_stop=args.lambda_stop,
-                lambda_pll=args.lambda_pll,
-                embedder=embedder,
-            )
-            if losses is None or n_active == 0:
-                continue
-            if torch.isnan(losses["total"]):
-                continue
+                losses, n_active = forward_bridge_step(
+                    batch, t, node_enc, tree_enc, rate_heads, device,
+                    max_seq_len=args.max_seq_len,
+                    lambda_top=args.lambda_top,
+                    lambda_br=args.lambda_br,
+                    lambda_stop=args.lambda_stop,
+                    lambda_pll=args.lambda_pll,
+                    embedder=embedder,
+                )
+                if losses is None or n_active == 0:
+                    continue
+                if torch.isnan(losses["total"]):
+                    continue
 
-            losses["total"].backward()
-            for p in params:
-                if p.grad is not None:
-                    p.grad.nan_to_num_(0.0, 0.0, 0.0)
-            nn.utils.clip_grad_norm_(params, max_norm=1.0)
-            optimizer.step()
+                losses["total"].backward()
+                for p in params:
+                    if p.grad is not None:
+                        p.grad.nan_to_num_(0.0, 0.0, 0.0)
+                nn.utils.clip_grad_norm_(params, max_norm=1.0)
+                optimizer.step()
 
-            train_loss += losses["total"].item()
-            for k in loss_breakdown:
-                loss_breakdown[k] += losses[k].item()
-            n_steps += 1
+                train_loss += losses["total"].item()
+                for k in loss_breakdown:
+                    loss_breakdown[k] += losses[k].item()
+                n_steps += 1
 
         if n_steps > 0:
             train_loss /= n_steps
