@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=treesbm_train
-#SBATCH --partition=dgx-b200
+#SBATCH --partition=b200-mig90
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=48G
