@@ -146,7 +146,8 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta,
             new_node_seqs[leaf_id] = "".join(new_seq)
 
             lam  = out["branching_rate"][i].item()
-            n_ch = min(int(torch.poisson(torch.tensor(lam * dt)).item()), 2)
+            p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
+            n_ch = 2 if torch.rand(1).item() < p_branch else 0
             if n_ch > 0:
                 child_seqs = [new_node_seqs[leaf_id]] * n_ch
                 tree = TreeState(
