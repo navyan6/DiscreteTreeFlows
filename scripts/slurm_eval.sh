@@ -23,6 +23,7 @@ $PYTHON -u scripts/eval_test_set.py \
     --split       checkpoints/split_indices.json \
     --n-steps     50 \
     --max-trees   5 \
+    --max-leaves  200 \
     --max-seq-len 566
 
 echo "Done: $(date)"

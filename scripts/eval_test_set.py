@@ -89,6 +89,7 @@ def all_valid_aa(seq: str) -> bool:
 
 
 def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rate_scale,
+                 max_leaves,
                  node_enc, tree_enc, rate_heads, embedder,
                  tokenizer, esm_model, aa_token_ids, device):
     tree = TreeState.root_only(root_seq)
@@ -144,9 +145,10 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
                     new_seq[pos] = AA_VOCAB[proposed_idx]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
+            at_cap = len(tree.active_leaves) >= max_leaves
             lam  = out["branching_rate"][i].item() * branch_rate_scale
             p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
-            n_ch = 2 if torch.rand(1).item() < p_branch else 0
+            n_ch = 0 if at_cap else (2 if torch.rand(1).item() < p_branch else 0)
             if n_ch > 0:
                 child_seqs = [new_node_seqs[leaf_id]] * n_ch
                 tree = TreeState(
@@ -203,6 +205,8 @@ def main():
     parser.add_argument("--beta",              type=float, default=1.0)
     parser.add_argument("--branch-rate-scale", type=float, default=6.0,
                         help="Multiply model branching rate by this at inference")
+    parser.add_argument("--max-leaves",        type=int,   default=200,
+                        help="Stop branching once active leaves hit this cap (prevents OOM)")
     parser.add_argument("--max-trees",         type=int,   default=None,
                         help="Cap number of test trees to evaluate (default: all)")
     args = parser.parse_args()
@@ -254,6 +258,7 @@ def main():
             gen_tree = generate_one(
                 root_seq, args.n_steps, args.max_seq_len,
                 args.pll_threshold, args.beta, args.branch_rate_scale,
+                args.max_leaves,
                 node_enc, tree_enc, rate_heads, embedder,
                 tokenizer, esm_model, aa_token_ids, device,
             )
