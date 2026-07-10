@@ -2,8 +2,8 @@
 #SBATCH --job-name=treesbm_eval
 #SBATCH --partition=genoa-std-mem
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
-#SBATCH --time=4:00:00
+#SBATCH --mem=64G
+#SBATCH --time=8:00:00
 #SBATCH --output=logs/slurm_eval_%j.log
 #SBATCH --error=logs/slurm_eval_%j.log
 
@@ -21,7 +21,7 @@ $PYTHON -u scripts/eval_test_set.py \
     --checkpoint  checkpoints/best.pt \
     --data        data/train \
     --split       checkpoints/split_indices.json \
-    --n-steps     200 \
+    --n-steps     50 \
     --max-trees   5 \
     --max-seq-len 566
 
