@@ -1,31 +1,28 @@
 #!/bin/bash
 #SBATCH --job-name=treesbm_eval
-#SBATCH --partition=dgx-b200
-#SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=6
-#SBATCH --mem=48G
+#SBATCH --partition=genoa-std-mem
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=32G
 #SBATCH --time=4:00:00
 #SBATCH --output=logs/slurm_eval_%j.log
 #SBATCH --error=logs/slurm_eval_%j.log
-#SBATCH --exclude=dgx024
 
-source ~/.bashrc
-module load miniconda3/25.5.1
-source activate treesbm
+export PATH=/vast/home/n/nnori/.conda/envs/treesbm/bin:$PATH
+PYTHON=/vast/home/n/nnori/.conda/envs/treesbm/bin/python
 
 cd ~/DiscreteTreeFlows
-mkdir -p logs checkpoints
+mkdir -p logs
 
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node:   $SLURMD_NODENAME"
-echo "GPU:    $CUDA_VISIBLE_DEVICES"
 echo "Start:  $(date)"
 
-python -u scripts/eval_test_set.py \
-    --checkpoint checkpoints/best.pt \
-    --data       data/train \
-    --split      checkpoints/split_indices.json \
-    --n-steps    30 \
+$PYTHON -u scripts/eval_test_set.py \
+    --checkpoint  checkpoints/best.pt \
+    --data        data/train \
+    --split       checkpoints/split_indices.json \
+    --n-steps     200 \
+    --max-trees   5 \
     --max-seq-len 566
 
 echo "Done: $(date)"
