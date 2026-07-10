@@ -19,8 +19,11 @@ Usage:
 import argparse
 import json
 import math
+import os
 import sys
 from pathlib import Path
+
+import psutil
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
@@ -96,10 +99,15 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
 
+    _proc = psutil.Process(os.getpid())
+
     for step in range(n_steps):
         t = step / n_steps
         if not tree.active_leaves:
             break
+
+        mem_gb = _proc.memory_info().rss / 1e9
+        print(f"  step {step+1:03d}/{n_steps}  active_leaves={len(tree.active_leaves)}  nodes={len(tree.node_ids)}  mem={mem_gb:.1f}GB", flush=True)
 
         node_ids_t  = tree.node_ids
         node_to_idx = {nid: i for i, nid in enumerate(node_ids_t)}
