@@ -55,6 +55,7 @@ def bridge_losses(
     lambda_br: float = 0.1,
     lambda_stop: float = 0.1,
     lambda_pll: float = 0.01,
+    lambda_mut: float = 5.0,
     device: str = "cpu",
 ) -> dict:
     n = len(active_leaves)
@@ -65,14 +66,22 @@ def bridge_losses(
         z = torch.zeros((), device=device, requires_grad=True)
         return {"L_seq": z, "L_top": z, "L_br": z, "L_stop": z, "L_pll": z, "total": z}
 
-    # ── L_seq 
-    targets = _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device)
-    L_seq = F.cross_entropy(
-        log_R_theta_mut.reshape(n * max_seq_len, 20),
-        targets.reshape(n * max_seq_len),
-        ignore_index=PAD_IDX,
-    )
-    L_seq = L_seq / (1.0 - t + eps_t)
+    # ── L_seq: separate loss for mutating vs conserved positions
+    targets  = _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device)   # [n, L] T1 AAs
+    aa_t     = _build_seq_indices(seqs_t, max_seq_len, device)                  # [n, L] T_t AAs
+
+    log_probs    = F.log_softmax(log_R_theta_mut, dim=-1)                       # [n, L, 20]
+    loss_per_pos = -log_probs.gather(
+        -1, targets.clamp(0, 19).unsqueeze(-1)
+    ).squeeze(-1)                                                                # [n, L]
+
+    valid_mask = (targets != PAD_IDX) & (aa_t != PAD_IDX)
+    mut_mask   = (aa_t != targets) & valid_mask   # positions that mutate T_t→T1
+    cons_mask  = (aa_t == targets) & valid_mask   # positions already at T1 AA
+
+    L_mut  = loss_per_pos[mut_mask].mean()  if mut_mask.any()  else torch.zeros((), device=device)
+    L_cons = loss_per_pos[cons_mask].mean() if cons_mask.any() else torch.zeros((), device=device)
+    L_seq  = (lambda_mut * L_mut + L_cons) / (1.0 - t + eps_t)
 
     # ── L_top 
     child_counts = torch.tensor(
@@ -115,9 +124,9 @@ def bridge_losses(
     else:
         L_pll = torch.zeros((), device=device)
 
-    total = (
-        L_seq + lambda_top  * L_top + lambda_br   * L_br + lambda_stop * L_stop + lambda_pll  * L_pll)
+    total = L_seq + lambda_top * L_top + lambda_br * L_br + lambda_stop * L_stop + lambda_pll * L_pll
     return {
-        "L_seq": L_seq, "L_top": L_top, "L_br": L_br,
-        "L_stop": L_stop, "L_pll": L_pll, "total": total,
+        "L_seq": L_seq, "L_mut": L_mut, "L_cons": L_cons,
+        "L_top": L_top, "L_br": L_br, "L_stop": L_stop, "L_pll": L_pll,
+        "total": total,
     }

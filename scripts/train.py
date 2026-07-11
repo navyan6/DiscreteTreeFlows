@@ -53,6 +53,7 @@ def forward_bridge_step(
     lambda_br: float = 0.1,
     lambda_stop: float = 0.1,
     lambda_pll: float = 0.01,
+    lambda_mut: float = 5.0,
     embedder: ESM2Embedder | None = None,
 ) -> tuple[dict | None, int]:
     """
@@ -157,6 +158,7 @@ def forward_bridge_step(
         lambda_br=lambda_br,
         lambda_stop=lambda_stop,
         lambda_pll=lambda_pll,
+        lambda_mut=lambda_mut,
         device=device,
     )
 
@@ -178,6 +180,8 @@ def main():
     parser.add_argument("--lambda-br",   type=float, default=0.1)
     parser.add_argument("--lambda-stop", type=float, default=0.1)
     parser.add_argument("--lambda-pll",  type=float, default=0.01)
+    parser.add_argument("--lambda-mut",  type=float, default=5.0,
+                        help="Upweight loss at mutating positions (T_t_aa != T1_aa) within L_seq")
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -276,7 +280,7 @@ def main():
         node_enc.train(); tree_enc.train(); rate_heads.train()
         train_loss = 0.0
         n_steps = 0
-        loss_breakdown = {"L_seq": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0}
+        loss_breakdown = {"L_seq": 0.0, "L_mut": 0.0, "L_cons": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0}
 
         for batch in train_loader:
             for _ in range(args.n_t_samples):
@@ -290,6 +294,7 @@ def main():
                     lambda_br=args.lambda_br,
                     lambda_stop=args.lambda_stop,
                     lambda_pll=args.lambda_pll,
+                    lambda_mut=args.lambda_mut,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -326,6 +331,7 @@ def main():
                     device=device, max_seq_len=args.max_seq_len,
                     lambda_top=args.lambda_top, lambda_br=args.lambda_br,
                     lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
+                    lambda_mut=args.lambda_mut,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -342,6 +348,8 @@ def main():
             f"Epoch {epoch:03d}  "
             f"train={train_loss:.4f} "
             f"(seq={loss_breakdown['L_seq']:.3f} "
+            f"mut={loss_breakdown['L_mut']:.3f} "
+            f"cons={loss_breakdown['L_cons']:.3f} "
             f"top={loss_breakdown['L_top']:.3f} "
             f"br={loss_breakdown['L_br']:.3f} "
             f"stop={loss_breakdown['L_stop']:.3f} "
