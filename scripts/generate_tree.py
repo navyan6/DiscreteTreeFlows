@@ -188,18 +188,12 @@ def generate_tree(args):
                 curr_idx = AA_TO_IDX.get(seq[pos], -1)
                 if curr_idx < 0:
                     continue
-
                 probs = out["log_R_theta_mut"][i, pos].softmax(-1)
-                proposed_idx = torch.multinomial(probs, 1).item()
-                if proposed_idx == curr_idx:
-                    continue
-
-                delta_pll = (log_R0_mut[i, pos, proposed_idx]
-                             - log_R0_mut[i, pos, curr_idx]).item()
-                accept_prob = min(1.0, math.exp(args.beta * delta_pll))
-
-                if torch.rand(1).item() < accept_prob * dt:
-                    new_seq[pos] = AA_VOCAB[proposed_idx]
+                probs_mut = probs.clone()
+                probs_mut[curr_idx] = 0.0
+                total = probs_mut.sum().item()
+                if total > 0 and torch.rand(1).item() < total * dt:
+                    new_seq[pos] = AA_VOCAB[torch.multinomial(probs_mut / total, 1).item()]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
             # ── Branch ──

@@ -146,13 +146,11 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
                 if curr_idx < 0:
                     continue
                 probs = out["log_R_theta_mut"][i, pos].softmax(-1)
-                proposed_idx = torch.multinomial(probs, 1).item()
-                if proposed_idx == curr_idx:
-                    continue
-                delta_pll = (log_R0_mut[i, pos, proposed_idx]
-                             - log_R0_mut[i, pos, curr_idx]).item()
-                if torch.rand(1).item() < min(1.0, math.exp(beta * delta_pll)) * dt:
-                    new_seq[pos] = AA_VOCAB[proposed_idx]
+                probs_mut = probs.clone()
+                probs_mut[curr_idx] = 0.0
+                total = probs_mut.sum().item()
+                if total > 0 and torch.rand(1).item() < total * dt:
+                    new_seq[pos] = AA_VOCAB[torch.multinomial(probs_mut / total, 1).item()]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
             at_cap = len(tree.active_leaves) >= max_leaves
