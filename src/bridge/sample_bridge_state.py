@@ -89,11 +89,31 @@ def sample_bridge_state(
             stack.extend(T1_children_map.get(child, []))
         return count
 
+    def _leaf_descendants(node: str) -> list[str]:
+        leaves = []
+        stack = [node]
+        while stack:
+            curr = stack.pop()
+            children = T1_children_map.get(curr, [])
+            if children:
+                stack.extend(children)
+            else:
+                leaves.append(curr)
+        return leaves if leaves else [node]
+
     # log(total_T1_descendants + 1) gives the correct continuous-time birth rate scale:
     # root with 400 leaf descendants → target ≈ ln(401) ≈ 6; terminal leaf → 0.
     T1_child_counts = {v: math.log(_count_descendants(v) + 1) for v in active_leaves_t}
     T1_child_bls = {
         v: [branch_lengths[(v, c)] for c in T1_children_map.get(v, [])]
+        for v in active_leaves_t
+    }
+
+    # Mutation targets: for each active leaf, sample one T1 terminal leaf descendant.
+    # seqs_t[nid] == seqs[nid] (frac=1 for retained nodes), so we can't use nid's own
+    # sequence as the target — instead use a descendant leaf that has actually diverged.
+    T1_mut_targets = {
+        v: seqs[random.choice(_leaf_descendants(v))]
         for v in active_leaves_t
     }
 
@@ -105,5 +125,6 @@ def sample_bridge_state(
         "active_leaves_t": active_leaves_t,
         "T1_child_counts": T1_child_counts,
         "T1_child_bls": T1_child_bls,
+        "T1_mut_targets": T1_mut_targets,
         "t_cut": t_cut,
     }

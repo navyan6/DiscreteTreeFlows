@@ -18,11 +18,11 @@ AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
 PAD_IDX = 20
 
 
-def _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device):
+def _build_aa_targets(active_leaves, T1_mut_targets, max_seq_len, device):
     n = len(active_leaves)
     targets = torch.full((n, max_seq_len), PAD_IDX, dtype=torch.long, device=device)
     for i, nid in enumerate(active_leaves):
-        seq = T1_seqs.get(nid, "")
+        seq = T1_mut_targets.get(nid, "")
         for j, aa in enumerate(seq[:max_seq_len]):
             targets[i, j] = AA_TO_IDX.get(aa, PAD_IDX)
     return targets
@@ -46,7 +46,7 @@ def bridge_losses(
     log_R0_mut: torch.Tensor | None,
     seqs_t: list[str],
     active_leaves: list[str],
-    T1_seqs: dict[str, str],
+    T1_mut_targets: dict[str, str],
     T1_child_counts: dict[str, int],
     T1_child_bls: dict[str, list[float]],
     t: float,
@@ -67,7 +67,7 @@ def bridge_losses(
         return {"L_seq": z, "L_top": z, "L_br": z, "L_stop": z, "L_pll": z, "total": z}
 
     # ── L_seq: separate loss for mutating vs conserved positions
-    targets  = _build_aa_targets(active_leaves, T1_seqs, max_seq_len, device)   # [n, L] T1 AAs
+    targets  = _build_aa_targets(active_leaves, T1_mut_targets, max_seq_len, device)  # [n, L] sampled T1 leaf AAs
     aa_t     = _build_seq_indices(seqs_t, max_seq_len, device)                  # [n, L] T_t AAs
 
     log_probs    = F.log_softmax(log_R_theta_mut, dim=-1)                       # [n, L, 20]

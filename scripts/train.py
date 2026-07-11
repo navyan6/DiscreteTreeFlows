@@ -149,7 +149,7 @@ def forward_bridge_step(
         log_R0_mut=log_R0_mut,
         seqs_t=[seqs_t[nid] for nid in active_leaves_t],
         active_leaves=active_leaves_t,
-        T1_seqs=seqs,
+        T1_mut_targets=T_t["T1_mut_targets"],
         T1_child_counts=T_t["T1_child_counts"],
         T1_child_bls=T_t["T1_child_bls"],
         t=t,
