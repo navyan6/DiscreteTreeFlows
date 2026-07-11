@@ -19,6 +19,7 @@ PAD_IDX = 20
 
 
 def _build_aa_targets(active_leaves, T1_mut_targets, max_seq_len, device):
+    # Leaves absent from T1_mut_targets (terminal T1 leaves) stay all-PAD → excluded by valid_mask
     n = len(active_leaves)
     targets = torch.full((n, max_seq_len), PAD_IDX, dtype=torch.long, device=device)
     for i, nid in enumerate(active_leaves):

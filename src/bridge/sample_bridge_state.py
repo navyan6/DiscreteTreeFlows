@@ -109,13 +109,14 @@ def sample_bridge_state(
         for v in active_leaves_t
     }
 
-    # Mutation targets: for each active leaf, sample one T1 terminal leaf descendant.
-    # seqs_t[nid] == seqs[nid] (frac=1 for retained nodes), so we can't use nid's own
-    # sequence as the target — instead use a descendant leaf that has actually diverged.
-    T1_mut_targets = {
-        v: seqs[random.choice(_leaf_descendants(v))]
-        for v in active_leaves_t
-    }
+    # Mutation targets: only for internal T1 active leaves (those with T1 children).
+    # Terminal T1 active leaves have no descendants to diverge toward — excluding them
+    # avoids mut_mask = all-False steps that contribute zero gradient.
+    T1_mut_targets = {}
+    for v in active_leaves_t:
+        if v in T1_children_map:   # internal T1 node → has real leaf descendants
+            T1_mut_targets[v] = seqs[random.choice(_leaf_descendants(v))]
+        # terminal T1 leaves omitted → excluded from L_mut in losses
 
     return {
         "node_ids_t": node_ids_t,
