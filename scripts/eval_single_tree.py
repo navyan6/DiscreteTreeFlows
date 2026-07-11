@@ -134,7 +134,7 @@ def load_models(checkpoint, device, max_seq_len):
 
 # ── generation ────────────────────────────────────────────────────────────────
 
-def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
+def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves, mutation_rate_scale,
                   node_enc, tree_enc, rate_heads, embedder,
                   tokenizer, esm_model, aa_token_ids, device):
     tree = TreeState.root_only(root_seq)
@@ -185,7 +185,7 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                 probs_mut = probs.clone()
                 probs_mut[curr_idx] = 0.0
                 total = probs_mut.sum().item()
-                if total > 0 and torch.rand(1).item() < total * dt:
+                if total > 0 and torch.rand(1).item() < total * dt * mutation_rate_scale:
                     new_seq[pos] = AA_VOCAB[torch.multinomial(probs_mut / total, 1).item()]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
@@ -420,7 +420,9 @@ def main():
     parser.add_argument("--max-seq-len",         type=int,   default=566)
     parser.add_argument("--branch-rate-scale",   type=float, default=6.0)
     parser.add_argument("--max-leaves",          type=int,   default=200)
-    parser.add_argument("--pll-prune-threshold", type=float, default=-3.0)
+    parser.add_argument("--pll-prune-threshold",  type=float, default=-3.0)
+    parser.add_argument("--mutation-rate-scale",  type=float, default=1.0,
+                        help="Multiply CTMC mutation rate by this; >1 forces more mutations")
     parser.add_argument("--seed",                type=int,   default=42)
     args = parser.parse_args()
 
@@ -457,7 +459,7 @@ def main():
 
     gen_tree  = generate_tree(
         root_seq, args.n_steps, args.max_seq_len,
-        args.branch_rate_scale, args.max_leaves,
+        args.branch_rate_scale, args.max_leaves, args.mutation_rate_scale,
         node_enc, tree_enc, rate_heads, embedder,
         tokenizer, esm_model, aa_token_ids, device)
     gen_leaves = get_leaves(gen_tree)
