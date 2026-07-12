@@ -344,6 +344,33 @@ def eval_tree_structure(gen_tree, gen_leaves):
     return leaf_depths, bls
 
 
+def positional_recovery(root: str, gt: str, gen: str) -> dict:
+    """
+    Given root sequence and a GT leaf, split positions into:
+      - conserved: root[i] == gt[i]  → model should keep root AA
+      - mutating:  root[i] != gt[i]  → model should reach gt AA
+    Returns fraction correct at each set.
+    """
+    L = min(len(root), len(gt), len(gen))
+    mut_correct = mut_total = cons_correct = cons_total = 0
+    for i in range(L):
+        r, g, m = root[i], gt[i], gen[i]
+        if r == g:          # conserved site
+            cons_total += 1
+            if m == r:
+                cons_correct += 1
+        else:               # mutating site
+            mut_total += 1
+            if m == g:
+                mut_correct += 1
+    return {
+        "mut_recovery":  mut_correct  / mut_total  if mut_total  else float("nan"),
+        "cons_retention": cons_correct / cons_total if cons_total else float("nan"),
+        "mut_total":  mut_total,
+        "cons_total": cons_total,
+    }
+
+
 def eval_gt_comparison(gen_tree, gen_leaves, gt_batch):
     section("D. GROUND TRUTH COMPARISON")
 
@@ -366,12 +393,39 @@ def eval_gt_comparison(gen_tree, gen_leaves, gt_batch):
 
     # Best-match seq identity: each GT leaf → closest generated leaf
     sample_gt = random.sample(gt_leaves, min(100, len(gt_leaves)))
-    best_ids  = [max(seq_identity(gt_seqs[gl], gen_tree.node_seqs[gl2])
-                     for gl2 in gen_leaves)
-                 for gl in sample_gt]
+    gt_root_seq = gt_seqs.get(gt_root_id, "")
+    best_matches = []  # (gt_leaf, best_gen_leaf, identity)
+    for gl in sample_gt:
+        best_id, best_gen = max(
+            (seq_identity(gt_seqs[gl], gen_tree.node_seqs[gn]), gn)
+            for gn in gen_leaves)
+        best_matches.append((gl, best_gen, best_id))
+    best_ids = [m[2] for m in best_matches]
     print(f"\nBest-match identity (GT leaf → nearest gen leaf, n={len(sample_gt)}):")
     print(f"  mean={sum(best_ids)/len(best_ids):.4f}  "
           f"min={min(best_ids):.4f}  max={max(best_ids):.4f}")
+
+    # Positional recovery: mutating vs conserved sites
+    # For each (GT leaf → best gen leaf) pair, use GT root as anchor to classify positions
+    all_mut_rec  = []
+    all_cons_ret = []
+    for gl, best_gen, _ in best_matches:
+        rec = positional_recovery(gt_root_seq, gt_seqs[gl], gen_tree.node_seqs[best_gen])
+        if not (rec["mut_total"] == 0 and rec["cons_total"] == 0):
+            all_mut_rec.append(rec["mut_recovery"])
+            all_cons_ret.append(rec["cons_retention"])
+
+    def _mean(vals):
+        finite = [v for v in vals if v == v]  # filter NaN
+        return sum(finite) / len(finite) if finite else float("nan")
+
+    print(f"\nPositional recovery (GT root as reference, n={len(all_mut_rec)} pairs):")
+    print(f"  Mutating sites  (root→GT differs): "
+          f"mean recovery   = {_mean(all_mut_rec):.4f}  "
+          f"[fraction of GT mutations the model got right]")
+    print(f"  Conserved sites (root→GT same):    "
+          f"mean retention  = {_mean(all_cons_ret):.4f}  "
+          f"[fraction of conserved sites model left unchanged]")
 
     # Branch length distributions
     gt_bls_vals  = list(gt_bls_dict.values())
@@ -472,15 +526,30 @@ def main():
     eval_tree_structure(gen_tree, gen_leaves)
     eval_gt_comparison(gen_tree, gen_leaves, gt_batch)
 
-    # Save sequences
-    out_path = Path("checkpoints") / f"gen_group{args.group}.fasta"
+    out_dir = Path("checkpoints")
+
+    # Save FASTA (all nodes: root, internal, leaves)
     cm = children_map(gen_tree)
-    with open(out_path, "w") as f:
+    out_fasta = out_dir / f"gen_group{args.group}.fasta"
+    with open(out_fasta, "w") as f:
         for nid in gen_tree.node_ids:
             tag = ("root" if nid == gen_tree.root_id
                    else ("leaf" if nid not in cm else "internal"))
             f.write(f">{nid}|{tag}\n{gen_tree.node_seqs[nid]}\n")
-    print(f"\nSequences saved to {out_path}")
+    print(f"\nSequences saved to {out_fasta}")
+
+    # Save Newick
+    def _to_newick(nid: str) -> str:
+        bl = gen_tree.branch_lengths.get(
+            next(((p, nid) for p, c in gen_tree.edges if c == nid), (None, None)), 0.0)
+        kids = cm.get(nid, [])
+        if not kids:
+            return f"{nid}:{bl:.8f}"
+        return f"({','.join(_to_newick(c) for c in kids)}){nid}:{bl:.8f}"
+
+    out_nwk = out_dir / f"gen_group{args.group}.nwk"
+    out_nwk.write_text(_to_newick(gen_tree.root_id) + ";")
+    print(f"Tree saved to    {out_nwk}")
 
 
 if __name__ == "__main__":
