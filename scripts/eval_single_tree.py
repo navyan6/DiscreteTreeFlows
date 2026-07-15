@@ -2,10 +2,10 @@
 """
 Comprehensive evaluation of a single generated tree.
 
-  A. Sequence quality     — root divergence, leaf diversity, ESM PLL, post-prune survival
-  B. Phylogenetic coherence — sibling/parent vs random-pair sequence identity
-  C. Tree structure       — bifurcating check, depth, branch lengths, Sackin index, cherries
-  D. GT comparison        — depth/branch distributions, best-match seq identity
+  A. Sequence quality: root divergence, leaf diversity, ESM PLL, post-prune survival
+  B. Phylogenetic coherence: sibling/parent vs random-pair sequence identity
+  C. Tree structure: bifurcating check, depth, branch lengths, Sackin index, cherry count
+  D. GT comparison: depth/branch distributions, best-match seq identity
 
 Usage:
     python scripts/eval_single_tree.py \
@@ -44,7 +44,7 @@ AA_VOCAB  = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
 
 
-# ── utilities ─────────────────────────────────────────────────────────────────
+#utiliities
 
 def seq_identity(a: str, b: str) -> float:
     L = min(len(a), len(b))
@@ -113,7 +113,7 @@ def section(title: str):
     print(f"\n{'='*60}\n  {title}\n{'='*60}")
 
 
-# ── model loading ─────────────────────────────────────────────────────────────
+#model loading
 
 def load_models(checkpoint, device, max_seq_len):
     ckpt = torch.load(checkpoint, map_location=device, weights_only=False)
@@ -132,7 +132,7 @@ def load_models(checkpoint, device, max_seq_len):
     return node_enc, tree_enc, r_heads
 
 
-# ── generation ────────────────────────────────────────────────────────────────
+#generation
 
 def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves, mutation_rate_scale,
                   node_enc, tree_enc, rate_heads, embedder,
@@ -222,7 +222,7 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
     return tree
 
 
-# ── evaluation sections ───────────────────────────────────────────────────────
+#evaluation section results
 
 def eval_sequence_quality(gen_tree, gen_leaves, root_seq, max_seq_len,
                           tokenizer, esm_model, aa_token_ids, device,
@@ -247,7 +247,7 @@ def eval_sequence_quality(gen_tree, gen_leaves, root_seq, max_seq_len,
 
     # ESM PLL
     leaf_seqs = [gen_tree.node_seqs[l] for l in gen_leaves]
-    print(f"Computing ESM-2 PLL for {len(gen_leaves)} generated leaves...")
+    print(f"Computing ESM-2 PLL for {len(gen_leaves)} generated leaves")
     log_R0 = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                             leaf_seqs, max_seq_len, device)
     plls = [esm_pll_seq(log_R0[i], leaf_seqs[i], max_seq_len)
@@ -269,7 +269,7 @@ def eval_phylogenetic_coherence(gen_tree, gen_leaves):
     section("B. PHYLOGENETIC COHERENCE")
     print("Tests whether nearby nodes in the tree are more similar than random pairs.")
 
-    cm      = children_map(gen_tree)
+    cm = children_map(gen_tree)
     leaf_set = set(gen_leaves)
 
     # Sibling leaf pairs (both children of same parent are leaves)
@@ -288,9 +288,9 @@ def eval_phylogenetic_coherence(gen_tree, gen_leaves):
     ]
 
     # Random leaf pairs (baseline)
-    sample  = random.sample(gen_leaves, min(60, len(gen_leaves)))
-    pairs   = [(a, b) for i, a in enumerate(sample) for b in sample[i+1:]]
-    pairs   = random.sample(pairs, min(300, len(pairs)))
+    sample = random.sample(gen_leaves, min(60, len(gen_leaves)))
+    pairs = [(a, b) for i, a in enumerate(sample) for b in sample[i+1:]]
+    pairs = random.sample(pairs, min(300, len(pairs)))
     random_ids = [seq_identity(gen_tree.node_seqs[a], gen_tree.node_seqs[b])
                   for a, b in pairs]
 
@@ -306,14 +306,14 @@ def eval_phylogenetic_coherence(gen_tree, gen_leaves):
 
     if sibling_ids and random_ids:
         delta = sum(sibling_ids)/len(sibling_ids) - sum(random_ids)/len(random_ids)
-        result = "PASS ✓" if delta > 0 else "FAIL ✗"
+        result = "Pass!" if delta > 0 else "Fail"
         print(f"\n  Sibling vs random delta: {delta:+.4f}  [{result}]")
 
 
 def eval_tree_structure(gen_tree, gen_leaves):
     section("C. TREE STRUCTURE")
 
-    cm       = children_map(gen_tree)
+    cm = children_map(gen_tree)
     internal = [n for n in gen_tree.node_ids if n in cm]
 
     # Bifurcating
@@ -322,7 +322,7 @@ def eval_tree_structure(gen_tree, gen_leaves):
     print(f"Strictly bifurcating: {all_bif}  (child counts seen: {sorted(set(counts))})")
 
     # Depth
-    depths      = bfs_depths(gen_tree)
+    depths = bfs_depths(gen_tree)
     leaf_depths = [depths.get(l, 0) for l in gen_leaves]
     print(f"Leaf depth from root:")
     print(f"  mean={sum(leaf_depths)/len(leaf_depths):.1f}  "
@@ -336,7 +336,7 @@ def eval_tree_structure(gen_tree, gen_leaves):
               f"min={min(bls):.6f}  max={max(bls):.6f}")
 
     # Sackin + cherries
-    sak     = sackin_index(gen_tree, gen_leaves)
+    sak = sackin_index(gen_tree, gen_leaves)
     cherries = cherry_count(gen_tree)
     print(f"Sackin index:  {sak}  (lower = more balanced)")
     print(f"Cherry count:  {cherries}  (sibling leaf pairs)")
@@ -347,19 +347,19 @@ def eval_tree_structure(gen_tree, gen_leaves):
 def positional_recovery(root: str, gt: str, gen: str) -> dict:
     """
     Given root sequence and a GT leaf, split positions into:
-      - conserved: root[i] == gt[i]  → model should keep root AA
-      - mutating:  root[i] != gt[i]  → model should reach gt AA
+      - conserved: root[i] == gt[i] -> model should keep root AA
+      - mutating:  root[i] != gt[i]  -> model should reach gt AA
     Returns fraction correct at each set.
     """
     L = min(len(root), len(gt), len(gen))
     mut_correct = mut_total = cons_correct = cons_total = 0
     for i in range(L):
         r, g, m = root[i], gt[i], gen[i]
-        if r == g:          # conserved site
+        if r == g:         
             cons_total += 1
             if m == r:
                 cons_correct += 1
-        else:               # mutating site
+        else:          
             mut_total += 1
             if m == g:
                 mut_correct += 1
@@ -375,23 +375,23 @@ def eval_gt_comparison(gen_tree, gen_leaves, gt_batch):
     section("D. GROUND TRUTH COMPARISON")
 
     gt_node_ids = gt_batch["node_ids"]
-    gt_seqs     = gt_batch["seqs"]
-    gt_edges    = gt_batch["edges"]
+    gt_seqs = gt_batch["seqs"]
+    gt_edges = gt_batch["edges"]
     gt_bls_dict = gt_batch["branch_lengths"]
-    gt_root_id  = gt_node_ids[gt_batch["root_index"]]
+    gt_root_id = gt_node_ids[gt_batch["root_index"]]
 
-    gt_cm      = defaultdict(list)
+    gt_cm = defaultdict(list)
     for p, c in gt_edges:
         gt_cm[p].append(c)
     gt_leaf_set = set(n for n in gt_node_ids if n not in gt_cm)
-    gt_leaves   = list(gt_leaf_set)
+    gt_leaves = list(gt_leaf_set)
     # Filter seqs to node_ids only (FASTA may have extra entries)
     gt_seqs_filtered = {nid: gt_seqs.get(nid, "") for nid in gt_node_ids}
 
     print(f"GT:  {len(gt_node_ids)} nodes, {len(gt_leaves)} leaves")
     print(f"Gen: {len(gen_tree.node_ids)} nodes, {len(gen_leaves)} leaves")
 
-    # Best-match seq identity: each GT leaf → closest generated leaf
+    # Best-match seq identity: each GT leaf -> closest generated leaf
     sample_gt = random.sample(gt_leaves, min(100, len(gt_leaves)))
     gt_root_seq = gt_seqs.get(gt_root_id, "")
     best_matches = []  # (gt_leaf, best_gen_leaf, identity)
@@ -463,7 +463,7 @@ def eval_gt_comparison(gen_tree, gen_leaves, gt_batch):
     print(f"Cherry count:  GT={gt_ch}    Gen={gen_ch}")
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
+# main 
 
 def main():
     parser = argparse.ArgumentParser()
@@ -511,7 +511,7 @@ def main():
     print(f"Generating ({args.n_steps} steps, max_leaves={args.max_leaves}, "
           f"scale={args.branch_rate_scale})...")
 
-    gen_tree  = generate_tree(
+    gen_tree = generate_tree(
         root_seq, args.n_steps, args.max_seq_len,
         args.branch_rate_scale, args.max_leaves, args.mutation_rate_scale,
         node_enc, tree_enc, rate_heads, embedder,

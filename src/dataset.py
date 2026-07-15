@@ -23,7 +23,7 @@ PAD_IDX = len(AA_VOCAB)  # 20
 
 
 def aa_seq_to_tensor(seq: str, length: int) -> torch.Tensor:
-    """Convert AA string to [length] int tensor. Unknown AAs → PAD_IDX."""
+    """Convert AA string to [length] int tensor. Unknown AAs to PAD_IDX."""
     t = torch.full((length,), PAD_IDX, dtype=torch.long)
     for i, aa in enumerate(seq[:length]):
         t[i] = AA_TO_IDX.get(aa, PAD_IDX)
@@ -54,8 +54,6 @@ def parse_newick(nwk_path: str):
 
     walk(tree.root)
     root_id = name(tree.root)
-
-    # BFS order
     node_ids = [root_id]
     visited = {root_id}
     children = {}
@@ -129,15 +127,12 @@ class TreeDataset(Dataset):
         lap_pe = compute_laplacian_pe(tree_state, node_to_idx, self.laplacian_dim)
         edge_index, edge_type, edge_attr = build_edges(tree_state, node_to_idx)
 
-        # Target: AA sequences as integer tensors [N, max_seq_len]
         targets = torch.stack([
             aa_seq_to_tensor(seqs[nid], self.max_seq_len) for nid in node_ids
         ])
 
-        # Active leaf indices
         leaf_indices = [node_to_idx[nid] for nid in active_leaves]
 
-        # Load cached PLM embeddings if available
         plm_path = d / f"group_{g:03d}_plm.pt"
         if plm_path.exists():
             cached = torch.load(plm_path, weights_only=True)
@@ -145,12 +140,11 @@ class TreeDataset(Dataset):
         else:
             plm_embeddings = None
 
-        # Load cached reference mutation log-rates if available
         ref_path = d / f"group_{g:03d}_ref_rates.pt"
         if ref_path.exists():
             log_ref_mut_rates = torch.load(ref_path, weights_only=True)["log_mut_rates"]
         else:
-            log_ref_mut_rates = None  # [N, 566, 20] or None
+            log_ref_mut_rates = None 
 
         return {
             "group": g,

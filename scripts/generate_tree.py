@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Algorithm 4: Controlled tree generation using trained TreeSBM model.
+Algorithm 4: Controlled tree generation. 
 
 Starting from a root sequence, generates a bifurcating phylogenetic tree by
 sampling from R_theta(T, T', t) = R0(T, T') * exp(c_theta(T, t)).
@@ -8,14 +8,14 @@ sampling from R_theta(T, T', t) = R0(T, T') * exp(c_theta(T, t)).
 Mutation sampling:
   For each position pos, the probability of a mutation in step dt is
   (1 - p_current_aa) * dt, where p_current_aa = softmax(log_R_theta_mut)[pos, current_aa].
-  Positions the model is confident about mutate rarely; uncertain ones mutate more.
+  Positions the model is confident about mutate rarely (conserved pos); uncertain ones mutate more.
 
 Bifurcating constraint: sampled child count is clamped to max 2.
 
 Usage:
     python scripts/generate_tree.py \\
         --checkpoint checkpoints/best.pt \\
-        --root-seq ACDEFG... \\
+        --root-seq ACDEFG \\
         --n-steps 50 \\
         --output generated_tree.nwk
 """
@@ -102,7 +102,7 @@ def generate_tree(args):
     nt_frac = sum(c in nt_chars for c in seq) / max(len(seq), 1)
     if nt_frac > 0.85:
         raise ValueError(
-            f"root-seq looks like a nucleotide sequence ({nt_frac:.0%} ACGTU). "
+            f"root-seq is a  nucleotide sequence ({nt_frac:.0%} ACGTU). "
             "Translate to amino acids first."
         )
     aa_frac = sum(c in AA_VOCAB for c in seq) / max(len(seq), 1)
@@ -167,7 +167,7 @@ def generate_tree(args):
         log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                      active_seqs, args.max_seq_len, device)
 
-        # NodeEncoder → TreeEncoder → RateHeads
+        # NodeEncoder -> TreeEncoder -> RateHeads
         with torch.no_grad():
             h_t  = node_enc(plm_t, struct_t, lap_t)
             H_t, _ = tree_enc(h_t, node_ids_t, node_times_dict,
@@ -182,7 +182,7 @@ def generate_tree(args):
             seq     = tree.node_seqs[leaf_id]
             seq_len = min(len(seq), args.max_seq_len)
 
-            # ── Mutations (M-H: model-guided proposal + ESM fitness gate) ──
+            # Mutations (M-H: model-guided proposal + ESM fitness gate)
             new_seq = list(seq)
             for pos in range(seq_len):
                 curr_idx = AA_TO_IDX.get(seq[pos], -1)
@@ -196,7 +196,7 @@ def generate_tree(args):
                     new_seq[pos] = AA_VOCAB[torch.multinomial(probs_mut / total, 1).item()]
             new_node_seqs[leaf_id] = "".join(new_seq)
 
-            # ── Branch ──
+            # Branch
             lam  = out["branching_rate"][i].item() * args.branch_rate_scale
             p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
             n_ch = 2 if torch.rand(1).item() < p_branch else 0
@@ -222,7 +222,7 @@ def generate_tree(args):
                 )
                 new_node_seqs = dict(tree.node_seqs)
 
-                # ── ESM fitness gate: terminate new children with very low PLL ──
+                # ESM fitness gate: terminate new children with very low PLL
                 for child_id in new_children:
                     node_birth_step.setdefault(child_id, step + 1)
                     child_seq = new_node_seqs[child_id]
