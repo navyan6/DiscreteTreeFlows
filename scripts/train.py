@@ -170,6 +170,11 @@ def forward_bridge_step(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data",        default="data/train")
+    parser.add_argument("--val-data",    default=None,
+                        help="Temporal split: dir of val groups (e.g. data/h3n2/val). "
+                             "If set with --test-data, bypasses the random subtype split.")
+    parser.add_argument("--test-data",   default=None,
+                        help="Temporal split: dir of test groups (e.g. data/h3n2/test).")
     parser.add_argument("--epochs",      type=int,   default=100)
     parser.add_argument("--lr",          type=float, default=1e-4)
     parser.add_argument("--val-frac",    type=float, default=0.1)
@@ -199,52 +204,61 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    # ── data
-    dataset = TreeDataset(args.data, max_seq_len=args.max_seq_len)
+    # ── data: temporal split (separate dirs) OR random subtype-binned split
+    if args.val_data and args.test_data:
+        print("Temporal split: loading train/val/test from separate dirs")
+        train_ds = TreeDataset(args.data,      max_seq_len=args.max_seq_len)
+        val_ds   = TreeDataset(args.val_data,  max_seq_len=args.max_seq_len)
+        test_ds  = TreeDataset(args.test_data, max_seq_len=args.max_seq_len)
+        dataset  = train_ds  # used for the PLM-cache probe / export below
+        Path(args.ckpt_dir).mkdir(exist_ok=True)
+        print(f"Total — Train: {len(train_ds)}  Val: {len(val_ds)}  Test: {len(test_ds)}")
+    else:
+        dataset = TreeDataset(args.data, max_seq_len=args.max_seq_len)
 
-    def subtype_of(group: int) -> str:
-        if   1   <= group <= 48:  return "h3n2"
-        elif 49  <= group <= 55:  return "swine"
-        elif group == 56:         return "avian"
-        elif 57  <= group <= 106: return "h1n1_ha"
-        elif 107 <= group <= 156: return "h1n1_na"
-        elif 157 <= group <= 206: return "h1n1_2015"
-        elif 207 <= group <= 238: return "fluB_yam"
-        elif 239 <= group <= 284: return "fluB_vic"
-        return "unknown"
+        def subtype_of(group: int) -> str:
+            if   1   <= group <= 48:  return "h3n2"
+            elif 49  <= group <= 55:  return "swine"
+            elif group == 56:         return "avian"
+            elif 57  <= group <= 106: return "h1n1_ha"
+            elif 107 <= group <= 156: return "h1n1_na"
+            elif 157 <= group <= 206: return "h1n1_2015"
+            elif 207 <= group <= 238: return "fluB_yam"
+            elif 239 <= group <= 284: return "fluB_vic"
+            return "unknown"
 
-    bins: dict[str, list[int]] = defaultdict(list)
-    for i in range(len(dataset)):
-        bins[subtype_of(dataset.groups[i])].append(i)
+        bins: dict[str, list[int]] = defaultdict(list)
+        for i in range(len(dataset)):
+            bins[subtype_of(dataset.groups[i])].append(i)
 
-    rng = random.Random(args.seed)
-    train_idx, val_idx, test_idx = [], [], []
-    for subtype in sorted(bins):
-        indices = bins[subtype]
-        rng.shuffle(indices)
-        n = len(indices)
-        if n < 3:
-            train_idx += indices
-            print(f"  {subtype}: {n} tree(s) → all train (too small to split)")
-            continue
-        n_t  = max(1, int(n * args.test_frac))
-        n_v  = max(1, int(n * args.val_frac))
-        n_tr = n - n_t - n_v
-        train_idx += indices[:n_tr]
-        val_idx   += indices[n_tr:n_tr + n_v]
-        test_idx  += indices[n_tr + n_v:]
-        print(f"  {subtype}: {n} trees → {n_tr} train / {n_v} val / {n_t} test")
+        rng = random.Random(args.seed)
+        train_idx, val_idx, test_idx = [], [], []
+        for subtype in sorted(bins):
+            indices = bins[subtype]
+            rng.shuffle(indices)
+            n = len(indices)
+            if n < 3:
+                train_idx += indices
+                print(f"  {subtype}: {n} tree(s) → all train (too small to split)")
+                continue
+            n_t  = max(1, int(n * args.test_frac))
+            n_v  = max(1, int(n * args.val_frac))
+            n_tr = n - n_t - n_v
+            train_idx += indices[:n_tr]
+            val_idx   += indices[n_tr:n_tr + n_v]
+            test_idx  += indices[n_tr + n_v:]
+            print(f"  {subtype}: {n} trees → {n_tr} train / {n_v} val / {n_t} test")
 
-    train_ds = Subset(dataset, train_idx)
-    val_ds   = Subset(dataset, val_idx)
-    test_ds  = Subset(dataset, test_idx)
-    print(f"Total — Train: {len(train_idx)}  Val: {len(val_idx)}  Test: {len(test_idx)}")
+        train_ds = Subset(dataset, train_idx)
+        val_ds   = Subset(dataset, val_idx)
+        test_ds  = Subset(dataset, test_idx)
+        print(f"Total — Train: {len(train_idx)}  Val: {len(val_idx)}  Test: {len(test_idx)}")
 
-    # save split indices so the held-out test set is always recoverable
-    split_path = Path(args.ckpt_dir) / "split_indices.json"
-    split_path.parent.mkdir(exist_ok=True)
-    with open(split_path, "w") as f:
-        json.dump({"train": train_ds.indices, "val": val_ds.indices, "test": test_ds.indices}, f)
+        # save split indices so the held-out test set is always recoverable
+        split_path = Path(args.ckpt_dir) / "split_indices.json"
+        split_path.parent.mkdir(exist_ok=True)
+        with open(split_path, "w") as f:
+            json.dump({"train": train_ds.indices, "val": val_ds.indices, "test": test_ds.indices}, f)
 
     # batch_size=1 (trees vary in node count — no collation)
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=True,  collate_fn=lambda x: x[0])

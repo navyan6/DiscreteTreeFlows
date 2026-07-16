@@ -2,15 +2,6 @@
 """
 Full pipeline for all H3N2 groups (resumable + parallel workers).
 
-Stages per group:
-  1. clean      strip dates from FASTA headers  →  group_NNN_clean.fasta
-  2. align      MAFFT                           →  group_NNN_aligned.fasta
-  3. fasttree   FastTree GTR                    →  group_NNN_tree.nwk
-  4. refine     augur refine (temporal root)    →  group_NNN_rooted.nwk + group_NNN_bl.json
-  5. anc        augur ancestral                 →  group_NNN_anc_nt.fasta
-  6. translate  NT → AA                         →  group_NNN_anc_aa.fasta
-  7. embed      NodeEncoder → .pt               →  group_NNN_embeddings.pt
-
 Usage:
     python scripts/run_all_groups.py                    # all 48 groups, 4 workers
     python scripts/run_all_groups.py --workers 8        # more parallelism
@@ -40,7 +31,7 @@ FASTTREE_BIN = "fasttree"
 INPUT_PREFIX = "master_h3n2"   # prefix of split input files: {PREFIX}_group_{NNN}.fasta
 GROUP_OFFSET = 0                # local group 1 → global group 1+OFFSET
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# helpers 
 
 LOG_DIR = ROOT / "logs"
 
@@ -70,7 +61,7 @@ def done(path: Path) -> bool:
     return path.exists() and path.stat().st_size > 0
 
 
-# ── pipeline stages ───────────────────────────────────────────────────────────
+# pipeline stages 
 
 def stage_clean(g: int) -> tuple[Path, Path]:
     """
@@ -256,7 +247,7 @@ def stage_embed(g: int, rooted: Path, anc_aa: Path, bl_json: Path) -> Path:
     return out
 
 
-# ── per-group entry point (runs in worker process) ────────────────────────────
+# per-group entry point (runs in worker process)
 
 STAGES = ["clean", "align", "fasttree", "refine", "anc", "translate", "embed"]
 
@@ -285,12 +276,15 @@ def run_group(g: int, stop_after: str | None) -> str:
         return f"{g:03d} FAILED: {e}\n{traceback.format_exc()}"
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
+# main 
 
 def main():
-    global INPUT_PREFIX, GROUP_OFFSET
+    global INPUT_PREFIX, GROUP_OFFSET, DATA
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", default="data/train",
+                        help="Dir holding {prefix}_group_NNN.fasta inputs and group_NNN_* "
+                             "outputs (e.g. data/h3n2/train). Keeps splits from colliding.")
     parser.add_argument("--prefix", default="master_h3n2",
                         help="Input file prefix from split_fasta_by_date.py (e.g. h3n2_swine_all)")
     parser.add_argument("--group-offset", type=int, default=0,
@@ -306,6 +300,7 @@ def main():
 
     INPUT_PREFIX = args.prefix
     GROUP_OFFSET = args.group_offset
+    DATA = ROOT / args.data_dir
 
     if args.groups:
         groups = args.groups
