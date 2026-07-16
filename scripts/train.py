@@ -192,6 +192,10 @@ def main():
     parser.add_argument("--bridge-c",    type=float, default=1.0,
                         help="Reference resampling rate c in the conditional bridge target "
                              "(kappa = exp(-c(1-t))); larger = sharper terminal pull earlier")
+    parser.add_argument("--per-site-pos-emb", action="store_true",
+                        help="Add a learned positional embedding to the mutation head so "
+                             "c_theta can act per-site (attacks the recovery ceiling). "
+                             "Changes the architecture -> needs a fresh checkpoint.")
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -277,7 +281,8 @@ def main():
 
     node_enc   = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc   = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    rate_heads = RateHeads(d_model=128, max_seq_len=args.max_seq_len).to(device)
+    rate_heads = RateHeads(d_model=128, max_seq_len=args.max_seq_len,
+                           use_pos_emb=args.per_site_pos_emb).to(device)
 
     params = (
         list(node_enc.parameters()) +
@@ -387,6 +392,7 @@ def main():
                 "rate_heads": rate_heads.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "val_loss": val_loss,
+                "config": {"use_pos_emb": args.per_site_pos_emb},
             }, ckpt_dir / "best.pt")
         else:
             patience_counter += 1

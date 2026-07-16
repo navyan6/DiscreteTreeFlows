@@ -119,9 +119,11 @@ def load_models(checkpoint, device, max_seq_len):
     ckpt = torch.load(checkpoint, map_location=device, weights_only=False)
     print(f"Checkpoint: epoch {ckpt.get('epoch','?')}  "
           f"val_loss={ckpt.get('val_loss', 0):.4f}")
+    cfg = ckpt.get("config", {})
     node_enc = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads  = RateHeads(d_model=128, max_seq_len=max_seq_len).to(device)
+    r_heads  = RateHeads(d_model=128, max_seq_len=max_seq_len,
+                         use_pos_emb=cfg.get("use_pos_emb", False)).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])

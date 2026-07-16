@@ -16,7 +16,7 @@ export PATH=/vast/home/n/nnori/.conda/envs/treesbm/bin:$PATH
 PYTHON=/vast/home/n/nnori/.conda/envs/treesbm/bin/python
 
 cd ~/DiscreteTreeFlows
-mkdir -p logs checkpoints/h3n2_temporal
+mkdir -p logs checkpoints/h3n2_v2
 
 echo "Start: $(date)"
 
@@ -36,6 +36,7 @@ $PYTHON -u scripts/train.py \
     --patience   50 \
     --bridge-c   1.0 \
     --lambda-mut 5.0 \
-    --ckpt-dir   checkpoints/h3n2_temporal
+    --per-site-pos-emb \
+    --ckpt-dir   checkpoints/h3n2_v2
 
 echo "Done: $(date)"

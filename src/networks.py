@@ -242,15 +242,22 @@ class RateHeads(nn.Module):
     reconstructing position-specific information from the mean-pooled 128-dim embedding.
     """
 
-    def __init__(self, d_model: int = 256, max_seq_len: int = 512):
+    def __init__(self, d_model: int = 256, max_seq_len: int = 512,
+                 use_pos_emb: bool = False, d_pos: int = 32):
         super().__init__()
         self.d_model = d_model
         self.max_seq_len = max_seq_len
+        self.use_pos_emb = use_pos_emb
 
-        # Input: [h_node (d_model) ‖ log_R0 (20)] per position → c_θ correction (20)
-        # log_R_theta = log_R0 + c_θ  (addition happens inside forward)
+        # Per-position mutation-head input: [h_node (d_model) ‖ (pos_emb) ‖ log_R0 (20)].
+        # The optional learned positional embedding lets c_θ act per-site — position
+        # identity otherwise never enters the computation (h_node is broadcast to all L,
+        # so the only per-position signal is the ESM log_R0). log_R_theta = log_R0 + c_θ.
+        if use_pos_emb:
+            self.pos_emb = nn.Embedding(max_seq_len, d_pos)
+        mut_in = d_model + 20 + (d_pos if use_pos_emb else 0)
         self.mutation_head = nn.Sequential(
-            nn.Linear(d_model + 20, 64),
+            nn.Linear(mut_in, 64),
             nn.ReLU(),
             nn.Linear(64, 20),
         )
@@ -295,9 +302,16 @@ class RateHeads(nn.Module):
         h_active = H_T[active_leaf_indices]          # [n_active, d_model]
         L = log_R0_mut.shape[1]
 
-        # Broadcast tree context to per-position, concatenate with per-position R0
+        # Broadcast tree context to per-position; optionally add a per-position
+        # positional embedding so c_θ can specialize by site; concat per-position R0.
         h_expanded = h_active.unsqueeze(1).expand(-1, L, -1)  # [n_active, L, d_model]
-        h_pos = torch.cat([h_expanded, log_R0_mut], dim=-1)   # [n_active, L, d_model+20]
+        parts = [h_expanded]
+        if self.use_pos_emb:
+            pos_ids = torch.arange(L, device=log_R0_mut.device)
+            pe = self.pos_emb(pos_ids).unsqueeze(0).expand(h_active.shape[0], -1, -1)
+            parts.append(pe)                                   # [n_active, L, d_pos]
+        parts.append(log_R0_mut)
+        h_pos = torch.cat(parts, dim=-1)                       # [n_active, L, d_model(+d_pos)+20]
 
         c_theta = self.mutation_head(h_pos)                    # [n_active, L, 20]
         log_R_theta_mut = log_R0_mut + c_theta                 # [n_active, L, 20]
