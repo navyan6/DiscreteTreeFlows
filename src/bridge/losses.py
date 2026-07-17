@@ -105,9 +105,9 @@ def bridge_losses(
         full=False,
     )
 
-    # ── L_br: log-space MSE over leaves that actually branch. Relative error keeps
-    # tiny targets (~1e-4 subs/site) from being drowned out by MSE, which was letting
-    # generated branches come out ~5x too long. branch_length_pred is Softplus (>0).
+    # ── L_br  (plain MSE; log-space + terminal-masking variant was tried and made
+    # generated branches worse — 9.5x vs 4.8x — so reverted. Branch-length skew still
+    # unsolved; needs per-child log-branch modeling, a separate redesign.)
     target_bls = torch.tensor(
         [
             (sum(T1_child_bls[nid]) / len(T1_child_bls[nid]))
@@ -116,15 +116,7 @@ def bridge_losses(
         ],
         dtype=torch.float32, device=device,
     )
-    has_bl = target_bls > 0
-    if has_bl.any():
-        eps_bl = 1e-6
-        L_br = F.mse_loss(
-            torch.log(branch_length_pred[has_bl] + eps_bl),
-            torch.log(target_bls[has_bl] + eps_bl),
-        )
-    else:
-        L_br = torch.zeros((), device=device)
+    L_br = F.mse_loss(branch_length_pred, target_bls)
 
     # ── L_stop 
     has_no_children = torch.tensor(
