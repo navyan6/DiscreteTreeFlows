@@ -23,7 +23,7 @@ from benchmarks.metrics import trees as T
 __all__ = [
     "summarize_tree", "summary_matrix",
     "wasserstein_per_feature", "energy_distance", "mmd_rbf",
-    "split_frequencies", "split_kl", "tree_kl",
+    "split_frequencies", "split_kl", "tree_kl", "split_js", "tree_js",
     "distributional_report",
 ]
 
@@ -183,6 +183,33 @@ def tree_kl(gen: list[TreeState], true: list[TreeState], eps: float = 1e-6) -> f
         q = (pt.get(k, 0) + eps) / (nt + eps * V)
         total += p * np.log(p / q)
     return float(total)
+
+
+def tree_js(gen: list[TreeState], true: list[TreeState], eps: float = 1e-9) -> float:
+    """
+    Jensen-Shannon divergence (nats, symmetric, bounded [0, ln2]) over the
+    categorical distribution of rooted topologies. Finite even on disjoint
+    supports — the stabilized alternative to tree_kl for the table.
+    """
+    from collections import Counter
+    pg = Counter(_topology_key(t) for t in gen)
+    pt = Counter(_topology_key(t) for t in true)
+    ng, nt = len(gen), len(true)
+    js = 0.0
+    for k in set(pg) | set(pt):
+        p = pg.get(k, 0) / ng if ng else 0.0
+        q = pt.get(k, 0) / nt if nt else 0.0
+        m = 0.5 * (p + q)
+        if p > 0:
+            js += 0.5 * p * np.log((p + eps) / (m + eps))
+        if q > 0:
+            js += 0.5 * q * np.log((q + eps) / (m + eps))
+    return float(js)
+
+
+def split_js(gen: list[TreeState], true: list[TreeState], eps: float = 1e-3) -> float:
+    """Symmetrized split-KL (0.5[KL(g||t)+KL(t||g)]) — stabilized, symmetric."""
+    return 0.5 * (split_kl(gen, true, eps) + split_kl(true, gen, eps))
 
 
 # ── convenience report ──────────────────────────────────────────────────────

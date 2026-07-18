@@ -1,0 +1,60 @@
+"""
+TreeSBM (row 8) with an (N, H) conditioning adapter over its native sampler.
+
+TreeSBM's sampler doesn't natively take (N, H); we adapt it honestly:
+  - N: generate past N leaves, then select exactly N leaves and take the induced
+    subtree (same collapse as the dataset construction) so the output has exactly
+    N terminals — matching how the BD baselines produce exactly N.
+  - H: map the horizon to the sampler's mutation-rate scale (divergence ≈ scale).
+The sampler still receives ONLY the root sequence (+ these two scalars); it never
+sees the hidden target subtree. Labeled as an (N,H) sampler adapter.
+"""
+
+from __future__ import annotations
+
+import random
+import time
+
+from benchmarks.methods.base import Method, GeneratedTree
+from benchmarks.generation import TreeSBMGenerator
+from benchmarks.heldout.build_examples import induced_subtree
+from benchmarks.metrics import trees as T
+
+
+class TreeSBMMethod(Method):
+    name = "treesbm"
+
+    def __init__(self, checkpoint: str, n_steps: int = 50, branch_rate_scale: float = 6.0,
+                 rate_per_H: float = 1.2, max_seq_len: int = 566, cushion: float = 1.6,
+                 max_retries: int = 4):
+        self.gen = TreeSBMGenerator(checkpoint, max_seq_len=max_seq_len)
+        self.n_steps = n_steps
+        self.branch_rate_scale = branch_rate_scale
+        self.rate_per_H = rate_per_H
+        self.cushion = cushion
+        self.max_retries = max_retries
+
+    def generate(self, root_seq: str, N: int, H: float, seed: int) -> GeneratedTree:
+        t0 = time.time()
+        mut_scale = max(1e-4, H * self.rate_per_H)      # horizon -> divergence
+        cap = int(N * self.cushion) + 2
+        tree = None
+        for r in range(self.max_retries):
+            g = self.gen.generate_k(
+                root_seq, K=1, n_steps=self.n_steps + 10 * r, max_leaves=cap,
+                branch_rate_scale=self.branch_rate_scale * (1 + 0.3 * r),
+                mutation_rate_scale=mut_scale, base_seed=seed + 100 * r,
+            )[0]
+            if len(T.leaf_labels(g)) >= N:
+                tree = g
+                break
+        if tree is None:
+            tree = g  # accept the last attempt; validity will flag if < N
+
+        leaves = T.leaf_labels(tree)
+        if len(leaves) > N:
+            sel = random.Random(seed).sample(leaves, N)
+            tree = induced_subtree(tree, tree.root_id, sel)   # exactly N, collapse+sum bls
+
+        return GeneratedTree(tree, {"runtime": time.time() - t0,
+                                    "target_N": N, "target_H": H, "mut_scale": mut_scale})

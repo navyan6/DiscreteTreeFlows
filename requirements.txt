@@ -21,3 +21,9 @@ pyyaml>=6.0
 
 # Dev / testing
 pytest>=7.0.0
+
+# Benchmark suite (tree-generation table) — treesbm env only; external baselines
+# (ARTreeFormer, PhyloVAE) live in their own cloned repos + envs (see benchmarks/EXTERNAL.md)
+dendropy>=4.6.1            # birth-death topology simulation (BD baselines, sim track)
+pyvolve>=1.1.0            # sequence evolution under neutral/JTT/WAG/LG
+tqdist>=1.0.0            # normalized quartet distance
