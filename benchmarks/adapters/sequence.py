@@ -38,8 +38,12 @@ def evolve_pyvolve(topology: TreeState, root_seq: str, model: str = "JTT",
     newick = T.to_newick(topology)                 # named internals + branch lengths
     phylo = pyvolve.read_tree(tree=newick)
     if model.lower() == "neutral":
-        m = pyvolve.Model("custom", {"state_freqs": [1.0 / 20] * 20,
-                                     "aa_freqs": [1.0 / 20] * 20})
+        import numpy as np
+        # flat amino-acid generator: equal off-diagonal rates, uniform stationary.
+        # pyvolve normalizes so branch length = expected substitutions/site.
+        Q = np.full((20, 20), 1.0)
+        np.fill_diagonal(Q, -19.0)
+        m = pyvolve.Model("custom", {"matrix": Q})
     else:
         m = pyvolve.Model(model.upper())           # JTT / WAG / LG
     part = pyvolve.Partition(models=m, root_sequence=root_seq)
