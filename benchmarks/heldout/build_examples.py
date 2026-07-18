@@ -212,15 +212,22 @@ def h_buckets(train_H: list[float], q=(1 / 3, 2 / 3)) -> tuple[float, float]:
 
 
 def assert_no_leakage(train_dir, test_dir):
-    """No node id may appear in both train and test trees."""
-    def all_nodes(d):
+    """
+    No LEAF (real sequence id, e.g. EPI_ISL_*) may appear in both train and test.
+    Internal nodes are named NODE_* fresh per tree by the parser, so they collide
+    trivially and must be excluded — only leaf identities are meaningful.
+    """
+    def all_leaf_ids(d):
         s = set()
         for g in list_groups(d):
-            _, edges, _ = _parse_newick(str(Path(d) / f"group_{g:03d}_rooted.nwk"))
-            s |= {n for e in edges for n in e}
+            root_id, edges, _ = _parse_newick(str(Path(d) / f"group_{g:03d}_rooted.nwk"))
+            parents = {p for p, _ in edges}
+            nodes = {n for e in edges for n in e} | {root_id}
+            s |= {n for n in nodes if n not in parents}   # leaf = never a parent
         return s
-    inter = all_nodes(train_dir) & all_nodes(test_dir)
-    assert not inter, f"LEAKAGE: {len(inter)} node ids shared between train and test"
+    inter = all_leaf_ids(train_dir) & all_leaf_ids(test_dir)
+    assert not inter, (f"LEAKAGE: {len(inter)} leaf ids shared between train and test "
+                       f"(e.g. {sorted(inter)[:3]})")
 
 
 def main():

@@ -38,12 +38,13 @@ def fit_params(train_dir: str | Path) -> dict:
             freqs.update(c for c in t.node_seqs.get(l, "") if c in AA_VOCAB)
     tot = sum(freqs[a] for a in AA_VOCAB) or 1
     return {
-        "birth": float(median(births)) if births else 1.0,
-        "death": 0.0,   # Yule: death not identifiable from reconstructed trees
+        "birth": 1.0,   # Yule shape is rate-invariant; timescale is set per-example by H
+        "death": 0.0,   # death not identifiable from reconstructed (extant-only) trees
+        "empirical_birth_rate": float(median(births)) if births else 1.0,  # for the record
         "subst_scale": 1.0,   # branch lengths already in subs/site
         "mean_branch_length": float(sum(all_bl) / len(all_bl)) if all_bl else 0.0,
         "aa_freqs": {a: freqs[a] / tot for a in AA_VOCAB},
-        "note": "Yule pure-birth (death=0, unidentifiable from reconstructed trees)",
+        "note": "Yule pure-birth; birth normalized to 1 (topology rate-invariant, times set by H).",
     }
 
 
