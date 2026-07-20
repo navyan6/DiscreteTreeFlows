@@ -15,6 +15,7 @@ from __future__ import annotations
 import random
 import time
 
+from src.tree_state import TreeState
 from benchmarks.methods.base import Method, GeneratedTree
 from benchmarks.generation import TreeSBMGenerator
 from benchmarks.heldout.build_examples import induced_subtree
@@ -55,6 +56,20 @@ class TreeSBMMethod(Method):
         if len(leaves) > N:
             sel = random.Random(seed).sample(leaves, N)
             tree = induced_subtree(tree, tree.root_id, sel)   # exactly N, collapse+sum bls
+            leaves = T.leaf_labels(tree)
+
+        # (N,H) conditioning: rescale branch lengths so mean root-to-tip == H, exactly
+        # as the BD baselines do. TreeSBM supplies topology + sequences; H sets the
+        # timescale. Without this, TreeSBM's (miscalibrated) branch lengths fail the
+        # horizon check and the row is dropped.
+        times = T.node_times(tree)
+        cur = sum(times[l] for l in leaves) / len(leaves) if leaves else 0.0
+        if cur > 0 and H > 0:
+            s = H / cur
+            tree = TreeState(
+                node_ids=tree.node_ids, root_id=tree.root_id, edges=tree.edges,
+                branch_lengths={e: v * s for e, v in tree.branch_lengths.items()},
+                node_seqs=tree.node_seqs, active_leaves=list(tree.active_leaves))
 
         return GeneratedTree(tree, {"runtime": time.time() - t0,
                                     "target_N": N, "target_H": H, "mut_scale": mut_scale})
