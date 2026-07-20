@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 import numpy as np
-import pandas as pd
 
 from src.tree_state import TreeState
 from benchmarks import validity as V
@@ -55,28 +54,27 @@ def test_bad_alphabet_flagged():
 
 # ── make_table ───────────────────────────────────────────────────────────────
 
-def _results_df():
+def _results_rows():
     rows = []
     for method, rf in [("treesbm", 0.30), ("neutral_bd", 0.50)]:
         for root in range(5):
             rows.append(dict(method=method, track="empirical", N=16, root_id=root,
-                             valid=True, tree_kl=np.nan, split_kl=np.nan, rf=rf,
+                             valid=5, tree_kl="nan", split_kl="nan", rf=rf,
                              quartet=0.20, branch_w_all=0.10, terminal_edit=0.05))
-    return pd.DataFrame(rows)
+    return rows
 
 
 def test_summarize_means_and_se():
-    s = MT.summarize(_results_df(), ci="se")
-    assert set(s["method"]) == {"treesbm", "neutral_bd"}
-    ts = s[s.method == "treesbm"].iloc[0]
+    s = MT.summarize(_results_rows(), ci="se")
+    assert {r["method"] for r in s} == {"treesbm", "neutral_bd"}
+    ts = next(r for r in s if r["method"] == "treesbm")
     assert abs(ts["rf"] - 0.30) < 1e-9
     assert abs(ts["rf_unc"]) < 1e-9          # identical values -> SE 0
     assert ts["n_roots"] == 5
 
 
 def test_latex_contains_methods():
-    s = MT.summarize(_results_df(), ci="se")
-    tex = MT.to_latex(s, "test")
+    tex = MT.to_latex(MT.summarize(_results_rows(), ci="se"), "test")
     assert "treesbm" in tex and r"\toprule" in tex and "Tree-KL" in tex
 
 
