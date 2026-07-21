@@ -76,8 +76,16 @@ def quartet_distance(gen: TreeState, ref: TreeState) -> float:
     except ImportError as e:  # pragma: no cover
         raise ImportError("quartet_distance needs `tqdist` (pip install tqdist)") from e
     g = _matched(gen, ref)
-    # tqdist compares unrooted quartets over the shared leaf label set
-    return float(_qd(T.to_newick(g), T.to_newick(ref)))
+    # tqdist compares unrooted quartets over the shared leaf label set. Internal
+    # node names must be OMITTED: different tree sources name internal nodes
+    # differently (e.g. dendropy sims vs Bio.Phylo-parsed real trees), and tqdist
+    # treats any embedded internal label as a taxon that must match between the
+    # two trees, aborting on mismatch. Only leaves (already sequence-matched)
+    # should be labeled.
+    try:
+        return float(_qd(T.to_newick(g, with_names=False), T.to_newick(ref, with_names=False)))
+    except Exception:
+        return float("nan")
 
 
 def terminal_edit_distance(gen: TreeState, ref: TreeState) -> dict:
