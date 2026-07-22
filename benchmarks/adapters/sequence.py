@@ -43,7 +43,11 @@ def evolve_pyvolve(topology: TreeState, root_seq: str, model: str = "JTT",
         # pyvolve normalizes so branch length = expected substitutions/site.
         Q = np.full((20, 20), 1.0)
         np.fill_diagonal(Q, -19.0)
-        m = pyvolve.Model("custom", {"matrix": Q})
+        # explicit state_freqs: matrix is symmetric so the stationary dist is
+        # exactly uniform; without this pyvolve recomputes + prints a notice
+        # and rewrites custom_matrix_frequencies.txt on every single call.
+        freqs = np.full(20, 0.05)
+        m = pyvolve.Model("custom", {"matrix": Q, "state_freqs": freqs})
     else:
         m = pyvolve.Model(model.upper())           # JTT / WAG / LG
     part = pyvolve.Partition(models=m, root_sequence=root_seq)
