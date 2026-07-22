@@ -60,6 +60,36 @@ def _matched(gen: TreeState, ref: TreeState) -> TreeState:
     return relabel_leaves(gen, match_leaves(gen, ref))
 
 
+def _drop_unary_root(tree: TreeState) -> TreeState:
+    """
+    tqDist parses newick as an *unrooted* topology, where a degree-1 node is a
+    leaf. A root with a single child (dendropy's birth-death stem edge; also
+    `induced_subtree`, which always keeps the root even if only one branch
+    survives leaf sampling) becomes a phantom, unlabeled leaf the other tree
+    never has, aborting tqDist. Promote the child chain until degree != 1.
+    """
+    cm = T.children_map(tree)
+    root = tree.root_id
+    kids = cm.get(root, [])
+    while len(kids) == 1:
+        root = kids[0]
+        kids = cm.get(root, [])
+    if root == tree.root_id:
+        return tree
+    keep = set()
+    stack = [root]
+    while stack:
+        n = stack.pop(); keep.add(n); stack.extend(cm.get(n, []))
+    edges = [(p, c) for p, c in tree.edges if p in keep and c in keep]
+    return TreeState(
+        node_ids=[n for n in tree.node_ids if n in keep], root_id=root,
+        edges=edges,
+        branch_lengths={e: tree.branch_lengths.get(e, 0.0) for e in edges},
+        node_seqs={n: s for n, s in tree.node_seqs.items() if n in keep},
+        active_leaves=[n for n in tree.active_leaves if n in keep],
+    )
+
+
 def sequence_matched_rf(gen: TreeState, ref: TreeState) -> float:
     """Normalized rooted RF after sequence-matched relabeling of generated leaves."""
     return T.normalized_rf(_matched(gen, ref), ref)
@@ -75,7 +105,8 @@ def quartet_distance(gen: TreeState, ref: TreeState) -> float:
         from tqdist import quartet_distance as _qd
     except ImportError as e:  # pragma: no cover
         raise ImportError("quartet_distance needs `tqdist` (pip install tqdist)") from e
-    g = _matched(gen, ref)
+    g = _drop_unary_root(_matched(gen, ref))
+    r = _drop_unary_root(ref)
     # tqdist compares unrooted quartets over the shared leaf label set. Internal
     # node names must be OMITTED: different tree sources name internal nodes
     # differently (e.g. dendropy sims vs Bio.Phylo-parsed real trees), and tqdist
@@ -83,7 +114,7 @@ def quartet_distance(gen: TreeState, ref: TreeState) -> float:
     # two trees, aborting on mismatch. Only leaves (already sequence-matched)
     # should be labeled.
     try:
-        return float(_qd(T.to_newick(g, with_names=False), T.to_newick(ref, with_names=False)))
+        return float(_qd(T.to_newick(g, with_names=False), T.to_newick(r, with_names=False)))
     except Exception:
         return float("nan")
 

@@ -75,6 +75,40 @@ def test_quartet_guarded():
         pass
 
 
+def _stem(tree: TreeState, stem_id="STEM", bl=0.01) -> TreeState:
+    """Wrap `tree` with a new unary root -> stem_id -> old root (dendropy-style)."""
+    return TreeState(
+        node_ids=[stem_id] + tree.node_ids, root_id=stem_id,
+        edges=[(stem_id, tree.root_id)] + tree.edges,
+        branch_lengths={(stem_id, tree.root_id): bl, **tree.branch_lengths},
+        node_seqs=tree.node_seqs, active_leaves=list(tree.active_leaves),
+    )
+
+
+def test_drop_unary_root_noop_when_not_unary():
+    assert M._drop_unary_root(REF).root_id == REF.root_id
+
+
+def test_drop_unary_root_promotes_child():
+    stemmed = _stem(REF)
+    dropped = M._drop_unary_root(stemmed)
+    assert dropped.root_id == REF.root_id
+    assert set(dropped.node_ids) == set(REF.node_ids)
+    assert "STEM" not in dropped.node_ids
+
+
+def test_quartet_unary_root_matches_isomorphic():
+    # gen has a dendropy-style stem root; topology is otherwise isomorphic to
+    # REF, so quartet distance should be 0 (not a "leaves don't agree" abort).
+    gen = _stem(_quartet("g1", "g2", "g3", "g4", ["MMMM", "WWWW", "YYYY", "FFFF"],
+                        ids=("r", "a", "b")))
+    try:
+        q = M.quartet_distance(gen, REF)
+        assert q == 0.0
+    except ImportError:
+        pass
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v)]
