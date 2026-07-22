@@ -145,6 +145,14 @@ def main():
             for ex in examples:
                 target = rebuild_target(ex)
                 root_seq, H = ex["root_seq"], ex["H"]
+                # refs don't depend on method -- compute once per (root, regime),
+                # not once per (root, method, regime) (was a 3x redundant cost).
+                regime_refs = {
+                    regime: simulate_reference(root_seq, N, H, regime, args.M,
+                                               params["birth"], params["death"],
+                                               seed=args.seed + hash(ex["root_id"]) % 9973)
+                    for regime in args.regimes
+                }
                 for method in methods:
                     gens, valids = [], []
                     for k in range(args.K):
@@ -165,10 +173,7 @@ def main():
                             row[m] = mean(vals) if vals else float("nan")
                         w.writerow(row)
                     # simulated track (per regime)
-                    for regime in args.regimes:
-                        refs = simulate_reference(root_seq, N, H, regime, args.M,
-                                                  params["birth"], params["death"],
-                                                  seed=args.seed + hash(ex["root_id"]) % 9973)
+                    for regime, refs in regime_refs.items():
                         if valid_trees:
                             ss = score_simulated(valid_trees, refs, seed=args.seed)
                             w.writerow({**base, "track": f"sim_{regime}",
