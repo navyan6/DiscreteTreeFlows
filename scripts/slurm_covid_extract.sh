@@ -15,16 +15,27 @@
 # One-time setup, if not already done:
 #   conda install -n treesbm -c bioconda -c conda-forge nextclade
 #   nextclade dataset get --name sars-cov-2 --output-dir data/covid/nextclade_dataset
+#
+# Prereq (data/ is gitignored -- rsync raw files up from local, they don't
+# arrive via git pull):
+#   rsync -avP data/covid/train/*_covid_seqs.fasta <cluster>:~/DiscreteTreeFlows/data/covid/train/
 
 export PATH=/vast/home/n/nnori/.conda/envs/treesbm/bin:$PATH
 PYTHON=/vast/home/n/nnori/.conda/envs/treesbm/bin/python
 
 cd ~/DiscreteTreeFlows
 mkdir -p logs
+shopt -s nullglob
 
 echo "Start: $(date)"
 
-for f in data/covid/train/*_covid_seqs.fasta; do
+files=(data/covid/train/*_covid_seqs.fasta)
+if [ ${#files[@]} -eq 0 ]; then
+    echo "No data/covid/train/*_covid_seqs.fasta found -- rsync the raw files up first (see header)."
+    exit 1
+fi
+
+for f in "${files[@]}"; do
     echo "=== $f ==="
     $PYTHON scripts/covid_extract_spike.py "$f" --jobs "$SLURM_CPUS_PER_TASK"
 done
