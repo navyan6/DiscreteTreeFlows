@@ -55,9 +55,14 @@ def parse_date(raw: str) -> tuple[str, tuple[int, int, int]]:
 
 
 def parse_header(desc: str) -> tuple[str, str, str]:
-    """>ACCESSION |description|date|length|country -> (accession, date, country)."""
+    """
+    >ACCESSION |description|date|length|country[|subregion] -> (accession, date, country).
+    Country is always field index 4 -- some regions (e.g. Europe/Oceania/S.America)
+    carry a trailing subregion field ("Germany|Germany: Bayern"), so it must NOT be
+    read as the last field (that only worked by coincidence on the 5-field files).
+    """
     parts = desc.split("|")
-    return parts[0].strip(), parts[2].strip(), parts[-1].strip()
+    return parts[0].strip(), parts[2].strip(), parts[4].strip()
 
 
 def load_spike_records(raw_fasta: Path, spike_fasta: Path):
