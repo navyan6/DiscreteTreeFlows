@@ -127,16 +127,21 @@ def main():
                   f"covid_extract_spike.py on {raw_path.name} first. Skipping.")
             continue
         recs = load_spike_records(raw_path, spike_path)
-        dup = 0
+        dup = bad_date = 0
         for acc, date_raw, country, seq in recs:
             if acc in seen_acc:
                 dup += 1
                 continue
             seen_acc.add(acc)
+            try:
+                date_str, sort_key = parse_date(date_raw)
+            except (ValueError, IndexError):
+                bad_date += 1
+                continue
             split = assign_split(country)
-            date_str, sort_key = parse_date(date_raw)
             by_split_country[split].setdefault(country, []).append((acc, date_str, sort_key, seq))
-        print(f"{raw_path.name}: {len(recs)} spike seqs ({dup} cross-file dup accessions dropped)")
+        print(f"{raw_path.name}: {len(recs)} spike seqs "
+              f"({dup} cross-file dup accessions, {bad_date} unparseable dates dropped)")
 
     for split, prefix in [("train", "covidtrain"), ("val", "covidval"), ("test", "covidtest")]:
         out_dir = base / split
