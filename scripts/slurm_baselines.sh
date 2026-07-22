@@ -22,7 +22,7 @@ echo "Start: $(date)"
 $PYTHON benchmarks/run_table.py \
     --test-data data/h3n2/test \
     --params    benchmarks/results/params.json \
-    --N 16 32 64 --K 100 --M 50 --max-roots 100 \
+    --N 16 32 64 --K 20 --M 20 --max-roots 100 \
     --out benchmarks/results/results_baselines.csv
 
 echo "Done: $(date)"
