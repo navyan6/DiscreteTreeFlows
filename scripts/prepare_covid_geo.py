@@ -16,10 +16,10 @@ Pipeline:
   2. this script                          -> data/covid/{split}/covid{split}_group_NNN.fasta(+.csv)
   3. run_all_groups.py --data-dir data/covid/{split} --prefix covid{split}  (unchanged)
 
-Splits (geographic, confirmed design):
-  val   = Viet Nam
-  test  = Nigeria
-  train = every other country (grows as more raw files are added)
+Splits (geographic, confirmed design -- sized for ~80/10/10 by sequence count):
+  val   = Australia   (9,971  / 110,332 = 9.0%)
+  test  = Brazil       (11,907 / 110,332 = 10.8%)
+  train = every other country (~80.2%; grows as more raw files are added)
 """
 
 import argparse
@@ -32,8 +32,8 @@ sys.path.insert(0, str(ROOT))
 
 from Bio import SeqIO
 
-VAL_COUNTRIES = {"Viet Nam"}
-TEST_COUNTRIES = {"Nigeria"}
+VAL_COUNTRIES = {"Australia"}
+TEST_COUNTRIES = {"Brazil"}
 assert VAL_COUNTRIES.isdisjoint(TEST_COUNTRIES)
 
 RAW_DIR = "data/covid/train"          # raw *_covid_seqs.fasta always land here;
