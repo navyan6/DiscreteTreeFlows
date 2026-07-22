@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=covid_extract
 #SBATCH --partition=genoa-std-mem
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --mem=64G
 #SBATCH --time=12:00:00
 #SBATCH --output=logs/covid_extract_%j.log
@@ -26,7 +26,7 @@ echo "Start: $(date)"
 
 for f in data/covid/train/*_covid_seqs.fasta; do
     echo "=== $f ==="
-    $PYTHON scripts/covid_extract_spike.py "$f"
+    $PYTHON scripts/covid_extract_spike.py "$f" --jobs "$SLURM_CPUS_PER_TASK"
 done
 
 echo "Done: $(date)"
