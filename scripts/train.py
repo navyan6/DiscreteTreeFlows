@@ -171,10 +171,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data",        default="data/train")
     parser.add_argument("--val-data",    default=None,
-                        help="Temporal split: dir of val groups (e.g. data/h3n2/val). "
-                             "If set with --test-data, bypasses the random subtype split.")
+                        help="Pre-split val dir, e.g. data/h3n2/val (temporal) or "
+                             "data/covid/val (geographic). If set with --test-data, "
+                             "bypasses the random subtype split.")
     parser.add_argument("--test-data",   default=None,
-                        help="Temporal split: dir of test groups (e.g. data/h3n2/test).")
+                        help="Pre-split test dir, e.g. data/h3n2/test or data/covid/test.")
     parser.add_argument("--epochs",      type=int,   default=100)
     parser.add_argument("--lr",          type=float, default=1e-4)
     parser.add_argument("--val-frac",    type=float, default=0.1)
@@ -208,9 +209,9 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    # ── data: temporal split (separate dirs) OR random subtype-binned split
+    # ── data: pre-split dirs (temporal or geographic) OR random subtype-binned split
     if args.val_data and args.test_data:
-        print("Temporal split: loading train/val/test from separate dirs")
+        print("Pre-split data: loading train/val/test from separate dirs")
         train_ds = TreeDataset(args.data,      max_seq_len=args.max_seq_len)
         val_ds   = TreeDataset(args.val_data,  max_seq_len=args.max_seq_len)
         test_ds  = TreeDataset(args.test_data, max_seq_len=args.max_seq_len)
