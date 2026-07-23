@@ -117,6 +117,11 @@ def bridge_losses(
         dtype=torch.float32, device=device,
     )
     L_br = F.mse_loss(branch_length_pred, target_bls)
+    # diagnostics only (not in `total`): tell apart "targets are just tiny" from
+    # "prediction collapsed to a near-constant regardless of input"
+    br_pred_std = branch_length_pred.detach().std() if branch_length_pred.numel() > 1 \
+        else torch.zeros((), device=device)
+    br_target_std = target_bls.std() if target_bls.numel() > 1 else torch.zeros((), device=device)
 
     # ── L_stop 
     has_no_children = torch.tensor(
@@ -140,5 +145,6 @@ def bridge_losses(
     return {
         "L_rate": L_rate, "L_mut": L_mut, "L_cons": L_cons,
         "L_top": L_top, "L_br": L_br, "L_stop": L_stop, "L_pll": L_pll,
+        "L_br_pred_std": br_pred_std, "L_br_target_std": br_target_std,
         "total": total,
     }

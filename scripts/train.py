@@ -325,7 +325,8 @@ def main():
         node_enc.train(); tree_enc.train(); rate_heads.train()
         train_loss = 0.0
         n_steps = 0
-        loss_breakdown = {"L_rate": 0.0, "L_mut": 0.0, "L_cons": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0}
+        loss_breakdown = {"L_rate": 0.0, "L_mut": 0.0, "L_cons": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0,
+                          "L_br_pred_std": 0.0, "L_br_target_std": 0.0}
 
         for batch in train_loader:
             for _ in range(args.n_t_samples):
@@ -397,10 +398,12 @@ def main():
             f"mut={loss_breakdown['L_mut']:.3f} "
             f"cons={loss_breakdown['L_cons']:.3f} "
             f"top={loss_breakdown['L_top']:.3f} "
-            f"br={loss_breakdown['L_br']:.3f} "
+            f"br={loss_breakdown['L_br']:.6f} "
             f"stop={loss_breakdown['L_stop']:.3f} "
             f"pll={loss_breakdown['L_pll']:.3f})  "
-            f"val={val_loss:.4f}  lr={lr:.2e}"
+            f"val={val_loss:.4f}  lr={lr:.2e}  "
+            f"[br_pred_std={loss_breakdown['L_br_pred_std']:.6f} "
+            f"br_target_std={loss_breakdown['L_br_target_std']:.6f}]"
         )
 
         if val_loss < best_val:
