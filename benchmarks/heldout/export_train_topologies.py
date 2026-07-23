@@ -43,6 +43,40 @@ sys.path.insert(0, str(ROOT))
 from benchmarks.heldout.build_examples import build_examples
 
 
+def binarize(edges: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """
+    Resolve every polytomy (node with >2 children) into an arbitrary cascade
+    of binary splits via synthetic internal nodes. Real phylogenetic trees
+    (fasttree/treetime output) can have genuine unresolved multifurcations at
+    *any* internal node -- induced_subtree()'s collapse only removes degree-1
+    pass-through nodes, it doesn't touch true polytomies, and
+    ARTreeFormer/PhyloVAE's tensor encoding requires strictly binary internal
+    structure everywhere (root aside, handled separately by
+    unroot_for_trifurcating_root, which assumes its input is already binary).
+    Arbitrary resolution is standard practice for this -- there's no branch-
+    support signal available to prefer one resolution over another for a
+    topology-prior training pool.
+    """
+    cm: dict[str, list[str]] = {}
+    for p, c in edges:
+        cm.setdefault(p, []).append(c)
+    new_edges = []
+    counter = [0]
+    for p, kids in cm.items():
+        if len(kids) <= 2:
+            new_edges.extend((p, c) for c in kids)
+            continue
+        cur = p
+        for c in kids[:-2]:
+            new_edges.append((cur, c))
+            nxt = f"_bin{counter[0]}"; counter[0] += 1
+            new_edges.append((cur, nxt))
+            cur = nxt
+        new_edges.append((cur, kids[-2]))
+        new_edges.append((cur, kids[-1]))
+    return new_edges
+
+
 def unroot_for_trifurcating_root(edges: list[tuple[str, str]], root: str
                                  ) -> tuple[list[tuple[str, str]], str] | None:
     """
@@ -164,6 +198,7 @@ def main():
         skipped = 0
         for ex in examples:
             edges = [tuple(k.split("|")) for k in ex["target_branch_lengths"]]
+            edges = binarize(edges)
             unrooted = unroot_for_trifurcating_root(edges, ex["root_id"])
             if unrooted is None:
                 skipped += 1
