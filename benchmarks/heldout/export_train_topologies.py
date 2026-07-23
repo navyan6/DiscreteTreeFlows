@@ -43,6 +43,60 @@ sys.path.insert(0, str(ROOT))
 from benchmarks.heldout.build_examples import build_examples
 
 
+def unroot_for_trifurcating_root(edges: list[tuple[str, str]], root: str
+                                 ) -> tuple[list[tuple[str, str]], str] | None:
+    """
+    ARTreeFormer/PhyloVAE assume the unrooted-tree convention baked into their
+    tensor shapes (edge_mask, vec2tree's init_tree): the encoding "root" must
+    have exactly 3 neighbors, matching how an unrooted binary tree looks when
+    anchored at an arbitrary internal point. Our induced_subtree() output is a
+    normal *rooted* bifurcating tree (root has 2 children, occasionally 1 --
+    see induced_subtree's own docstring: "root is always kept, it may end up
+    with a single child"). Neither matches, and PhyloVAE's node_embedding()
+    errors on the resulting ragged edge_index (ValueError: expected sequence
+    of length 2, got 3) rather than silently producing something wrong.
+
+    Fix: first collapse a degree-1 root down to the first real branch point
+    (same idea as benchmarks/metrics/matched.py's _drop_unary_root), then drop
+    the (now guaranteed >=2-children) root and reattach one of its subtrees as
+    a third child of the other -- the standard "unroot a bifurcating tree"
+    move. Which child hosts the reattachment doesn't matter (the *unrooted*
+    topology is identical either way, "root" is just a tensor-encoding
+    anchor) -- picks whichever is internal so the new root isn't a leaf.
+    Returns None if the tree is too degenerate to unroot this way (both
+    children of the branch point are leaves -- only possible at N=2, not a
+    real case at our N>=16).
+    """
+    cm: dict[str, list[str]] = {}
+    for p, c in edges:
+        cm.setdefault(p, []).append(c)
+
+    # collapse a degree-1 (unary) root chain down to the first real branch
+    # point, tracking every unary node along the way so its now-stale edges
+    # get dropped too (not just the final node's)
+    r = root
+    dropped_unary: set[str] = set()
+    kids = cm.get(r, [])
+    while len(kids) == 1:
+        dropped_unary.add(r)
+        r = kids[0]
+        kids = cm.get(r, [])
+
+    if len(kids) < 2:
+        return None
+    edges = [(p, c) for p, c in edges if p not in dropped_unary]
+    if len(kids) > 2:
+        return edges, r   # already trifurcating (or more), nothing else to do
+
+    a, b = kids
+    edges = [(p, c) for p, c in edges if p != r]
+    if cm.get(a):
+        return edges + [(a, b)], a
+    if cm.get(b):
+        return edges + [(b, a)], b
+    return None   # both children are leaves -- degenerate (N=2)
+
+
 def topology_newick(edges: list[tuple[str, str]], root: str, relabel: dict[str, str]) -> str:
     """Bare topology newick: nested parens + anonymized leaf names, no branch lengths/labels."""
     cm: dict[str, list[str]] = {}
@@ -107,10 +161,16 @@ def main():
         examples = build_examples(ROOT / args.data_dir, N, seed=args.seed,
                                   max_roots_per_tree=args.per_tree)
         lines = []
+        skipped = 0
         for ex in examples:
             edges = [tuple(k.split("|")) for k in ex["target_branch_lengths"]]
-            relabel = anonymize_leaves(edges, ex["root_id"], N)
-            lines.append(topology_newick(edges, ex["root_id"], relabel))
+            unrooted = unroot_for_trifurcating_root(edges, ex["root_id"])
+            if unrooted is None:
+                skipped += 1
+                continue
+            edges, root = unrooted
+            relabel = anonymize_leaves(edges, root, N)
+            lines.append(topology_newick(edges, root, relabel))
 
         nwk_path = out_dir / f"train_topologies_N{N}.nwk"
         nwk_path.write_text("\n".join(lines) + "\n")
@@ -118,8 +178,9 @@ def main():
         trprobs_path = out_dir / f"train_topologies_N{N}.trprobs"
         write_trprobs(lines, trprobs_path)
 
-        print(f"N={N}: {len(lines)} topologies from {len({e['group'] for e in examples})} "
-              f"train trees -> {nwk_path.name}, {trprobs_path.name}")
+        print(f"N={N}: {len(lines)} topologies ({skipped} skipped as degenerate) from "
+              f"{len({e['group'] for e in examples})} train trees -> "
+              f"{nwk_path.name}, {trprobs_path.name}")
 
 
 if __name__ == "__main__":
