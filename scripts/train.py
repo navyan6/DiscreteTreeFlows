@@ -202,6 +202,10 @@ def main():
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
     parser.add_argument("--n-t-samples", type=int,  default=4,
                         help="Number of t values sampled per tree per epoch")
+    parser.add_argument("--resume", action="store_true",
+                        help="Resume from {ckpt-dir}/best.pt (weights, optimizer, scheduler, "
+                             "epoch, best_val, patience_counter) instead of starting fresh. "
+                             "Needed for long runs that may hit the SLURM time limit.")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -299,9 +303,25 @@ def main():
     ckpt_dir.mkdir(exist_ok=True)
     best_val = float("inf")
     patience_counter = 0
+    start_epoch = 1
 
-    # ── training loop 
-    for epoch in range(1, args.epochs + 1):
+    resume_path = ckpt_dir / "best.pt"
+    if args.resume and resume_path.exists():
+        ckpt = torch.load(resume_path, map_location=device, weights_only=False)
+        node_enc.load_state_dict(ckpt["node_enc"])
+        tree_enc.load_state_dict(ckpt["tree_enc"])
+        rate_heads.load_state_dict(ckpt["rate_heads"])
+        optimizer.load_state_dict(ckpt["optimizer"])
+        if "scheduler" in ckpt:
+            scheduler.load_state_dict(ckpt["scheduler"])
+        best_val = ckpt["val_loss"]
+        patience_counter = ckpt.get("patience_counter", 0)
+        start_epoch = ckpt["epoch"] + 1
+        print(f"Resumed from {resume_path}: epoch {ckpt['epoch']}, "
+              f"best_val={best_val:.4f}, patience_counter={patience_counter}")
+
+    # ── training loop
+    for epoch in range(start_epoch, args.epochs + 1):
         node_enc.train(); tree_enc.train(); rate_heads.train()
         train_loss = 0.0
         n_steps = 0

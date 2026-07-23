@@ -49,6 +49,7 @@ $PYTHON -u scripts/train.py \
     --patience    50 \
     --bridge-c    1.0 \
     --lambda-mut  5.0 \
-    --ckpt-dir    checkpoints/covid_v1
+    --ckpt-dir    checkpoints/covid_v1 \
+    --resume
 
 echo "Done: $(date)"
