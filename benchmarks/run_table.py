@@ -30,9 +30,12 @@ import sys
 sys.path.insert(0, str(ROOT))
 
 from src.tree_state import TreeState
-from benchmarks.heldout.build_examples import build_examples
+from benchmarks.heldout.build_examples import build_examples, list_groups, load_tree
 from benchmarks.methods.bd_methods import NeutralBD, EmpiricalBD
 from benchmarks.methods.plm_prior import PLMPrior
+from benchmarks.methods.topology_prior import TopologyPriorMethod
+from benchmarks.adapters.branch_length import BranchLengthAdapter
+from benchmarks.adapters.sequence import evolve_pyvolve
 from benchmarks import validity as V
 from benchmarks.metrics.matched import sequence_matched_rf, quartet_distance, terminal_edit_distance
 from benchmarks.metrics.branch_lengths import branch_length_wasserstein
@@ -86,7 +89,21 @@ def score_simulated(gens: list[TreeState], refs: list[TreeState], seed: int) -> 
             "terminal_edit": mean(te) if te else float("nan")}
 
 
-def build_methods(args, params, esm):
+def load_external_pools(pool_dir: Path, prefix: str, Ns: list[int]) -> dict[int, list[str]]:
+    """{N: [newick, ...]} from benchmarks/external_pools/sampled/{prefix}_N{N}.nwk,
+    produced by scripts/slurm_artreeformer.sh / slurm_phylovae.sh. Skips N's
+    whose pool file doesn't exist yet -- that N is just absent from the row."""
+    pool_by_N = {}
+    for N in Ns:
+        p = pool_dir / f"{prefix}_N{N}.nwk"
+        if p.exists():
+            lines = [ln for ln in p.read_text().splitlines() if ln.strip()]
+            if lines:
+                pool_by_N[N] = lines
+    return pool_by_N
+
+
+def build_methods(args, params, esm, train_trees: list[TreeState] | None = None):
     methods = [NeutralBD(params["birth"], params["death"]),
                EmpiricalBD(params["birth"], params["death"], model=args.empirical_model)]
     if esm is not None:
@@ -95,6 +112,23 @@ def build_methods(args, params, esm):
     if args.checkpoint:
         from benchmarks.methods.treesbm import TreeSBMMethod
         methods.append(TreeSBMMethod(args.checkpoint))
+
+    # adapted rows: ARTreeFormer / PhyloVAE as unconditional topology priors +
+    # the shared BranchLengthAdapter + shared JTT sequence adapter (same
+    # --empirical-model as the native JTT+BD row, for a like-for-like sequence
+    # model across native and adapted rows). Only added if their sampled pools
+    # already exist (see benchmarks/EXTERNAL.md) -- absent pools just mean
+    # those rows are skipped, not an error.
+    if train_trees:
+        pool_dir = ROOT / "benchmarks/external_pools/sampled"
+        bl_adapter = BranchLengthAdapter().fit(train_trees)
+        seq_fn = lambda topo, root_seq, seed: evolve_pyvolve(
+            topo, root_seq, model=args.empirical_model, seed=seed)
+        for tag, prefix in [("artreeformer_adapted", "artreeformer"),
+                            ("phylovae_adapted", "phylovae")]:
+            pool_by_N = load_external_pools(pool_dir, prefix, args.N)
+            if pool_by_N:
+                methods.append(TopologyPriorMethod(tag, pool_by_N, bl_adapter, seq_fn))
     return methods
 
 
@@ -117,6 +151,9 @@ class ESM:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--test-data", default="data/h3n2/test")
+    ap.add_argument("--train-data", default="data/h3n2/train",
+                    help="Only used to fit the shared BranchLengthAdapter for the "
+                         "ARTreeFormer/PhyloVAE adapted rows, if their pools exist.")
     ap.add_argument("--params", default="benchmarks/results/params.json")
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--empirical-model", default="JTT")
@@ -132,7 +169,13 @@ def main():
 
     params = json.loads((ROOT / args.params).read_text())
     esm = None if args.no_esm else ESM("cuda" if _cuda() else "cpu")
-    methods = build_methods(args, params, esm)
+    pool_dir = ROOT / "benchmarks/external_pools/sampled"
+    have_pools = pool_dir.exists() and any(pool_dir.glob("*.nwk"))
+    train_trees = None
+    if have_pools:
+        train_dir = ROOT / args.train_data
+        train_trees = [load_tree(train_dir, g) for g in list_groups(train_dir)]
+    methods = build_methods(args, params, esm, train_trees)
 
     out = ROOT / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
