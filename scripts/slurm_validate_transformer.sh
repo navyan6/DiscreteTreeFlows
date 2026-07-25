@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=transformer_val
-#SBATCH --partition=b200-mig4
+#SBATCH --partition=b200-mig45
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=6
 #SBATCH --mem=48G
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/transformer_val_%j.log
