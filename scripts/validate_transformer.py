@@ -265,6 +265,17 @@ def standardize(train_x: torch.Tensor, *xs: torch.Tensor) -> tuple[torch.Tensor,
     return tuple((x - mean) / std for x in xs)
 
 
+def remap_multiclass_labels(*ys: torch.Tensor) -> tuple[list[torch.Tensor], dict[int, int]]:
+    flat = torch.cat([y.reshape(-1).long().cpu() for y in ys], dim=0)
+    uniq = sorted(int(v) for v in flat.unique().tolist())
+    mapping = {old: new for new, old in enumerate(uniq)}
+    remapped: list[torch.Tensor] = []
+    for y in ys:
+        vals = [mapping[int(v)] for v in y.reshape(-1).long().cpu().tolist()]
+        remapped.append(torch.tensor(vals, dtype=torch.long))
+    return remapped, mapping
+
+
 class LinearProbe(nn.Module):
     def __init__(self, in_dim: int, out_dim: int):
         super().__init__()
@@ -315,6 +326,7 @@ def fit_linear_probe(
     else:
         y_train = y_train.long().view(-1)
         y_val = y_val.long().view(-1)
+        [y_train, y_val], _ = remap_multiclass_labels(y_train, y_val)
 
     best_state = None
     best_val = float("inf")
