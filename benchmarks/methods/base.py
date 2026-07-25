@@ -33,6 +33,23 @@ def attach_sequences(topology: TreeState, node_seqs: dict[str, str],
     """Attach evolved sequences to a topology; force the root to the supplied seq."""
     seqs = {n: node_seqs.get(n, "") for n in topology.node_ids}
     seqs[topology.root_id] = root_seq
+
+    # Some sequence simulators rename unlabeled internal nodes, so we may only
+    # get leaf sequences back under stable labels. Backfill missing internals
+    # from the nearest ancestor with a sequence so validity checks don't fail on
+    # empty strings; leaf-level benchmark metrics only consume terminal seqs.
+    children: dict[str, list[str]] = {}
+    for parent, child in topology.edges:
+        children.setdefault(parent, []).append(child)
+    stack = [topology.root_id]
+    while stack:
+        parent = stack.pop()
+        parent_seq = seqs.get(parent, "")
+        for child in children.get(parent, []):
+            if not seqs.get(child):
+                seqs[child] = parent_seq
+            stack.append(child)
+
     return TreeState(node_ids=topology.node_ids, root_id=topology.root_id,
                      edges=topology.edges, branch_lengths=topology.branch_lengths,
                      node_seqs=seqs, active_leaves=list(topology.active_leaves))
