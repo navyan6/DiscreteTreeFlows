@@ -35,7 +35,9 @@ def evolve_pyvolve(topology: TreeState, root_seq: str, model: str = "JTT",
     """
     import pyvolve
 
-    newick = T.to_newick(topology)                 # named internals + branch lengths
+    # pyvolve rejects the internal NODE_* labels our TreeState serializer emits
+    # for adapted-topology rows; keep branch lengths but omit internal labels.
+    newick = T.to_newick(topology, with_names=False)
     phylo = pyvolve.read_tree(tree=newick)
     if model.lower() == "neutral":
         import numpy as np

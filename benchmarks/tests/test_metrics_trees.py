@@ -115,6 +115,14 @@ def test_newick_roundtrips_leaves():
     assert nwk.count("(") == nwk.count(")")
 
 
+def test_newick_can_omit_internal_names():
+    t = _tree()
+    nwk = T.to_newick(t, with_names=False)
+    assert nwk.endswith(";")
+    assert "root" not in nwk
+    assert nwk.count("(") == nwk.count(")")
+
+
 def test_ltt_starts_at_two_for_bifurcating_root():
     t = _tree()
     grid, counts = T.ltt(t, n_points=11)
