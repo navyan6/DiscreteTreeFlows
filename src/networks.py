@@ -243,11 +243,13 @@ class RateHeads(nn.Module):
     """
 
     def __init__(self, d_model: int = 256, max_seq_len: int = 512,
-                 use_pos_emb: bool = False, d_pos: int = 32):
+                 use_pos_emb: bool = False, d_pos: int = 32,
+                 use_site_entropy: bool = False):
         super().__init__()
         self.d_model = d_model
         self.max_seq_len = max_seq_len
         self.use_pos_emb = use_pos_emb
+        self.use_site_entropy = use_site_entropy
 
         # Per-position mutation-head input: [h_node (d_model) ‖ (pos_emb) ‖ log_R0 (20)].
         # The optional learned positional embedding lets c_θ act per-site — position
@@ -261,6 +263,11 @@ class RateHeads(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 20),
         )
+
+        if use_site_entropy:
+            self.site_entropy_proj = nn.Linear(1, 64, bias=False)
+            nn.init.zeros_(self.site_entropy_proj.weight)
+            self.register_load_state_dict_pre_hook(self._entropy_load_pre_hook)
 
         # Branching head: Poisson parameter λ
         self.branching_head = nn.Sequential(
@@ -286,11 +293,20 @@ class RateHeads(nn.Module):
             nn.Sigmoid(),
         )
 
+    def _entropy_load_pre_hook(
+        self, module, state_dict, prefix, local_metadata, strict,
+        missing_keys, unexpected_keys, error_msgs
+    ):
+        entropy_key = prefix + "site_entropy_proj.weight"
+        if entropy_key not in state_dict:
+            state_dict[entropy_key] = self.site_entropy_proj.weight.detach().clone()
+
     def forward(
         self,
         H_T: torch.Tensor,
         active_leaf_indices: list[int],
         log_R0_mut: torch.Tensor,        # [n_active, L, 20] ESM-2 per-position log-probs
+        site_entropy: Optional[torch.Tensor] = None,  # [L], [1,L], or [n_active,L]
     ) -> dict[str, torch.Tensor]:
         """
         Predict rates for active leaves only.
@@ -313,7 +329,32 @@ class RateHeads(nn.Module):
         parts.append(log_R0_mut)
         h_pos = torch.cat(parts, dim=-1)                       # [n_active, L, d_model(+d_pos)+20]
 
-        c_theta = self.mutation_head(h_pos)                    # [n_active, L, 20]
+        mut_hidden = self.mutation_head[0](h_pos)             # [n_active, L, 64]
+        if self.use_site_entropy:
+            if site_entropy is None:
+                log_probs = F.log_softmax(log_R0_mut, dim=-1)
+                probs = log_probs.exp()
+                site_entropy = -(probs * log_probs).sum(dim=-1)
+            else:
+                site_entropy = site_entropy.to(
+                    device=log_R0_mut.device, dtype=log_R0_mut.dtype
+                )
+                if site_entropy.ndim == 1:
+                    site_entropy = site_entropy.unsqueeze(0)
+                if site_entropy.ndim != 2 or site_entropy.shape[1] != L:
+                    raise ValueError(
+                        "site_entropy must have shape [L], [1, L], or [n_active, L]"
+                    )
+                if site_entropy.shape[0] == 1:
+                    site_entropy = site_entropy.expand(h_active.shape[0], -1)
+                elif site_entropy.shape[0] != h_active.shape[0]:
+                    raise ValueError("site_entropy batch dimension must be 1 or n_active")
+
+            entropy_feature = site_entropy.unsqueeze(-1)
+            mut_hidden = mut_hidden + self.site_entropy_proj(entropy_feature)
+
+        mut_hidden = self.mutation_head[1](mut_hidden)
+        c_theta = self.mutation_head[2](mut_hidden)            # [n_active, L, 20]
         log_R_theta_mut = log_R0_mut + c_theta                 # [n_active, L, 20]
 
         branching_rate = self.branching_head(h_active).squeeze(-1)   # [n_active]

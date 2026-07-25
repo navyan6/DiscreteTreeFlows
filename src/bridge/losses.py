@@ -14,6 +14,8 @@ L_pll:  ESM PLL regularizer - penalizes sequences drifting from ESM fitness land
 total:  weighted sum of all five terms
 """
 
+import math
+
 import torch
 import torch.nn.functional as F
 
@@ -45,6 +47,57 @@ def _build_seq_indices(seqs_t, max_seq_len, device):
     return indices
 
 
+def _prepare_alignment_entropy(
+    site_entropy: torch.Tensor,
+    n: int,
+    max_seq_len: int,
+    device,
+    dtype: torch.dtype,
+    entropy_is_normalized: bool,
+) -> torch.Tensor:
+    """
+    Prepare per-site Shannon entropy computed from the TRAINING alignment only.
+
+    Accepted shapes:
+      - [L]
+      - [1, L]
+      - [n, L]
+    """
+    entropy = torch.as_tensor(site_entropy, dtype=dtype, device=device)
+
+    if entropy.ndim == 1:
+        entropy = entropy.unsqueeze(0)
+
+    if entropy.ndim != 2:
+        raise ValueError(
+            "site_entropy must have shape [L], [1, L], or [n, L], "
+            f"got {tuple(entropy.shape)}"
+        )
+
+    if entropy.shape[1] != max_seq_len:
+        raise ValueError(
+            f"site_entropy length {entropy.shape[1]} does not match "
+            f"max_seq_len={max_seq_len}"
+        )
+
+    if entropy.shape[0] == 1:
+        entropy = entropy.expand(n, -1)
+    elif entropy.shape[0] != n:
+        raise ValueError(
+            f"site_entropy batch dimension must be 1 or {n}, got {entropy.shape[0]}"
+        )
+
+    if not torch.isfinite(entropy).all():
+        raise ValueError("site_entropy contains NaN or infinite values")
+    if (entropy < 0).any():
+        raise ValueError("site_entropy must be non-negative")
+
+    if not entropy_is_normalized:
+        entropy = entropy / math.log(len(AA_VOCAB))
+
+    return entropy.clamp(min=0.0, max=1.0)
+
+
 def bridge_losses(
     log_R_theta_mut: torch.Tensor,
     log_R_theta_branch: torch.Tensor,
@@ -65,13 +118,37 @@ def bridge_losses(
     lambda_mut: float = 5.0,
     bridge_c: float = 1.0,
     device: str = "cpu",
+    site_entropy: torch.Tensor | None = None,
+    use_entropy_loss_weighting: bool = False,
+    entropy_weight_alpha: float = 1.0,
+    entropy_weight_floor: float = 1.0,
+    entropy_is_normalized: bool = False,
 ) -> dict:
     n = len(active_leaves)
     eps_rate = 1e-6
 
+    if entropy_weight_alpha < 0:
+        raise ValueError("entropy_weight_alpha must be non-negative")
+    if entropy_weight_floor <= 0:
+        raise ValueError("entropy_weight_floor must be greater than zero")
+
     if n == 0:
         z = torch.zeros((), device=device, requires_grad=True)
-        return {"L_rate": z, "L_top": z, "L_br": z, "L_stop": z, "L_pll": z, "total": z}
+        return {
+            "L_rate": z,
+            "L_mut": z,
+            "L_cons": z,
+            "L_top": z,
+            "L_br": z,
+            "L_stop": z,
+            "L_pll": z,
+            "L_br_pred_std": z.detach(),
+            "L_br_target_std": z.detach(),
+            "mean_mut_entropy": z.detach(),
+            "mean_mut_weight": z.detach(),
+            "max_mut_weight": z.detach(),
+            "total": z,
+        }
 
     # ── L_rate: Algorithm-1 bridge matching, KL( R^{0|T1}_t || R_theta )
     # Target = reference P^0 Doob h-transformed to the terminal AA x1 (conditional_rates).
@@ -89,8 +166,43 @@ def bridge_losses(
 
     # Upweight rare mutating positions (sparse signal); time-weighting is already
     # handled inside the h-transform, so no extra 1/(1-t) factor.
-    L_mut  = kl_per_pos[mut_mask].mean()  if mut_mask.any()  else torch.zeros((), device=device)
-    L_cons = kl_per_pos[cons_mask].mean() if cons_mask.any() else torch.zeros((), device=device)
+    #
+    # Optional alignment-entropy weighting:
+    #   weight_i = floor + alpha * normalized_entropy_i
+    if use_entropy_loss_weighting:
+        if site_entropy is None:
+            raise ValueError(
+                "site_entropy is required when use_entropy_loss_weighting=True."
+            )
+        normalized_entropy = _prepare_alignment_entropy(
+            site_entropy=site_entropy,
+            n=n,
+            max_seq_len=max_seq_len,
+            device=kl_per_pos.device,
+            dtype=kl_per_pos.dtype,
+            entropy_is_normalized=entropy_is_normalized,
+        )
+        site_weights = entropy_weight_floor + entropy_weight_alpha * normalized_entropy
+
+        if mut_mask.any():
+            mut_kl = kl_per_pos[mut_mask]
+            mut_weights = site_weights[mut_mask]
+            L_mut = (mut_kl * mut_weights).sum() / mut_weights.sum().clamp_min(1e-8)
+            mean_mut_entropy = normalized_entropy[mut_mask].detach().mean()
+            mean_mut_weight = mut_weights.detach().mean()
+            max_mut_weight = mut_weights.detach().max()
+        else:
+            L_mut = kl_per_pos.sum() * 0.0
+            mean_mut_entropy = torch.zeros((), device=kl_per_pos.device)
+            mean_mut_weight = torch.zeros((), device=kl_per_pos.device)
+            max_mut_weight = torch.zeros((), device=kl_per_pos.device)
+    else:
+        L_mut = kl_per_pos[mut_mask].mean() if mut_mask.any() else kl_per_pos.sum() * 0.0
+        mean_mut_entropy = torch.zeros((), device=kl_per_pos.device)
+        mean_mut_weight = torch.ones((), device=kl_per_pos.device)
+        max_mut_weight = torch.ones((), device=kl_per_pos.device)
+
+    L_cons = kl_per_pos[cons_mask].mean() if cons_mask.any() else kl_per_pos.sum() * 0.0
     L_rate = lambda_mut * L_mut + L_cons
 
     # ── L_top 
@@ -146,5 +258,8 @@ def bridge_losses(
         "L_rate": L_rate, "L_mut": L_mut, "L_cons": L_cons,
         "L_top": L_top, "L_br": L_br, "L_stop": L_stop, "L_pll": L_pll,
         "L_br_pred_std": br_pred_std, "L_br_target_std": br_target_std,
+        "mean_mut_entropy": mean_mut_entropy,
+        "mean_mut_weight": mean_mut_weight,
+        "max_mut_weight": max_mut_weight,
         "total": total,
     }

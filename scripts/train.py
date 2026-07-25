@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import math
 import random
 from pathlib import Path
 
@@ -40,6 +41,13 @@ from src.bridge.sample_bridge_state import sample_bridge_state
 from src.bridge.losses import bridge_losses
 
 
+def compute_site_entropy_from_log_probs(log_R0_mut: torch.Tensor) -> torch.Tensor:
+    """Per-position Shannon entropy in nats from [n_active, L, 20] log-probs/logits."""
+    log_probs = torch.log_softmax(log_R0_mut, dim=-1)
+    probs = log_probs.exp()
+    return -(probs * log_probs).sum(dim=-1)
+
+
 def forward_bridge_step(
     batch: dict,
     t: float,
@@ -55,6 +63,11 @@ def forward_bridge_step(
     lambda_pll: float = 0.01,
     lambda_mut: float = 5.0,
     bridge_c: float = 1.0,
+    use_site_entropy: bool = False,
+    use_entropy_loss_weighting: bool = False,
+    entropy_weight_alpha: float = 1.0,
+    entropy_weight_floor: float = 1.0,
+    entropy_is_normalized: bool = False,
     embedder: ESM2Embedder | None = None,
 ) -> tuple[dict | None, int]:
     """
@@ -139,7 +152,13 @@ def forward_bridge_step(
     else:
         log_R0_mut = torch.zeros(len(active_leaves_t), max_seq_len, 20, device=device)
 
-    out = rate_heads(H_t, active_idx_t, log_R0_mut)
+    site_entropy = None
+    if use_site_entropy or use_entropy_loss_weighting:
+        site_entropy = compute_site_entropy_from_log_probs(log_R0_mut)
+        if entropy_is_normalized:
+            site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
+
+    out = rate_heads(H_t, active_idx_t, log_R0_mut, site_entropy=site_entropy)
     # out["log_R_theta_mut"] = log_R0 + c_θ, computed inside RateHeads
 
     losses = bridge_losses(
@@ -162,6 +181,11 @@ def forward_bridge_step(
         lambda_mut=lambda_mut,
         bridge_c=bridge_c,
         device=device,
+        site_entropy=site_entropy,
+        use_entropy_loss_weighting=use_entropy_loss_weighting,
+        entropy_weight_alpha=entropy_weight_alpha,
+        entropy_weight_floor=entropy_weight_floor,
+        entropy_is_normalized=entropy_is_normalized,
     )
 
     return losses, len(active_leaves_t)
@@ -197,6 +221,16 @@ def main():
                         help="Add a learned positional embedding to the mutation head so "
                              "c_theta can act per-site (attacks the recovery ceiling). "
                              "Changes the architecture -> needs a fresh checkpoint.")
+    parser.add_argument("--use-site-entropy", action="store_true",
+                        help="Inject per-position Shannon entropy into the mutation head.")
+    parser.add_argument("--use-entropy-loss-weighting", action="store_true",
+                        help="Weight mutating-position bridge loss by per-position entropy.")
+    parser.add_argument("--entropy-weight-alpha", type=float, default=1.0,
+                        help="Slope for entropy-based mutation-loss weights.")
+    parser.add_argument("--entropy-weight-floor", type=float, default=1.0,
+                        help="Positive baseline added to entropy-based mutation-loss weights.")
+    parser.add_argument("--entropy-is-normalized", action="store_true",
+                        help="Treat provided entropy values as already normalized to [0,1].")
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -287,7 +321,8 @@ def main():
     node_enc   = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc   = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
     rate_heads = RateHeads(d_model=128, max_seq_len=args.max_seq_len,
-                           use_pos_emb=args.per_site_pos_emb).to(device)
+                           use_pos_emb=args.per_site_pos_emb,
+                           use_site_entropy=args.use_site_entropy).to(device)
 
     params = (
         list(node_enc.parameters()) +
@@ -326,6 +361,7 @@ def main():
         train_loss = 0.0
         n_steps = 0
         loss_breakdown = {"L_rate": 0.0, "L_mut": 0.0, "L_cons": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0,
+                          "mean_mut_entropy": 0.0, "mean_mut_weight": 0.0, "max_mut_weight": 0.0,
                           "L_br_pred_std": 0.0, "L_br_target_std": 0.0}
 
         for batch in train_loader:
@@ -342,6 +378,11 @@ def main():
                     lambda_pll=args.lambda_pll,
                     lambda_mut=args.lambda_mut,
                     bridge_c=args.bridge_c,
+                    use_site_entropy=args.use_site_entropy,
+                    use_entropy_loss_weighting=args.use_entropy_loss_weighting,
+                    entropy_weight_alpha=args.entropy_weight_alpha,
+                    entropy_weight_floor=args.entropy_weight_floor,
+                    entropy_is_normalized=args.entropy_is_normalized,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -379,6 +420,11 @@ def main():
                     lambda_top=args.lambda_top, lambda_br=args.lambda_br,
                     lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
                     lambda_mut=args.lambda_mut, bridge_c=args.bridge_c,
+                    use_site_entropy=args.use_site_entropy,
+                    use_entropy_loss_weighting=args.use_entropy_loss_weighting,
+                    entropy_weight_alpha=args.entropy_weight_alpha,
+                    entropy_weight_floor=args.entropy_weight_floor,
+                    entropy_is_normalized=args.entropy_is_normalized,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -402,6 +448,9 @@ def main():
             f"stop={loss_breakdown['L_stop']:.3f} "
             f"pll={loss_breakdown['L_pll']:.3f})  "
             f"val={val_loss:.4f}  lr={lr:.2e}  "
+            f"[mut_entropy={loss_breakdown['mean_mut_entropy']:.3f} "
+            f"mut_w={loss_breakdown['mean_mut_weight']:.3f} "
+            f"mut_w_max={loss_breakdown['max_mut_weight']:.3f}]  "
             f"[br_pred_std={loss_breakdown['L_br_pred_std']:.6f} "
             f"br_target_std={loss_breakdown['L_br_target_std']:.6f}]"
         )
@@ -416,7 +465,14 @@ def main():
                 "rate_heads": rate_heads.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "val_loss": val_loss,
-                "config": {"use_pos_emb": args.per_site_pos_emb},
+                "config": {
+                    "use_pos_emb": args.per_site_pos_emb,
+                    "use_site_entropy": args.use_site_entropy,
+                    "use_entropy_loss_weighting": args.use_entropy_loss_weighting,
+                    "entropy_weight_alpha": args.entropy_weight_alpha,
+                    "entropy_weight_floor": args.entropy_weight_floor,
+                    "entropy_is_normalized": args.entropy_is_normalized,
+                },
             }, ckpt_dir / "best.pt")
         else:
             patience_counter += 1
@@ -443,6 +499,11 @@ def main():
                 lambda_top=args.lambda_top, lambda_br=args.lambda_br,
                 lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
                 lambda_mut=args.lambda_mut, bridge_c=args.bridge_c,
+                use_site_entropy=args.use_site_entropy,
+                use_entropy_loss_weighting=args.use_entropy_loss_weighting,
+                entropy_weight_alpha=args.entropy_weight_alpha,
+                entropy_weight_floor=args.entropy_weight_floor,
+                entropy_is_normalized=args.entropy_is_normalized,
                 embedder=embedder,
             )
             if losses is None or n_active == 0:
