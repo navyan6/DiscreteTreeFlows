@@ -2,7 +2,7 @@
 #SBATCH --job-name=covid_pipeline
 #SBATCH --partition=genoa-std-mem
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=64G
+#SBATCH --mem-per-cpu=5632M
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/covid_pipeline_%j.log
 #SBATCH --error=logs/covid_pipeline_%j.log

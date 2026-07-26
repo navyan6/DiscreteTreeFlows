@@ -2,7 +2,7 @@
 #SBATCH --job-name=covid_extract
 #SBATCH --partition=genoa-std-mem
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=64G
+#SBATCH --mem-per-cpu=5632M
 #SBATCH --time=12:00:00
 #SBATCH --output=logs/covid_extract_%j.log
 #SBATCH --error=logs/covid_extract_%j.log
@@ -35,9 +35,19 @@ if [ ${#files[@]} -eq 0 ]; then
     exit 1
 fi
 
+fail=0
 for f in "${files[@]}"; do
     echo "=== $f ==="
-    $PYTHON scripts/covid_extract_spike.py "$f" --jobs "$SLURM_CPUS_PER_TASK"
+    if $PYTHON scripts/covid_extract_spike.py "$f" --jobs "$SLURM_CPUS_PER_TASK"; then
+        echo "OK: $f"
+    else
+        echo "FAILED: $f"
+        fail=1
+    fi
 done
 
 echo "Done: $(date)"
+if [ "$fail" -eq 1 ]; then
+    echo "One or more files FAILED -- see 'FAILED:' lines above."
+    exit 1
+fi

@@ -2,7 +2,7 @@
 #SBATCH --job-name=treesbm_pipeline
 #SBATCH --partition=genoa-std-mem
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=64G
+#SBATCH --mem-per-cpu=5632M
 #SBATCH --time=12:00:00
 #SBATCH --output=logs/slurm_pipeline_%j.log
 #SBATCH --error=logs/slurm_pipeline_%j.log

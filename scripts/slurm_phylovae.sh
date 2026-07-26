@@ -2,7 +2,7 @@
 #SBATCH --job-name=phylovae
 #SBATCH --partition=genoa-std-mem
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
+#SBATCH --mem-per-cpu=5632M
 #SBATCH --time=12:00:00
 #SBATCH --output=/vast/home/n/nnori/DiscreteTreeFlows/logs/phylovae_%j.log
 #SBATCH --error=/vast/home/n/nnori/DiscreteTreeFlows/logs/phylovae_%j.log

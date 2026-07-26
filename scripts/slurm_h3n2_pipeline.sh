@@ -2,7 +2,7 @@
 #SBATCH --job-name=h3n2_pipeline
 #SBATCH --partition=genoa-std-mem
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=64G
+#SBATCH --mem-per-cpu=5632M
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/h3n2_pipeline_%j.log
 #SBATCH --error=logs/h3n2_pipeline_%j.log
