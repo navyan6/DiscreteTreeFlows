@@ -324,9 +324,13 @@ def fit_linear_probe(
         y_train = y_train.float().view(-1, 1)
         y_val = y_val.float().view(-1, 1)
     else:
+        # Labels arrive already remapped to a contiguous 0..K-1 space by the
+        # caller (probe_and_score), jointly over train/val/test, with
+        # num_classes=K matching. Do NOT remap again here: train+val alone may
+        # not contain every class, so a second remap would compact them and
+        # desync from the test labels and the head width.
         y_train = y_train.long().view(-1)
         y_val = y_val.long().view(-1)
-        [y_train, y_val], _ = remap_multiclass_labels(y_train, y_val)
 
     best_state = None
     best_val = float("inf")
@@ -632,14 +636,23 @@ def probe_and_score(
         return classification_metrics(test_pack["y"].cpu().numpy(), score, pred)
 
     if task == "multiclass":
-        if num_classes is None:
-            raise ValueError("num_classes required")
-        model = fit_linear_probe(x_train, train_pack["y"], x_val, val_pack["y"], task="multiclass", num_classes=num_classes)
+        # Derive the class space from the DATA, not the caller's num_classes.
+        # Remap train/val/test labels JOINTLY to a contiguous 0..K-1 range and
+        # size the head to K. Fixes two bugs: (a) IndexError when the real
+        # #classes exceeds the passed num_classes (num_children was hardcoded
+        # to 3, but nodes with >2 children / unary nodes yield a 4th class),
+        # and (b) test being scored in a different label space than the head
+        # was trained on (the old remap only touched train+val). num_classes
+        # arg is now advisory only.
+        [y_tr, y_va, y_te], _ = remap_multiclass_labels(
+            train_pack["y"], val_pack["y"], test_pack["y"])
+        k = int(torch.cat([y_tr, y_va, y_te]).max().item()) + 1
+        model = fit_linear_probe(x_train, y_tr, x_val, y_va, task="multiclass", num_classes=k)
         with torch.no_grad():
             logits = model(x_test)
             pred = logits.argmax(dim=-1).cpu().numpy()
             score = logits.cpu().numpy()
-        return classification_metrics(test_pack["y"].cpu().numpy(), score, pred, num_classes=num_classes)
+        return classification_metrics(y_te.cpu().numpy(), score, pred, num_classes=k)
 
     raise ValueError(task)
 
