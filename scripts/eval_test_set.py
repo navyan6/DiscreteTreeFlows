@@ -88,11 +88,11 @@ def sequence_identity(a: str, b: str) -> float:
 def all_valid_aa(seq: str) -> bool:
     return all(c in AA_VOCAB for c in seq)
 
-
+#rebuilds treestate with updated sequences and collect information about current treestate
 def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rate_scale,
                  max_leaves,
                  node_enc, tree_enc, rate_heads, embedder,
-                 tokenizer, esm_model, aa_token_ids, device):
+                 tokenizer, esm_model, aa_token_ids, device, col_entropy=None):
     tree = TreeState.root_only(root_seq)
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
@@ -110,7 +110,7 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
             break
 
         print(f"  step {step+1:03d}/{n_steps}  active_leaves={len(tree.active_leaves)}  nodes={len(tree.node_ids)}  mem={_mem_gb():.1f}GB", flush=True)
-
+        #build structural features, positional embedding, node embedding 
         node_ids_t  = tree.node_ids
         node_to_idx = {nid: i for i, nid in enumerate(node_ids_t)}
         active_leaves = list(tree.active_leaves)
@@ -132,7 +132,7 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
             h_t  = node_enc(plm_t, struct_t, lap_t)
             H_t, _ = tree_enc(h_t, node_ids_t, node_times_dict,
                                edge_index_t, branch_lens_t, t_scalar=t)
-            out  = rate_heads(H_t, active_idx, log_R0_mut)
+            out  = rate_heads(H_t, active_idx, log_R0_mut, site_entropy=col_entropy)
 
         new_node_seqs = dict(tree.node_seqs)
 
@@ -222,7 +222,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    node_enc, tree_enc, rate_heads = load_models(args.checkpoint, device, args.max_seq_len)
+    node_enc, tree_enc, rate_heads, col_entropy = load_models(args.checkpoint, device, args.max_seq_len)
     embedder = ESM2Embedder(device=device)
 
     model_id = "facebook/esm2_t6_8M_UR50D"
@@ -268,7 +268,7 @@ def main():
                 args.pll_threshold, args.beta, args.branch_rate_scale,
                 args.max_leaves,
                 node_enc, tree_enc, rate_heads, embedder,
-                tokenizer, esm_model, aa_token_ids, device,
+                tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy,
             )
         except Exception as e:
             print(f"  ERROR: {e}")

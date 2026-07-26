@@ -132,14 +132,28 @@ def load_models(checkpoint, device, max_seq_len):
         m.eval()
         for p in m.parameters():
             p.requires_grad = False
-    return node_enc, tree_enc, r_heads
+    # Empirical column-entropy vector [L] if the model trained with
+    # --entropy-source empirical; must be reused here or the mutation head sees
+    # a different signal than it was trained on. None -> RateHeads falls back to
+    # ESM self-entropy (matching an esm_self-trained model). Guard on the config
+    # so an empirical model whose checkpoint lacks the vector fails loudly rather
+    # than silently mismatching.
+    col_entropy = ckpt.get("col_entropy", None)
+    if col_entropy is not None:
+        col_entropy = col_entropy.to(device)
+    elif cfg.get("entropy_source") == "empirical":
+        raise RuntimeError(
+            "checkpoint has entropy_source=empirical but no saved col_entropy; "
+            "generation would fall back to ESM self-entropy and mismatch training."
+        )
+    return node_enc, tree_enc, r_heads, col_entropy
 
 
 #generation
 
 def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves, mutation_rate_scale,
                   node_enc, tree_enc, rate_heads, embedder,
-                  tokenizer, esm_model, aa_token_ids, device):
+                  tokenizer, esm_model, aa_token_ids, device, col_entropy=None):
     tree = TreeState.root_only(root_seq)
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
@@ -171,7 +185,7 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
             h_t     = node_enc(plm_t, struct_t, lap_t)
             H_t, _  = tree_enc(h_t, node_ids_t, node_times_dict,
                                 edge_index_t, branch_lens_t, t_scalar=t)
-            out     = rate_heads(H_t, active_idx, log_R0_mut)
+            out     = rate_heads(H_t, active_idx, log_R0_mut, site_entropy=col_entropy)
 
         new_node_seqs = dict(tree.node_seqs)
 
@@ -488,7 +502,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    node_enc, tree_enc, rate_heads = load_models(args.checkpoint, device, args.max_seq_len)
+    node_enc, tree_enc, rate_heads, col_entropy = load_models(args.checkpoint, device, args.max_seq_len)
     embedder = ESM2Embedder(device=device)
 
     model_id = "facebook/esm2_t6_8M_UR50D"
@@ -518,7 +532,7 @@ def main():
         root_seq, args.n_steps, args.max_seq_len,
         args.branch_rate_scale, args.max_leaves, args.mutation_rate_scale,
         node_enc, tree_enc, rate_heads, embedder,
-        tokenizer, esm_model, aa_token_ids, device)
+        tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy)
     gen_leaves = get_leaves(gen_tree)
     print(f"Generated: {len(gen_tree.node_ids)} nodes, {len(gen_leaves)} leaves")
 

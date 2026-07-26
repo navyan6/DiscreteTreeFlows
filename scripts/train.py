@@ -48,6 +48,47 @@ def compute_site_entropy_from_log_probs(log_R0_mut: torch.Tensor) -> torch.Tenso
     return -(probs * log_probs).sum(dim=-1)
 
 
+AA_VOCAB = "ACDEFGHIKLMNPQRSTVWY"
+
+
+def compute_empirical_column_entropy(dataset, max_seq_len: int) -> torch.Tensor:
+    """
+    Per-column Shannon entropy over ALL training-tree sequences, normalized to
+    [0,1] by log(20). This is the "which sites historically vary" hotspot signal
+    (antigenic sites -- e.g. spike RBD, D614G -- score high), computed ONCE from
+    the training alignment and then used identically at train and generation so
+    the two never diverge. Columns with no observed residue get 0.
+
+    Uses only `dataset` (the TRAIN split) -- never val/test -- so no leakage.
+    """
+    import numpy as np
+
+    tbl = np.full(256, 255, dtype=np.int16)
+    for i, aa in enumerate(AA_VOCAB):
+        tbl[ord(aa)] = i  # non-AA bytes (X, -, *, ...) stay 255 -> excluded
+
+    counts = np.zeros((max_seq_len, 20), dtype=np.int64)
+    for i in range(len(dataset)):
+        for seq in dataset[i]["seqs"].values():
+            if not seq:
+                continue
+            # latin-1 is a 1:1 byte map (never drops/shifts a column); protein
+            # chars are all <128 so this equals ascii for them.
+            arr = tbl[np.frombuffer(seq[:max_seq_len].encode("latin-1"), dtype=np.uint8)]
+            valid = arr < 20
+            if valid.any():
+                pos = np.nonzero(valid)[0]
+                np.add.at(counts, (pos, arr[valid]), 1)
+
+    total = counts.sum(axis=1, keepdims=True)
+    probs = counts / np.maximum(total, 1)
+    safe_log = np.log(np.maximum(probs, 1e-12))   # avoid log(0); masked by probs=0 anyway
+    ent = -(probs * safe_log).sum(axis=1)          # nats
+    ent = np.clip(ent / math.log(20.0), 0.0, 1.0)
+    ent[total[:, 0] == 0] = 0.0
+    return torch.tensor(ent, dtype=torch.float32)
+
+
 def forward_bridge_step(
     batch: dict,
     t: float,
@@ -68,6 +109,7 @@ def forward_bridge_step(
     entropy_weight_alpha: float = 1.0,
     entropy_weight_floor: float = 1.0,
     entropy_is_normalized: bool = False,
+    col_entropy: torch.Tensor | None = None,
     embedder: ESM2Embedder | None = None,
 ) -> tuple[dict | None, int]:
     """
@@ -153,10 +195,20 @@ def forward_bridge_step(
         log_R0_mut = torch.zeros(len(active_leaves_t), max_seq_len, 20, device=device)
 
     site_entropy = None
+    ent_is_norm = entropy_is_normalized
     if use_site_entropy or use_entropy_loss_weighting:
-        site_entropy = compute_site_entropy_from_log_probs(log_R0_mut)
-        if entropy_is_normalized:
-            site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
+        if col_entropy is not None:
+            # Empirical column entropy from the training alignment, already
+            # normalized to [0,1]. A [L] vector; RateHeads / bridge_losses
+            # broadcast it over active leaves. Used identically here and at
+            # generation (loaded from the checkpoint) so the two never diverge.
+            site_entropy = col_entropy.to(device=log_R0_mut.device, dtype=log_R0_mut.dtype)
+            ent_is_norm = True
+        else:
+            # Fallback: ESM self-entropy H(softmax(log_R0)) per position.
+            site_entropy = compute_site_entropy_from_log_probs(log_R0_mut)
+            if entropy_is_normalized:
+                site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
 
     out = rate_heads(H_t, active_idx_t, log_R0_mut, site_entropy=site_entropy)
     # out["log_R_theta_mut"] = log_R0 + c_θ, computed inside RateHeads
@@ -185,7 +237,7 @@ def forward_bridge_step(
         use_entropy_loss_weighting=use_entropy_loss_weighting,
         entropy_weight_alpha=entropy_weight_alpha,
         entropy_weight_floor=entropy_weight_floor,
-        entropy_is_normalized=entropy_is_normalized,
+        entropy_is_normalized=ent_is_norm,
     )
 
     return losses, len(active_leaves_t)
@@ -231,6 +283,13 @@ def main():
                         help="Positive baseline added to entropy-based mutation-loss weights.")
     parser.add_argument("--entropy-is-normalized", action="store_true",
                         help="Treat provided entropy values as already normalized to [0,1].")
+    parser.add_argument("--entropy-source", choices=["esm_self", "empirical"], default="esm_self",
+                        help="Which per-position entropy feeds --use-site-entropy / "
+                             "--use-entropy-loss-weighting. 'esm_self': H(softmax(log_R0)) "
+                             "per position (free, self-consistent, = ESM uncertainty). "
+                             "'empirical': Shannon entropy of each TRAIN-alignment column "
+                             "(antigenic hotspots; computed once, saved in the checkpoint, "
+                             "and reused at generation so train/inference never diverge).")
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -324,6 +383,15 @@ def main():
                            use_pos_emb=args.per_site_pos_emb,
                            use_site_entropy=args.use_site_entropy).to(device)
 
+    # Empirical column entropy (computed once from the TRAIN split) if requested;
+    # otherwise None -> forward_bridge_step falls back to ESM self-entropy.
+    col_entropy = None
+    if args.entropy_source == "empirical" and (args.use_site_entropy or args.use_entropy_loss_weighting):
+        print("Computing empirical column entropy from the training alignment...")
+        col_entropy = compute_empirical_column_entropy(train_ds, args.max_seq_len).to(device)
+        print(f"  col_entropy: [{col_entropy.numel()}]  mean={col_entropy.mean():.3f}  "
+              f"max={col_entropy.max():.3f}  nonzero={(col_entropy > 0).sum().item()}")
+
     params = (
         list(node_enc.parameters()) +
         list(tree_enc.parameters()) +
@@ -383,6 +451,7 @@ def main():
                     entropy_weight_alpha=args.entropy_weight_alpha,
                     entropy_weight_floor=args.entropy_weight_floor,
                     entropy_is_normalized=args.entropy_is_normalized,
+                    col_entropy=col_entropy,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -425,6 +494,7 @@ def main():
                     entropy_weight_alpha=args.entropy_weight_alpha,
                     entropy_weight_floor=args.entropy_weight_floor,
                     entropy_is_normalized=args.entropy_is_normalized,
+                    col_entropy=col_entropy,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -472,7 +542,11 @@ def main():
                     "entropy_weight_alpha": args.entropy_weight_alpha,
                     "entropy_weight_floor": args.entropy_weight_floor,
                     "entropy_is_normalized": args.entropy_is_normalized,
+                    "entropy_source": args.entropy_source,
                 },
+                # empirical column-entropy vector [L] (None for esm_self), so
+                # generation reuses the exact same signal training saw.
+                "col_entropy": col_entropy.cpu() if col_entropy is not None else None,
             }, ckpt_dir / "best.pt")
         else:
             patience_counter += 1
@@ -504,6 +578,7 @@ def main():
                 entropy_weight_alpha=args.entropy_weight_alpha,
                 entropy_weight_floor=args.entropy_weight_floor,
                 entropy_is_normalized=args.entropy_is_normalized,
+                col_entropy=col_entropy,
                 embedder=embedder,
             )
             if losses is None or n_active == 0:

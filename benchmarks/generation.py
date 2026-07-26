@@ -32,7 +32,7 @@ class TreeSBMGenerator:
     def __init__(self, checkpoint: str, max_seq_len: int = 566, device: str | None = None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.max_seq_len = max_seq_len
-        self.node_enc, self.tree_enc, self.rate_heads = load_models(
+        self.node_enc, self.tree_enc, self.rate_heads, self.col_entropy = load_models(
             checkpoint, self.device, max_seq_len
         )
         self.embedder = ESM2Embedder(device=self.device)
@@ -62,6 +62,7 @@ class TreeSBMGenerator:
                 root_seq, n_steps, self.max_seq_len, branch_rate_scale, max_leaves,
                 mutation_rate_scale, self.node_enc, self.tree_enc, self.rate_heads,
                 self.embedder, self.tokenizer, self.esm_model, self.aa_token_ids, self.device,
+                col_entropy=self.col_entropy,
             ))
         return trees
 
