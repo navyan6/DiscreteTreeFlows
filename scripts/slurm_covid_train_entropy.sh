@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
-#SBATCH --time=16:00:00
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/covid_train_entropy_%j.log
 #SBATCH --error=logs/covid_train_entropy_%j.log
 #
@@ -67,7 +67,7 @@ $PYTHON -u scripts/train.py \
     --use-site-entropy \
     --use-entropy-loss-weighting \
     --entropy-source empirical \
-    --entropy-weight-alpha 1.0 \
+    --entropy-weight-alpha 3.0 \
     --entropy-weight-floor 1.0 \
     --ckpt-dir    checkpoints/covid_v2_entropy \
     --resume
