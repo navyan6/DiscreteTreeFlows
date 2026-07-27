@@ -106,6 +106,7 @@ def forward_bridge_step(
     bridge_c: float = 1.0,
     use_site_entropy: bool = False,
     use_entropy_loss_weighting: bool = False,
+    use_entropy_cons_weighting: bool = False,
     entropy_weight_alpha: float = 1.0,
     entropy_weight_floor: float = 1.0,
     entropy_is_normalized: bool = False,
@@ -196,7 +197,7 @@ def forward_bridge_step(
 
     site_entropy = None
     ent_is_norm = entropy_is_normalized
-    if use_site_entropy or use_entropy_loss_weighting:
+    if use_site_entropy or use_entropy_loss_weighting or use_entropy_cons_weighting:
         if col_entropy is not None:
             # Empirical column entropy from the training alignment, already
             # normalized to [0,1]. A [L] vector; RateHeads / bridge_losses
@@ -235,6 +236,7 @@ def forward_bridge_step(
         device=device,
         site_entropy=site_entropy,
         use_entropy_loss_weighting=use_entropy_loss_weighting,
+        use_entropy_cons_weighting=use_entropy_cons_weighting,
         entropy_weight_alpha=entropy_weight_alpha,
         entropy_weight_floor=entropy_weight_floor,
         entropy_is_normalized=ent_is_norm,
@@ -276,7 +278,12 @@ def main():
     parser.add_argument("--use-site-entropy", action="store_true",
                         help="Inject per-position Shannon entropy into the mutation head.")
     parser.add_argument("--use-entropy-loss-weighting", action="store_true",
-                        help="Weight mutating-position bridge loss by per-position entropy.")
+                        help="Weight mutating-position bridge loss (L_mut) by per-position "
+                             "entropy: floor + alpha*entropy (mutate freely at hotspots).")
+    parser.add_argument("--use-entropy-cons-weighting", action="store_true",
+                        help="Weight conserved-position bridge loss (L_cons) by INVERSE "
+                             "entropy: floor + alpha*(1-entropy) (penalize mutating cold "
+                             "sites hardest -> fights over-mutation / low retention).")
     parser.add_argument("--entropy-weight-alpha", type=float, default=1.0,
                         help="Slope for entropy-based mutation-loss weights.")
     parser.add_argument("--entropy-weight-floor", type=float, default=1.0,
@@ -448,6 +455,7 @@ def main():
                     bridge_c=args.bridge_c,
                     use_site_entropy=args.use_site_entropy,
                     use_entropy_loss_weighting=args.use_entropy_loss_weighting,
+                    use_entropy_cons_weighting=args.use_entropy_cons_weighting,
                     entropy_weight_alpha=args.entropy_weight_alpha,
                     entropy_weight_floor=args.entropy_weight_floor,
                     entropy_is_normalized=args.entropy_is_normalized,
@@ -491,6 +499,7 @@ def main():
                     lambda_mut=args.lambda_mut, bridge_c=args.bridge_c,
                     use_site_entropy=args.use_site_entropy,
                     use_entropy_loss_weighting=args.use_entropy_loss_weighting,
+                    use_entropy_cons_weighting=args.use_entropy_cons_weighting,
                     entropy_weight_alpha=args.entropy_weight_alpha,
                     entropy_weight_floor=args.entropy_weight_floor,
                     entropy_is_normalized=args.entropy_is_normalized,
@@ -539,6 +548,7 @@ def main():
                     "use_pos_emb": args.per_site_pos_emb,
                     "use_site_entropy": args.use_site_entropy,
                     "use_entropy_loss_weighting": args.use_entropy_loss_weighting,
+                    "use_entropy_cons_weighting": args.use_entropy_cons_weighting,
                     "entropy_weight_alpha": args.entropy_weight_alpha,
                     "entropy_weight_floor": args.entropy_weight_floor,
                     "entropy_is_normalized": args.entropy_is_normalized,
@@ -575,6 +585,7 @@ def main():
                 lambda_mut=args.lambda_mut, bridge_c=args.bridge_c,
                 use_site_entropy=args.use_site_entropy,
                 use_entropy_loss_weighting=args.use_entropy_loss_weighting,
+                use_entropy_cons_weighting=args.use_entropy_cons_weighting,
                 entropy_weight_alpha=args.entropy_weight_alpha,
                 entropy_weight_floor=args.entropy_weight_floor,
                 entropy_is_normalized=args.entropy_is_normalized,

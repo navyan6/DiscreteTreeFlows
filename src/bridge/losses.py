@@ -120,6 +120,7 @@ def bridge_losses(
     device: str = "cpu",
     site_entropy: torch.Tensor | None = None,
     use_entropy_loss_weighting: bool = False,
+    use_entropy_cons_weighting: bool = False,
     entropy_weight_alpha: float = 1.0,
     entropy_weight_floor: float = 1.0,
     entropy_is_normalized: bool = False,
@@ -167,12 +168,16 @@ def bridge_losses(
     # Upweight rare mutating positions (sparse signal); time-weighting is already
     # handled inside the h-transform, so no extra 1/(1-t) factor.
     #
-    # Optional alignment-entropy weighting:
-    #   weight_i = floor + alpha * normalized_entropy_i
-    if use_entropy_loss_weighting:
+    # Optional alignment-entropy weighting (computed once, used by both terms):
+    #   L_mut  weight = floor + alpha * entropy         -> mutate freely at hotspots
+    #   L_cons weight = floor + alpha * (1 - entropy)    -> stay put at cold sites
+    # The L_cons variant directly fights over-mutation of conserved regions.
+    normalized_entropy = None
+    if use_entropy_loss_weighting or use_entropy_cons_weighting:
         if site_entropy is None:
             raise ValueError(
-                "site_entropy is required when use_entropy_loss_weighting=True."
+                "site_entropy is required when use_entropy_loss_weighting or "
+                "use_entropy_cons_weighting is True."
             )
         normalized_entropy = _prepare_alignment_entropy(
             site_entropy=site_entropy,
@@ -182,8 +187,9 @@ def bridge_losses(
             dtype=kl_per_pos.dtype,
             entropy_is_normalized=entropy_is_normalized,
         )
-        site_weights = entropy_weight_floor + entropy_weight_alpha * normalized_entropy
 
+    if use_entropy_loss_weighting:
+        site_weights = entropy_weight_floor + entropy_weight_alpha * normalized_entropy
         if mut_mask.any():
             mut_kl = kl_per_pos[mut_mask]
             mut_weights = site_weights[mut_mask]
@@ -202,7 +208,13 @@ def bridge_losses(
         mean_mut_weight = torch.ones((), device=kl_per_pos.device)
         max_mut_weight = torch.ones((), device=kl_per_pos.device)
 
-    L_cons = kl_per_pos[cons_mask].mean() if cons_mask.any() else kl_per_pos.sum() * 0.0
+    if use_entropy_cons_weighting and cons_mask.any():
+        cons_weights = entropy_weight_floor + entropy_weight_alpha * (1.0 - normalized_entropy)
+        cons_kl = kl_per_pos[cons_mask]
+        cw = cons_weights[cons_mask]
+        L_cons = (cons_kl * cw).sum() / cw.sum().clamp_min(1e-8)
+    else:
+        L_cons = kl_per_pos[cons_mask].mean() if cons_mask.any() else kl_per_pos.sum() * 0.0
     L_rate = lambda_mut * L_mut + L_cons
 
     # ── L_top 
