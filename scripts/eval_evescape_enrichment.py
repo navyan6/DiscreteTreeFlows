@@ -102,7 +102,10 @@ def main():
 
     evescape = base_ev = None
     if args.evescape:
-        evescape = torch.load(args.evescape, map_location="cpu")
+        # prepare_evescape.py saves a dict ({"scores": [L,20] tensor, "reference_seq":
+        # ..., "positions": ..., "match_rate": ...}), not a bare tensor.
+        ev_blob = torch.load(args.evescape, map_location="cpu")
+        evescape = ev_blob["scores"] if isinstance(ev_blob, dict) else ev_blob
         nz = evescape[evescape != 0]
         base_ev = nz.mean().item()  # mean EVEscape of a random RBD substitution
         print(f"EVEscape {tuple(evescape.shape)}  nonzero={nz.numel()}  "
