@@ -25,7 +25,7 @@ METRIC_LABELS = {
 }
 METHOD_ORDER = [
     "neutral_bd", "empirical_bd", "plm_prior", "artreeformer_adapted",
-    "phylovae_adapted", "treesbm",
+    "phylovae_adapted", "phylaflow_adapted", "treesbm",
 ]
 
 

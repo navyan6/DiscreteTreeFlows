@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Load ASR outputs → build TreeState → run graph transformer → save node/edge embeddings.
+Load ASR outputs -> build TreeState -> run graph transformer -> save node/edge embeddings.
 
 Usage:
     python scripts/embed_tree.py \
@@ -25,14 +25,13 @@ from src.treeencoder.node_encoder import NodeEncoder
 from src.treeencoder.attention_mask import build_temporal_attention_mask
 
 
-# ── tree parsing ──────────────────────────────────────────────────────────────
+#tree parsing 
 
 def parse_newick(nwk_path: str) -> tuple[str, list[tuple[str, str]], dict]:
-    """
-    Parse a Newick file into (root_id, edges, branch_lengths).
-    Internal nodes without names are assigned NODE_XXXXXXX labels to match
-    augur's naming convention (augur writes names into the Newick).
-    """
+
+    #Parse a Newick file into (root_id, edges, branch_lengths).
+
+
     tree = Phylo.read(nwk_path, "newick")
 
     edges = []
@@ -78,29 +77,29 @@ def parse_newick(nwk_path: str) -> tuple[str, list[tuple[str, str]], dict]:
     return root_id, all_ids, edges, branch_lengths
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
+#main 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tree",      required=True, help="Rooted Newick (.nwk)")
-    parser.add_argument("--aa-fasta",  required=True, help="AA FASTA (tips + internal nodes)")
-    parser.add_argument("--node-data", required=True, help="augur branch_lengths JSON (contains numdate)")
-    parser.add_argument("--out",       required=True, help="Output .pt file")
-    parser.add_argument("--lap-dim",   type=int, default=8,  help="Laplacian PE dimension")
-    parser.add_argument("--d-node",    type=int, default=128, help="NodeEncoder output dim")
-    parser.add_argument("--device",    default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--tree",required=True,help="Rooted Newick (.nwk)")
+    parser.add_argument("--aa-fasta",required=True,help="AA FASTA (tips + internal nodes)")
+    parser.add_argument("--node-data",required=True, help="augur branch_lengths JSON (contains numdate)")
+    parser.add_argument("--out",required=True, help="Output .pt file")
+    parser.add_argument("--lap-dim",type=int, default=8,help="Laplacian PE dimension")
+    parser.add_argument("--d-node",type=int, default=128, help="NodeEncoder output dim")
+    parser.add_argument("--device",default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
 
     device = args.device
     print(f"Device: {device}")
 
     # 1. Parse tree
-    print("Parsing tree...")
+    print("Parsing tree")
     root_id, node_ids, edges, branch_lengths = parse_newick(args.tree)
     print(f"  {len(node_ids)} nodes, {len(edges)} edges, root={root_id}")
 
     # 2. Load AA sequences
-    print("Loading AA sequences...")
+    print("Loading AA sequences")
     seqs = {rec.id: str(rec.seq) for rec in SeqIO.parse(args.aa_fasta, "fasta")}
     missing = [nid for nid in node_ids if nid not in seqs]
     if missing:
@@ -121,7 +120,7 @@ def main():
     print(f"  Time range: {min(node_times.values()):.2f} – {max(node_times.values()):.2f}")
 
     # 4. Build TreeState
-    print("Building TreeState...")
+    print("Building TreeState")
     # Identify active leaves (nodes with no children)
     has_children = {p for p, _ in edges}
     active_leaves = [nid for nid in node_ids if nid not in has_children]
@@ -137,22 +136,22 @@ def main():
     print(f"  {tree_state.n_nodes()} nodes, {tree_state.n_leaves()} leaves")
 
     # 5. ESM2 embeddings (320d per node)
-    print("Computing ESM2 embeddings (this may take a few minutes)...")
+    print("Computing ESM2 embeddings (this may take a few minutes)")
     embedder = ESM2Embedder(device=device)
     sequences = [seqs[nid] for nid in node_ids]
     plm_embeddings = embedder.embed_sequences(sequences)  # [N, 320]
     print(f"  PLM embeddings: {plm_embeddings.shape}")
 
     # 6. Build TreeEncoderInput (structural features + Laplacian PE + edges)
-    print("Building encoder input...")
+    print("Building encoder input")
     encoder_input = tree_state_to_encoder_input(
         tree=tree_state,
         node_embeddings=plm_embeddings,
         laplacian_dim=args.lap_dim,
     )
 
-    # 7. Fuse with NodeEncoder → 128d
-    print("Running NodeEncoder...")
+    # 7. run nodeencoder
+    print("Running NodeEncoder")
     node_enc = NodeEncoder(
         d_plm=320,
         d_struct=3,

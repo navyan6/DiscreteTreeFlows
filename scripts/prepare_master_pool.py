@@ -64,7 +64,7 @@ def count_ambiguous(seq, valid_nucs="ACGT"):
 
 
 def translate_to_protein(seq, frame=0):
-    """Translate nucleotide sequence to protein."""
+    #Translate nucleotide sequence to protein.
     codon_table = {
         "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
         "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S",

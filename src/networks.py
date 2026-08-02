@@ -244,30 +244,69 @@ class RateHeads(nn.Module):
 
     def __init__(self, d_model: int = 256, max_seq_len: int = 512,
                  use_pos_emb: bool = False, d_pos: int = 32,
-                 use_site_entropy: bool = False):
+                 use_site_entropy: bool = False,
+                 deep_mut_head: bool = False,
+                 use_mut_aa_emb: bool = False, d_aa: int = 16,
+                 use_pssm_gate: bool = False,
+                 pssm_gate_fixed_w: Optional[float] = None):
         super().__init__()
         self.d_model = d_model
         self.max_seq_len = max_seq_len
         self.use_pos_emb = use_pos_emb
         self.use_site_entropy = use_site_entropy
+        self.deep_mut_head = deep_mut_head
+        self.use_mut_aa_emb = use_mut_aa_emb
+        self.d_aa = d_aa
+        self.use_pssm_gate = use_pssm_gate
+        self.pssm_gate_fixed_w = pssm_gate_fixed_w
 
-        # Per-position mutation-head input: [h_node (d_model) ‖ (pos_emb) ‖ log_R0 (20)].
-        # The optional learned positional embedding lets c_θ act per-site — position
-        # identity otherwise never enters the computation (h_node is broadcast to all L,
-        # so the only per-position signal is the ESM log_R0). log_R_theta = log_R0 + c_θ.
+        # Per-position mutation-head input:
+        #   [h_node (d_model) ‖ (pos_emb) ‖ (aa_emb) ‖ log_R0 (20)].
+        # Optional learned positional / current-AA embeddings let c_θ act per-site.
+        # Identity otherwise never enters (h_node is broadcast); log_R_theta = log_R0 + c_θ.
         if use_pos_emb:
             self.pos_emb = nn.Embedding(max_seq_len, d_pos)
-        mut_in = d_model + 20 + (d_pos if use_pos_emb else 0)
-        self.mutation_head = nn.Sequential(
-            nn.Linear(mut_in, 64),
-            nn.ReLU(),
-            nn.Linear(64, 20),
-        )
+        if use_mut_aa_emb:
+            # 20 AA + PAD(20); flag-gated so existing checkpoints keep mut_in unchanged.
+            self.aa_emb = nn.Embedding(21, d_aa)
+        mut_in = d_model + 20 + (d_pos if use_pos_emb else 0) + (d_aa if use_mut_aa_emb else 0)
+        # Default 64→20 head kept for checkpoint compatibility. deep_mut_head adds a
+        # 128-d bottleneck before the 64-d entropy injection point (new runs only).
+        if deep_mut_head:
+            self.mutation_pre = nn.Sequential(
+                nn.Linear(mut_in, 128),
+                nn.ReLU(),
+                nn.Linear(128, 64),
+            )
+            self.mutation_out = nn.Sequential(
+                nn.ReLU(),
+                nn.Linear(64, 20),
+            )
+        else:
+            self.mutation_head = nn.Sequential(
+                nn.Linear(mut_in, 64),
+                nn.ReLU(),
+                nn.Linear(64, 20),
+            )
 
         if use_site_entropy:
             self.site_entropy_proj = nn.Linear(1, 64, bias=False)
             nn.init.zeros_(self.site_entropy_proj.weight)
             self.register_load_state_dict_pre_hook(self._entropy_load_pre_hook)
+
+        # Static train-PSSM gate: log R_eff = w·Z(log R_θ) + (1−w)·Z(log PSSM).
+        # Learnable per-site w=σ(γ) by default; optional fixed w for ablations.
+        if use_pssm_gate:
+            if pssm_gate_fixed_w is None:
+                self.pssm_gate_logit = nn.Parameter(torch.zeros(max_seq_len))
+            else:
+                w = float(pssm_gate_fixed_w)
+                if not (0.0 <= w <= 1.0):
+                    raise ValueError("pssm_gate_fixed_w must be in [0, 1]")
+                self.register_buffer(
+                    "pssm_gate_fixed",
+                    torch.full((max_seq_len,), w, dtype=torch.float32),
+                )
 
         # Branching head: Poisson parameter λ
         self.branching_head = nn.Sequential(
@@ -307,13 +346,15 @@ class RateHeads(nn.Module):
         active_leaf_indices: list[int],
         log_R0_mut: torch.Tensor,        # [n_active, L, 20] ESM-2 per-position log-probs
         site_entropy: Optional[torch.Tensor] = None,  # [L], [1,L], or [n_active,L]
+        aa_indices: Optional[torch.Tensor] = None,    # [n_active, L] current AA idx (PAD=20)
+        log_pssm: Optional[torch.Tensor] = None,      # [L, 20] or [1, L, 20] train log-PSSM
     ) -> dict[str, torch.Tensor]:
         """
         Predict rates for active leaves only.
 
         log_R0_mut must be pre-computed and passed in so the mutation head can condition
         its per-position correction c_θ on the ESM-2 baseline at each position.
-        Returns log_R_theta_mut = log_R0_mut + c_θ directly.
+        Returns log_R_theta_mut = log_R0_mut + c_θ (optionally PSSM-gated).
         """
         h_active = H_T[active_leaf_indices]          # [n_active, d_model]
         L = log_R0_mut.shape[1]
@@ -326,10 +367,23 @@ class RateHeads(nn.Module):
             pos_ids = torch.arange(L, device=log_R0_mut.device)
             pe = self.pos_emb(pos_ids).unsqueeze(0).expand(h_active.shape[0], -1, -1)
             parts.append(pe)                                   # [n_active, L, d_pos]
+        if self.use_mut_aa_emb:
+            if aa_indices is None:
+                raise ValueError("aa_indices is required when use_mut_aa_emb=True")
+            aa = aa_indices.to(device=log_R0_mut.device, dtype=torch.long)
+            if aa.shape != (h_active.shape[0], L):
+                raise ValueError(
+                    f"aa_indices must have shape [n_active, L]=[{h_active.shape[0]}, {L}], "
+                    f"got {tuple(aa.shape)}"
+                )
+            parts.append(self.aa_emb(aa.clamp(0, 20)))         # [n_active, L, d_aa]
         parts.append(log_R0_mut)
-        h_pos = torch.cat(parts, dim=-1)                       # [n_active, L, d_model(+d_pos)+20]
+        h_pos = torch.cat(parts, dim=-1)                       # [n_active, L, mut_in]
 
-        mut_hidden = self.mutation_head[0](h_pos)             # [n_active, L, 64]
+        if self.deep_mut_head:
+            mut_hidden = self.mutation_pre(h_pos)              # [n_active, L, 64]
+        else:
+            mut_hidden = self.mutation_head[0](h_pos)          # [n_active, L, 64]
         if self.use_site_entropy:
             if site_entropy is None:
                 log_probs = F.log_softmax(log_R0_mut, dim=-1)
@@ -353,9 +407,36 @@ class RateHeads(nn.Module):
             entropy_feature = site_entropy.unsqueeze(-1)
             mut_hidden = mut_hidden + self.site_entropy_proj(entropy_feature)
 
-        mut_hidden = self.mutation_head[1](mut_hidden)
-        c_theta = self.mutation_head[2](mut_hidden)            # [n_active, L, 20]
+        if self.deep_mut_head:
+            c_theta = self.mutation_out(mut_hidden)            # [n_active, L, 20]
+        else:
+            mut_hidden = self.mutation_head[1](mut_hidden)
+            c_theta = self.mutation_head[2](mut_hidden)        # [n_active, L, 20]
         log_R_theta_mut = log_R0_mut + c_theta                 # [n_active, L, 20]
+
+        if self.use_pssm_gate:
+            if log_pssm is None:
+                raise ValueError("log_pssm is required when use_pssm_gate=True")
+            pssm = log_pssm.to(device=log_R_theta_mut.device, dtype=log_R_theta_mut.dtype)
+            if pssm.ndim == 2:
+                pssm = pssm.unsqueeze(0)
+            if pssm.ndim != 3 or pssm.shape[-2:] != (L, 20):
+                raise ValueError(
+                    f"log_pssm must have shape [L, 20] or [*, L, 20], got {tuple(pssm.shape)}"
+                )
+            if pssm.shape[0] == 1:
+                pssm = pssm.expand(h_active.shape[0], -1, -1)
+            elif pssm.shape[0] != h_active.shape[0]:
+                raise ValueError("log_pssm batch dimension must be 1 or n_active")
+
+            if self.pssm_gate_fixed_w is not None:
+                w = self.pssm_gate_fixed[:L].to(dtype=log_R_theta_mut.dtype)
+            else:
+                w = torch.sigmoid(self.pssm_gate_logit[:L])
+            w = w.view(1, L, 1)
+            z_theta = F.log_softmax(log_R_theta_mut, dim=-1)
+            z_pssm = F.log_softmax(pssm, dim=-1)
+            log_R_theta_mut = w * z_theta + (1.0 - w) * z_pssm
 
         branching_rate = self.branching_head(h_active).squeeze(-1)   # [n_active]
         branch_length  = self.branch_length_head(h_active).squeeze(-1)  # [n_active]

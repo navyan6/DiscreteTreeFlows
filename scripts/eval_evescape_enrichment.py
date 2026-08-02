@@ -80,6 +80,10 @@ def main():
     ap.add_argument("--max-leaves", type=int, default=300)
     ap.add_argument("--branch-rate-scale", type=float, default=6.0)
     ap.add_argument("--mutation-rate-scale", type=float, default=0.3)
+    ap.add_argument("--site-softmax-sample", action="store_true",
+                    help="Use site-propensity sampling (categorical over sites, then AA|site)")
+    ap.add_argument("--site-temperature", type=float, default=1.0,
+                    help="Temperature on site-propensity logits (--site-softmax-sample)")
     ap.add_argument("--max-trees", type=int, default=20)
     ap.add_argument("--gt-leaves-sampled", type=int, default=30,
                     help="GT leaves per tree to match against gen for recovery")
@@ -131,7 +135,10 @@ def main():
             gen = generate_tree(
                 root_seq, args.n_steps, args.max_seq_len, args.branch_rate_scale,
                 args.max_leaves, args.mutation_rate_scale, node_enc, tree_enc, rate_heads,
-                embedder, tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy)
+                embedder, tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy,
+                site_softmax_sample=args.site_softmax_sample,
+                site_temperature=args.site_temperature,
+            )
         except Exception as e:
             print(f"[{i+1}/{n}] ERROR: {e}")
             continue

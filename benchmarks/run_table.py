@@ -91,8 +91,9 @@ def score_simulated(gens: list[TreeState], refs: list[TreeState], seed: int) -> 
 
 def load_external_pools(pool_dir: Path, prefix: str, Ns: list[int]) -> dict[int, list[str]]:
     """{N: [newick, ...]} from benchmarks/external_pools/sampled/{prefix}_N{N}.nwk,
-    produced by scripts/slurm_artreeformer.sh / slurm_phylovae.sh. Skips N's
-    whose pool file doesn't exist yet -- that N is just absent from the row."""
+    produced by scripts/slurm_artreeformer.sh / slurm_phylovae.sh /
+    slurm_phylaflow.sh. Skips N's whose pool file doesn't exist yet -- that N
+    is just absent from the row."""
     pool_by_N = {}
     for N in Ns:
         p = pool_dir / f"{prefix}_N{N}.nwk"
@@ -113,19 +114,20 @@ def build_methods(args, params, esm, train_trees: list[TreeState] | None = None)
         from benchmarks.methods.treesbm import TreeSBMMethod
         methods.append(TreeSBMMethod(args.checkpoint))
 
-    # adapted rows: ARTreeFormer / PhyloVAE as unconditional topology priors +
-    # the shared BranchLengthAdapter + shared JTT sequence adapter (same
-    # --empirical-model as the native JTT+BD row, for a like-for-like sequence
-    # model across native and adapted rows). Only added if their sampled pools
-    # already exist (see benchmarks/EXTERNAL.md) -- absent pools just mean
-    # those rows are skipped, not an error.
+    # adapted rows: ARTreeFormer / PhyloVAE / PhylaFlow as unconditional topology
+    # priors + the shared BranchLengthAdapter + shared JTT sequence adapter
+    # (same --empirical-model as the native JTT+BD row, for a like-for-like
+    # sequence model across native and adapted rows). Only added if their
+    # sampled pools already exist (see benchmarks/EXTERNAL.md) -- absent pools
+    # just mean those rows are skipped, not an error.
     if train_trees:
         pool_dir = ROOT / "benchmarks/external_pools/sampled"
         bl_adapter = BranchLengthAdapter().fit(train_trees)
         seq_fn = lambda topo, root_seq, seed: evolve_pyvolve(
             topo, root_seq, model=args.empirical_model, seed=seed)
         for tag, prefix in [("artreeformer_adapted", "artreeformer"),
-                            ("phylovae_adapted", "phylovae")]:
+                            ("phylovae_adapted", "phylovae"),
+                            ("phylaflow_adapted", "phylaflow")]:
             pool_by_N = load_external_pools(pool_dir, prefix, args.N)
             if pool_by_N:
                 methods.append(TopologyPriorMethod(tag, pool_by_N, bl_adapter, seq_fn))
@@ -153,7 +155,7 @@ def main():
     ap.add_argument("--test-data", default="data/h3n2/test")
     ap.add_argument("--train-data", default="data/h3n2/train",
                     help="Only used to fit the shared BranchLengthAdapter for the "
-                         "ARTreeFormer/PhyloVAE adapted rows, if their pools exist.")
+                         "ARTreeFormer/PhyloVAE/PhylaFlow adapted rows, if pools exist.")
     ap.add_argument("--params", default="benchmarks/results/params.json")
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--empirical-model", default="JTT")

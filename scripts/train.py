@@ -38,7 +38,8 @@ from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
 from src.bridge.sample_bridge_state import sample_bridge_state
-from src.bridge.losses import bridge_losses
+from src.bridge.losses import bridge_losses, attach_semigroup_loss, _build_seq_indices
+from src.bridge.semigroup import sample_time_triple, semigroup_loss_from_predictor
 
 
 def compute_site_entropy_from_log_probs(log_R0_mut: torch.Tensor) -> torch.Tensor:
@@ -51,16 +52,8 @@ def compute_site_entropy_from_log_probs(log_R0_mut: torch.Tensor) -> torch.Tenso
 AA_VOCAB = "ACDEFGHIKLMNPQRSTVWY"
 
 
-def compute_empirical_column_entropy(dataset, max_seq_len: int) -> torch.Tensor:
-    """
-    Per-column Shannon entropy over ALL training-tree sequences, normalized to
-    [0,1] by log(20). This is the "which sites historically vary" hotspot signal
-    (antigenic sites -- e.g. spike RBD, D614G -- score high), computed ONCE from
-    the training alignment and then used identically at train and generation so
-    the two never diverge. Columns with no observed residue get 0.
-
-    Uses only `dataset` (the TRAIN split) -- never val/test -- so no leakage.
-    """
+def _train_alignment_aa_counts(dataset, max_seq_len: int):
+    """Count AA occurrences per column from TRAIN sequences only (no val/test leakage)."""
     import numpy as np
 
     tbl = np.full(256, 255, dtype=np.int16)
@@ -79,7 +72,22 @@ def compute_empirical_column_entropy(dataset, max_seq_len: int) -> torch.Tensor:
             if valid.any():
                 pos = np.nonzero(valid)[0]
                 np.add.at(counts, (pos, arr[valid]), 1)
+    return counts
 
+
+def compute_empirical_column_entropy(dataset, max_seq_len: int) -> torch.Tensor:
+    """
+    Per-column Shannon entropy over ALL training-tree sequences, normalized to
+    [0,1] by log(20). This is the "which sites historically vary" hotspot signal
+    (antigenic sites -- e.g. spike RBD, D614G -- score high), computed ONCE from
+    the training alignment and then used identically at train and generation so
+    the two never diverge. Columns with no observed residue get 0.
+
+    Uses only `dataset` (the TRAIN split) -- never val/test -- so no leakage.
+    """
+    import numpy as np
+
+    counts = _train_alignment_aa_counts(dataset, max_seq_len)
     total = counts.sum(axis=1, keepdims=True)
     probs = counts / np.maximum(total, 1)
     safe_log = np.log(np.maximum(probs, 1e-12))   # avoid log(0); masked by probs=0 anyway
@@ -87,6 +95,26 @@ def compute_empirical_column_entropy(dataset, max_seq_len: int) -> torch.Tensor:
     ent = np.clip(ent / math.log(20.0), 0.0, 1.0)
     ent[total[:, 0] == 0] = 0.0
     return torch.tensor(ent, dtype=torch.float32)
+
+
+def compute_empirical_log_pssm(
+    dataset, max_seq_len: int, pseudocount: float = 0.5
+) -> torch.Tensor:
+    """
+    Train-alignment log-PSSM [L, 20] with Laplace pseudocounts.
+
+    Used by the optional static PSSM gate on log R_θ (flag --pssm-gate). Uniform
+    log-probs fill empty columns. TRAIN split only.
+    """
+    import numpy as np
+
+    raw = _train_alignment_aa_counts(dataset, max_seq_len)
+    empty = raw.sum(axis=1) == 0
+    counts = raw.astype(np.float64) + pseudocount
+    probs = counts / counts.sum(axis=1, keepdims=True)
+    log_pssm = np.log(np.maximum(probs, 1e-12))
+    log_pssm[empty] = -math.log(20.0)
+    return torch.tensor(log_pssm, dtype=torch.float32)
 
 
 def forward_bridge_step(
@@ -103,20 +131,29 @@ def forward_bridge_step(
     lambda_stop: float = 0.1,
     lambda_pll: float = 0.01,
     lambda_mut: float = 5.0,
+    lambda_cons: float = 1.0,
+    lambda_semi: float = 0.0,
+    t_max: float = 0.95,
     bridge_c: float = 1.0,
     use_site_entropy: bool = False,
     use_entropy_loss_weighting: bool = False,
     use_entropy_cons_weighting: bool = False,
     entropy_weight_alpha: float = 1.0,
+    entropy_weight_alpha_cons: float | None = None,
     entropy_weight_floor: float = 1.0,
     entropy_is_normalized: bool = False,
+    mut_normalize: str = "mean",
     col_entropy: torch.Tensor | None = None,
+    log_pssm: torch.Tensor | None = None,
     embedder: ESM2Embedder | None = None,
 ) -> tuple[dict | None, int]:
     """
     One forward pass of Algorithm 1.
     or
     Returns (losses_dict, n_active_leaves).
+
+    When lambda_semi > 0, also samples 0≤s<r<u≤t_max, builds bridge state at s,
+    and adds rate-composition L_semi (§4.5) to the total.
     """
     node_ids= batch["node_ids"]              # list[str], N
     node_times_t    = batch["node_times"]            # [N] tensor
@@ -211,8 +248,24 @@ def forward_bridge_step(
             if entropy_is_normalized:
                 site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
 
-    out = rate_heads(H_t, active_idx_t, log_R0_mut, site_entropy=site_entropy)
-    # out["log_R_theta_mut"] = log_R0 + c_θ, computed inside RateHeads
+    active_seqs_t = [seqs_t[nid] for nid in active_leaves_t]
+    aa_indices = None
+    if getattr(rate_heads, "use_mut_aa_emb", False):
+        aa_indices = _build_seq_indices(active_seqs_t, max_seq_len, device)
+
+    pssm_t = None
+    if getattr(rate_heads, "use_pssm_gate", False):
+        if log_pssm is None:
+            raise RuntimeError("use_pssm_gate requires log_pssm (train-alignment PSSM)")
+        pssm_t = log_pssm.to(device=log_R0_mut.device, dtype=log_R0_mut.dtype)
+
+    out = rate_heads(
+        H_t, active_idx_t, log_R0_mut,
+        site_entropy=site_entropy,
+        aa_indices=aa_indices,
+        log_pssm=pssm_t,
+    )
+    # out["log_R_theta_mut"] = log_R0 + c_θ (optionally PSSM-gated), inside RateHeads
 
     losses = bridge_losses(
         log_R_theta_mut=out["log_R_theta_mut"],
@@ -220,7 +273,7 @@ def forward_bridge_step(
         branch_length_pred=out["branch_length"],
         stop_prob=out["stop_prob"],
         log_R0_mut=log_R0_mut,
-        seqs_t=[seqs_t[nid] for nid in active_leaves_t],
+        seqs_t=active_seqs_t,
         active_leaves=active_leaves_t,
         T1_mut_targets=T_t["T1_mut_targets"],
         T1_child_counts=T_t["T1_child_counts"],
@@ -232,15 +285,91 @@ def forward_bridge_step(
         lambda_stop=lambda_stop,
         lambda_pll=lambda_pll,
         lambda_mut=lambda_mut,
+        lambda_cons=lambda_cons,
         bridge_c=bridge_c,
         device=device,
         site_entropy=site_entropy,
         use_entropy_loss_weighting=use_entropy_loss_weighting,
         use_entropy_cons_weighting=use_entropy_cons_weighting,
         entropy_weight_alpha=entropy_weight_alpha,
+        entropy_weight_alpha_cons=entropy_weight_alpha_cons,
         entropy_weight_floor=entropy_weight_floor,
         entropy_is_normalized=ent_is_norm,
+        mut_normalize=mut_normalize,
     )
+
+    # ── L_semi: rate-composition consistency from an earlier bridge state T_s
+    if lambda_semi > 0.0:
+        s, r, u = sample_time_triple(t_max=t_max)
+        T_s = sample_bridge_state(
+            t=s,
+            node_ids=node_ids,
+            node_times_dict=node_times_dict,
+            edges=edges,
+            branch_lengths=branch_lengths,
+            seqs=seqs,
+            root_id=root_id,
+        )
+        node_ids_s = T_s["node_ids_t"]
+        active_s = T_s["active_leaves_t"]
+        if len(node_ids_s) > 0 and len(active_s) > 0:
+            tree_s = TreeState(
+                node_ids=node_ids_s,
+                root_id=root_id,
+                edges=T_s["edges_t"],
+                branch_lengths=T_s["branch_lengths_t"],
+                node_seqs=T_s["seqs_t"],
+                active_leaves=active_s,
+            )
+            node_to_idx_s = {nid: i for i, nid in enumerate(node_ids_s)}
+            struct_s = compute_structural_features(tree_s, node_to_idx_s).to(device)
+            lap_s = compute_laplacian_pe(tree_s, node_to_idx_s, lap_dim, device=device)
+            plm_s = torch.stack([plm_T1[plm_map[nid]] for nid in node_ids_s]).to(device)
+            h_s = node_enc(plm_s, struct_s, lap_s)
+            edge_index_s, _, edge_attr_s = build_edges(tree_s, node_to_idx_s)
+            edge_index_s = edge_index_s.to(device)
+            branch_lens_s = edge_attr_s.squeeze(-1).to(device)
+            active_idx_s = [node_to_idx_s[nid] for nid in active_s]
+            if batch.get("log_ref_mut_rates") is not None:
+                log_R0_s = torch.stack([
+                    batch["log_ref_mut_rates"][plm_map[nid]] for nid in active_s
+                ]).to(device)
+            else:
+                log_R0_s = torch.zeros(len(active_s), max_seq_len, 20, device=device)
+            site_ent_s = None
+            if use_site_entropy or use_entropy_loss_weighting or use_entropy_cons_weighting:
+                if col_entropy is not None:
+                    site_ent_s = col_entropy.to(device=log_R0_s.device, dtype=log_R0_s.dtype)
+                else:
+                    site_ent_s = compute_site_entropy_from_log_probs(log_R0_s)
+                    if entropy_is_normalized:
+                        site_ent_s = (site_ent_s / math.log(20.0)).clamp(min=0.0, max=1.0)
+
+            aa_idx_s = None
+            if getattr(rate_heads, "use_mut_aa_emb", False):
+                aa_idx_s = _build_seq_indices(
+                    [T_s["seqs_t"][nid] for nid in active_s], max_seq_len, device
+                )
+            pssm_s = None
+            if getattr(rate_heads, "use_pssm_gate", False):
+                if log_pssm is None:
+                    raise RuntimeError("use_pssm_gate requires log_pssm")
+                pssm_s = log_pssm.to(device=log_R0_s.device, dtype=log_R0_s.dtype)
+
+            def _rates_at_duration(delta: float):
+                H_d, _ = tree_enc(
+                    h_s, node_ids_s, node_times_dict, edge_index_s, branch_lens_s,
+                    t_scalar=delta,
+                )
+                return rate_heads(
+                    H_d, active_idx_s, log_R0_s,
+                    site_entropy=site_ent_s,
+                    aa_indices=aa_idx_s,
+                    log_pssm=pssm_s,
+                )
+
+            L_semi = semigroup_loss_from_predictor(_rates_at_duration, s, r, u)
+            losses = attach_semigroup_loss(losses, L_semi, lambda_semi)
 
     return losses, len(active_leaves_t)
 
@@ -268,6 +397,16 @@ def main():
     parser.add_argument("--lambda-pll",  type=float, default=0.01)
     parser.add_argument("--lambda-mut",  type=float, default=5.0,
                         help="Upweight loss at mutating positions (T_t_aa != T1_aa) within L_rate")
+    parser.add_argument("--lambda-cons", type=float, default=1.0,
+                        help="Weight on conserved-position bridge term L_cons inside L_rate "
+                             "(L_rate = λ_mut L_mut + λ_cons L_cons). Lower (<1) to reduce "
+                             "over-conservation; default 1.0 keeps prior behavior.")
+    parser.add_argument("--mut-normalize", choices=["mean", "count"], default="mean",
+                        help="How to average L_mut: 'mean' = entropy-weighted mean (default); "
+                             "'count' = Σ(w·kl)/n_mut so hotspot weights raise mut mass.")
+    parser.add_argument("--lambda-semi", type=float, default=0.0,
+                        help="Weight on semigroup rate-composition regularizer L_semi "
+                             "(§4.5). 0 disables; try 0.01–0.1 once bridge loss is stable.")
     parser.add_argument("--bridge-c",    type=float, default=1.0,
                         help="Reference resampling rate c in the conditional bridge target "
                              "(kappa = exp(-c(1-t))); larger = sharper terminal pull earlier")
@@ -277,6 +416,22 @@ def main():
                              "Changes the architecture -> needs a fresh checkpoint.")
     parser.add_argument("--use-site-entropy", action="store_true",
                         help="Inject per-position Shannon entropy into the mutation head.")
+    parser.add_argument("--deep-mut-head", action="store_true",
+                        help="Widen mutation head (mut_in→128→64→20). Off by default so "
+                             "existing checkpoints (incl. covid_v4_mutrec) still load.")
+    parser.add_argument("--mut-aa-emb", action="store_true",
+                        help="Concat current-AA embedding into RateHeads c_θ input "
+                             "(flag-gated; changes mut_in → needs a fresh checkpoint).")
+    parser.add_argument("--mut-aa-emb-dim", type=int, default=16,
+                        help="Dimension of --mut-aa-emb (default 16).")
+    parser.add_argument("--pssm-gate", action="store_true",
+                        help="Blend Z(log R_θ) with train-alignment log-PSSM via per-site "
+                             "w=σ(γ) (or --pssm-gate-fixed-w). Off by default; new ckpt.")
+    parser.add_argument("--pssm-gate-fixed-w", type=float, default=None,
+                        help="If set with --pssm-gate, use fixed w∈[0,1] instead of "
+                             "learnable per-site gate logits.")
+    parser.add_argument("--pssm-pseudocount", type=float, default=0.5,
+                        help="Laplace pseudocount for train log-PSSM (--pssm-gate).")
     parser.add_argument("--use-entropy-loss-weighting", action="store_true",
                         help="Weight mutating-position bridge loss (L_mut) by per-position "
                              "entropy: floor + alpha*entropy (mutate freely at hotspots).")
@@ -286,6 +441,9 @@ def main():
                              "sites hardest -> fights over-mutation / low retention).")
     parser.add_argument("--entropy-weight-alpha", type=float, default=1.0,
                         help="Slope for entropy-based mutation-loss weights.")
+    parser.add_argument("--entropy-weight-alpha-cons", type=float, default=None,
+                        help="Slope for L_cons entropy weights only. Default: same as "
+                             "--entropy-weight-alpha. Lower to ease over-conservation.")
     parser.add_argument("--entropy-weight-floor", type=float, default=1.0,
                         help="Positive baseline added to entropy-based mutation-loss weights.")
     parser.add_argument("--entropy-is-normalized", action="store_true",
@@ -386,18 +544,37 @@ def main():
 
     node_enc   = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc   = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    rate_heads = RateHeads(d_model=128, max_seq_len=args.max_seq_len,
-                           use_pos_emb=args.per_site_pos_emb,
-                           use_site_entropy=args.use_site_entropy).to(device)
+    rate_heads = RateHeads(
+        d_model=128, max_seq_len=args.max_seq_len,
+        use_pos_emb=args.per_site_pos_emb,
+        use_site_entropy=args.use_site_entropy,
+        deep_mut_head=args.deep_mut_head,
+        use_mut_aa_emb=args.mut_aa_emb,
+        d_aa=args.mut_aa_emb_dim,
+        use_pssm_gate=args.pssm_gate,
+        pssm_gate_fixed_w=args.pssm_gate_fixed_w,
+    ).to(device)
 
     # Empirical column entropy (computed once from the TRAIN split) if requested;
     # otherwise None -> forward_bridge_step falls back to ESM self-entropy.
     col_entropy = None
-    if args.entropy_source == "empirical" and (args.use_site_entropy or args.use_entropy_loss_weighting):
+    if args.entropy_source == "empirical" and (
+        args.use_site_entropy
+        or args.use_entropy_loss_weighting
+        or args.use_entropy_cons_weighting
+    ):
         print("Computing empirical column entropy from the training alignment...")
         col_entropy = compute_empirical_column_entropy(train_ds, args.max_seq_len).to(device)
         print(f"  col_entropy: [{col_entropy.numel()}]  mean={col_entropy.mean():.3f}  "
               f"max={col_entropy.max():.3f}  nonzero={(col_entropy > 0).sum().item()}")
+
+    log_pssm = None
+    if args.pssm_gate:
+        print("Computing empirical train log-PSSM for --pssm-gate...")
+        log_pssm = compute_empirical_log_pssm(
+            train_ds, args.max_seq_len, pseudocount=args.pssm_pseudocount
+        ).to(device)
+        print(f"  log_pssm: {tuple(log_pssm.shape)}  mean={log_pssm.mean():.3f}")
 
     params = (
         list(node_enc.parameters()) +
@@ -435,7 +612,7 @@ def main():
         node_enc.train(); tree_enc.train(); rate_heads.train()
         train_loss = 0.0
         n_steps = 0
-        loss_breakdown = {"L_rate": 0.0, "L_mut": 0.0, "L_cons": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0,
+        loss_breakdown = {"L_rate": 0.0, "L_mut": 0.0, "L_cons": 0.0, "L_top": 0.0, "L_br": 0.0, "L_stop": 0.0, "L_pll": 0.0, "L_semi": 0.0,
                           "mean_mut_entropy": 0.0, "mean_mut_weight": 0.0, "max_mut_weight": 0.0,
                           "L_br_pred_std": 0.0, "L_br_target_std": 0.0}
 
@@ -452,14 +629,20 @@ def main():
                     lambda_stop=args.lambda_stop,
                     lambda_pll=args.lambda_pll,
                     lambda_mut=args.lambda_mut,
+                    lambda_cons=args.lambda_cons,
+                    lambda_semi=args.lambda_semi,
+                    t_max=args.t_max,
                     bridge_c=args.bridge_c,
                     use_site_entropy=args.use_site_entropy,
                     use_entropy_loss_weighting=args.use_entropy_loss_weighting,
                     use_entropy_cons_weighting=args.use_entropy_cons_weighting,
                     entropy_weight_alpha=args.entropy_weight_alpha,
+                    entropy_weight_alpha_cons=args.entropy_weight_alpha_cons,
                     entropy_weight_floor=args.entropy_weight_floor,
                     entropy_is_normalized=args.entropy_is_normalized,
+                    mut_normalize=args.mut_normalize,
                     col_entropy=col_entropy,
+                    log_pssm=log_pssm,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -496,14 +679,19 @@ def main():
                     device=device, max_seq_len=args.max_seq_len,
                     lambda_top=args.lambda_top, lambda_br=args.lambda_br,
                     lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
-                    lambda_mut=args.lambda_mut, bridge_c=args.bridge_c,
+                    lambda_mut=args.lambda_mut, lambda_cons=args.lambda_cons,
+                    lambda_semi=args.lambda_semi,
+                    t_max=args.t_max, bridge_c=args.bridge_c,
                     use_site_entropy=args.use_site_entropy,
                     use_entropy_loss_weighting=args.use_entropy_loss_weighting,
                     use_entropy_cons_weighting=args.use_entropy_cons_weighting,
                     entropy_weight_alpha=args.entropy_weight_alpha,
+                    entropy_weight_alpha_cons=args.entropy_weight_alpha_cons,
                     entropy_weight_floor=args.entropy_weight_floor,
                     entropy_is_normalized=args.entropy_is_normalized,
+                    mut_normalize=args.mut_normalize,
                     col_entropy=col_entropy,
+                    log_pssm=log_pssm,
                     embedder=embedder,
                 )
                 if losses is None or n_active == 0:
@@ -525,7 +713,8 @@ def main():
             f"top={loss_breakdown['L_top']:.3f} "
             f"br={loss_breakdown['L_br']:.6f} "
             f"stop={loss_breakdown['L_stop']:.3f} "
-            f"pll={loss_breakdown['L_pll']:.3f})  "
+            f"pll={loss_breakdown['L_pll']:.3f} "
+            f"semi={loss_breakdown['L_semi']:.3f})  "
             f"val={val_loss:.4f}  lr={lr:.2e}  "
             f"[mut_entropy={loss_breakdown['mean_mut_entropy']:.3f} "
             f"mut_w={loss_breakdown['mean_mut_weight']:.3f} "
@@ -547,16 +736,27 @@ def main():
                 "config": {
                     "use_pos_emb": args.per_site_pos_emb,
                     "use_site_entropy": args.use_site_entropy,
+                    "deep_mut_head": args.deep_mut_head,
+                    "use_mut_aa_emb": args.mut_aa_emb,
+                    "mut_aa_emb_dim": args.mut_aa_emb_dim,
+                    "use_pssm_gate": args.pssm_gate,
+                    "pssm_gate_fixed_w": args.pssm_gate_fixed_w,
                     "use_entropy_loss_weighting": args.use_entropy_loss_weighting,
                     "use_entropy_cons_weighting": args.use_entropy_cons_weighting,
                     "entropy_weight_alpha": args.entropy_weight_alpha,
+                    "entropy_weight_alpha_cons": args.entropy_weight_alpha_cons,
                     "entropy_weight_floor": args.entropy_weight_floor,
                     "entropy_is_normalized": args.entropy_is_normalized,
                     "entropy_source": args.entropy_source,
+                    "lambda_mut": args.lambda_mut,
+                    "lambda_cons": args.lambda_cons,
+                    "mut_normalize": args.mut_normalize,
                 },
                 # empirical column-entropy vector [L] (None for esm_self), so
                 # generation reuses the exact same signal training saw.
                 "col_entropy": col_entropy.cpu() if col_entropy is not None else None,
+                # train log-PSSM [L, 20] for --pssm-gate (None when gate off).
+                "log_pssm": log_pssm.cpu() if log_pssm is not None else None,
             }, ckpt_dir / "best.pt")
         else:
             patience_counter += 1
@@ -582,14 +782,19 @@ def main():
                 device=device, max_seq_len=args.max_seq_len,
                 lambda_top=args.lambda_top, lambda_br=args.lambda_br,
                 lambda_stop=args.lambda_stop, lambda_pll=args.lambda_pll,
-                lambda_mut=args.lambda_mut, bridge_c=args.bridge_c,
+                lambda_mut=args.lambda_mut, lambda_cons=args.lambda_cons,
+                lambda_semi=args.lambda_semi,
+                t_max=args.t_max, bridge_c=args.bridge_c,
                 use_site_entropy=args.use_site_entropy,
                 use_entropy_loss_weighting=args.use_entropy_loss_weighting,
                 use_entropy_cons_weighting=args.use_entropy_cons_weighting,
                 entropy_weight_alpha=args.entropy_weight_alpha,
+                entropy_weight_alpha_cons=args.entropy_weight_alpha_cons,
                 entropy_weight_floor=args.entropy_weight_floor,
                 entropy_is_normalized=args.entropy_is_normalized,
+                mut_normalize=args.mut_normalize,
                 col_entropy=col_entropy,
+                log_pssm=log_pssm,
                 embedder=embedder,
             )
             if losses is None or n_active == 0:

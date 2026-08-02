@@ -116,22 +116,37 @@ def bridge_losses(
     lambda_stop: float = 0.1,
     lambda_pll: float = 0.01,
     lambda_mut: float = 5.0,
+    lambda_cons: float = 1.0,
     bridge_c: float = 1.0,
     device: str = "cpu",
     site_entropy: torch.Tensor | None = None,
     use_entropy_loss_weighting: bool = False,
     use_entropy_cons_weighting: bool = False,
     entropy_weight_alpha: float = 1.0,
+    entropy_weight_alpha_cons: float | None = None,
     entropy_weight_floor: float = 1.0,
     entropy_is_normalized: bool = False,
+    mut_normalize: str = "mean",
 ) -> dict:
     n = len(active_leaves)
     eps_rate = 1e-6
 
     if entropy_weight_alpha < 0:
         raise ValueError("entropy_weight_alpha must be non-negative")
+    if entropy_weight_alpha_cons is not None and entropy_weight_alpha_cons < 0:
+        raise ValueError("entropy_weight_alpha_cons must be non-negative")
     if entropy_weight_floor <= 0:
         raise ValueError("entropy_weight_floor must be greater than zero")
+    if lambda_cons < 0:
+        raise ValueError("lambda_cons must be non-negative")
+    if mut_normalize not in ("mean", "count"):
+        raise ValueError("mut_normalize must be 'mean' or 'count'")
+
+    alpha_cons = (
+        entropy_weight_alpha
+        if entropy_weight_alpha_cons is None
+        else entropy_weight_alpha_cons
+    )
 
     if n == 0:
         z = torch.zeros((), device=device, requires_grad=True)
@@ -143,6 +158,7 @@ def bridge_losses(
             "L_br": z,
             "L_stop": z,
             "L_pll": z,
+            "L_semi": z,
             "L_br_pred_std": z.detach(),
             "L_br_target_std": z.detach(),
             "mean_mut_entropy": z.detach(),
@@ -188,12 +204,20 @@ def bridge_losses(
             entropy_is_normalized=entropy_is_normalized,
         )
 
+    n_mut = mut_mask.sum().clamp_min(1).to(dtype=kl_per_pos.dtype)
+
     if use_entropy_loss_weighting:
         site_weights = entropy_weight_floor + entropy_weight_alpha * normalized_entropy
         if mut_mask.any():
             mut_kl = kl_per_pos[mut_mask]
             mut_weights = site_weights[mut_mask]
-            L_mut = (mut_kl * mut_weights).sum() / mut_weights.sum().clamp_min(1e-8)
+            weighted_sum = (mut_kl * mut_weights).sum()
+            # mean: antiGen-style /Z with Z = sum(weights); count: /n_mut so hotspot
+            # weights increase total mut mass rather than only rebalancing within muts.
+            if mut_normalize == "count":
+                L_mut = weighted_sum / n_mut
+            else:
+                L_mut = weighted_sum / mut_weights.sum().clamp_min(1e-8)
             mean_mut_entropy = normalized_entropy[mut_mask].detach().mean()
             mean_mut_weight = mut_weights.detach().mean()
             max_mut_weight = mut_weights.detach().max()
@@ -203,19 +227,23 @@ def bridge_losses(
             mean_mut_weight = torch.zeros((), device=kl_per_pos.device)
             max_mut_weight = torch.zeros((), device=kl_per_pos.device)
     else:
-        L_mut = kl_per_pos[mut_mask].mean() if mut_mask.any() else kl_per_pos.sum() * 0.0
+        if mut_mask.any():
+            # mean and count coincide without entropy weights (both /n_mut).
+            L_mut = kl_per_pos[mut_mask].sum() / n_mut
+        else:
+            L_mut = kl_per_pos.sum() * 0.0
         mean_mut_entropy = torch.zeros((), device=kl_per_pos.device)
         mean_mut_weight = torch.ones((), device=kl_per_pos.device)
         max_mut_weight = torch.ones((), device=kl_per_pos.device)
 
     if use_entropy_cons_weighting and cons_mask.any():
-        cons_weights = entropy_weight_floor + entropy_weight_alpha * (1.0 - normalized_entropy)
+        cons_weights = entropy_weight_floor + alpha_cons * (1.0 - normalized_entropy)
         cons_kl = kl_per_pos[cons_mask]
         cw = cons_weights[cons_mask]
         L_cons = (cons_kl * cw).sum() / cw.sum().clamp_min(1e-8)
     else:
         L_cons = kl_per_pos[cons_mask].mean() if cons_mask.any() else kl_per_pos.sum() * 0.0
-    L_rate = lambda_mut * L_mut + L_cons
+    L_rate = lambda_mut * L_mut + lambda_cons * L_cons
 
     # ── L_top 
     child_counts = torch.tensor(
@@ -265,13 +293,35 @@ def bridge_losses(
     else:
         L_pll = torch.zeros((), device=device)
 
-    total = L_rate + lambda_top * L_top + lambda_br * L_br + lambda_stop * L_stop + lambda_pll * L_pll
+    # L_semi is optional; callers add it via attach_semigroup_loss when λ_semi > 0.
+    L_semi = torch.zeros((), device=device)
+    total = (
+        L_rate
+        + lambda_top * L_top
+        + lambda_br * L_br
+        + lambda_stop * L_stop
+        + lambda_pll * L_pll
+    )
     return {
         "L_rate": L_rate, "L_mut": L_mut, "L_cons": L_cons,
         "L_top": L_top, "L_br": L_br, "L_stop": L_stop, "L_pll": L_pll,
+        "L_semi": L_semi,
         "L_br_pred_std": br_pred_std, "L_br_target_std": br_target_std,
         "mean_mut_entropy": mean_mut_entropy,
         "mean_mut_weight": mean_mut_weight,
         "max_mut_weight": max_mut_weight,
         "total": total,
     }
+
+
+def attach_semigroup_loss(
+    losses: dict,
+    L_semi: torch.Tensor,
+    lambda_semi: float,
+) -> dict:
+    """Fold λ_semi * L_semi into an existing bridge_losses() result dict."""
+    losses = dict(losses)
+    losses["L_semi"] = L_semi
+    if lambda_semi != 0.0:
+        losses["total"] = losses["total"] + lambda_semi * L_semi
+    return losses

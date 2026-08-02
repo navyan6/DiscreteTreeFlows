@@ -39,6 +39,11 @@ from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
+from src.bridge.losses import _build_seq_indices
+from src.bridge.mutation_sample import (
+    mutate_sequence_independent,
+    mutate_sequence_site_softmax,
+)
 
 AA_VOCAB  = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
@@ -122,9 +127,16 @@ def load_models(checkpoint, device, max_seq_len):
     cfg = ckpt.get("config", {})
     node_enc = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads  = RateHeads(d_model=128, max_seq_len=max_seq_len,
-                         use_pos_emb=cfg.get("use_pos_emb", False),
-                         use_site_entropy=cfg.get("use_site_entropy", False)).to(device)
+    r_heads  = RateHeads(
+        d_model=128, max_seq_len=max_seq_len,
+        use_pos_emb=cfg.get("use_pos_emb", False),
+        use_site_entropy=cfg.get("use_site_entropy", False),
+        deep_mut_head=cfg.get("deep_mut_head", False),
+        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
+        d_aa=cfg.get("mut_aa_emb_dim", 16),
+        use_pssm_gate=cfg.get("use_pssm_gate", False),
+        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
+    ).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])
@@ -146,6 +158,16 @@ def load_models(checkpoint, device, max_seq_len):
             "checkpoint has entropy_source=empirical but no saved col_entropy; "
             "generation would fall back to ESM self-entropy and mismatch training."
         )
+    log_pssm = ckpt.get("log_pssm", None)
+    if log_pssm is not None:
+        log_pssm = log_pssm.to(device)
+    elif cfg.get("use_pssm_gate"):
+        raise RuntimeError(
+            "checkpoint has use_pssm_gate=True but no saved log_pssm; "
+            "generation would mismatch training."
+        )
+    # Stash on module so generate_tree / callers keep the 4-tuple unpack stable.
+    r_heads._train_log_pssm = log_pssm
     return node_enc, tree_enc, r_heads, col_entropy
 
 
@@ -153,10 +175,13 @@ def load_models(checkpoint, device, max_seq_len):
 
 def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves, mutation_rate_scale,
                   node_enc, tree_enc, rate_heads, embedder,
-                  tokenizer, esm_model, aa_token_ids, device, col_entropy=None):
+                  tokenizer, esm_model, aa_token_ids, device, col_entropy=None,
+                  site_softmax_sample: bool = False,
+                  site_temperature: float = 1.0):
     tree = TreeState.root_only(root_seq)
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
+    log_pssm = getattr(rate_heads, "_train_log_pssm", None)
 
     for step in range(n_steps):
         t = step / n_steps
@@ -181,30 +206,35 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
         active_seqs = [tree.node_seqs[v] for v in active_leaves]
         log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                      active_seqs, max_seq_len, device)
+        aa_indices = None
+        if getattr(rate_heads, "use_mut_aa_emb", False):
+            aa_indices = _build_seq_indices(active_seqs, max_seq_len, device)
         with torch.no_grad():
             h_t     = node_enc(plm_t, struct_t, lap_t)
             H_t, _  = tree_enc(h_t, node_ids_t, node_times_dict,
                                 edge_index_t, branch_lens_t, t_scalar=t)
-            out     = rate_heads(H_t, active_idx, log_R0_mut, site_entropy=col_entropy)
+            out     = rate_heads(
+                H_t, active_idx, log_R0_mut,
+                site_entropy=col_entropy,
+                aa_indices=aa_indices,
+                log_pssm=log_pssm,
+            )
 
         new_node_seqs = dict(tree.node_seqs)
 
         for i, leaf_id in enumerate(active_leaves):
             seq     = tree.node_seqs[leaf_id]
             seq_len = min(len(seq), max_seq_len)
-            new_seq = list(seq)
-
-            for pos in range(seq_len):
-                curr_idx = AA_TO_IDX.get(seq[pos], -1)
-                if curr_idx < 0:
-                    continue
-                probs = out["log_R_theta_mut"][i, pos].softmax(-1)
-                probs_mut = probs.clone()
-                probs_mut[curr_idx] = 0.0
-                total = probs_mut.sum().item()
-                if total > 0 and torch.rand(1).item() < total * dt * mutation_rate_scale:
-                    new_seq[pos] = AA_VOCAB[torch.multinomial(probs_mut / total, 1).item()]
-            new_node_seqs[leaf_id] = "".join(new_seq)
+            log_R_i = out["log_R_theta_mut"][i]
+            if site_softmax_sample:
+                new_node_seqs[leaf_id] = mutate_sequence_site_softmax(
+                    log_R_i, seq, seq_len, dt, mutation_rate_scale,
+                    site_temperature=site_temperature,
+                )
+            else:
+                new_node_seqs[leaf_id] = mutate_sequence_independent(
+                    log_R_i, seq, seq_len, dt, mutation_rate_scale,
+                )
 
             at_cap   = len(tree.active_leaves) >= max_leaves
             lam      = out["branching_rate"][i].item() * branch_rate_scale
@@ -494,6 +524,11 @@ def main():
     parser.add_argument("--pll-prune-threshold",  type=float, default=-3.0)
     parser.add_argument("--mutation-rate-scale",  type=float, default=1.0,
                         help="Multiply CTMC mutation rate by this; >1 forces more mutations")
+    parser.add_argument("--site-softmax-sample", action="store_true",
+                        help="Sample mutating sites from a categorical over site "
+                             "propensity (Σ_aa mut mass), then AA|site. Off by default.")
+    parser.add_argument("--site-temperature", type=float, default=1.0,
+                        help="Temperature on site-propensity logits (--site-softmax-sample).")
     parser.add_argument("--seed",                type=int,   default=42)
     args = parser.parse_args()
 
@@ -532,7 +567,10 @@ def main():
         root_seq, args.n_steps, args.max_seq_len,
         args.branch_rate_scale, args.max_leaves, args.mutation_rate_scale,
         node_enc, tree_enc, rate_heads, embedder,
-        tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy)
+        tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy,
+        site_softmax_sample=args.site_softmax_sample,
+        site_temperature=args.site_temperature,
+    )
     gen_leaves = get_leaves(gen_tree)
     print(f"Generated: {len(gen_tree.node_ids)} nodes, {len(gen_leaves)} leaves")
 

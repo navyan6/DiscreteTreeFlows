@@ -39,6 +39,11 @@ from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
+from src.bridge.losses import _build_seq_indices
+from src.bridge.mutation_sample import (
+    mutate_sequence_independent,
+    mutate_sequence_site_softmax,
+)
 
 AA_VOCAB = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
@@ -46,9 +51,19 @@ AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
 
 def load_checkpoint(path, device, max_seq_len=566):
     ckpt = torch.load(path, map_location=device, weights_only=False)
+    cfg = ckpt.get("config", {})
     node_enc  = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc  = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads   = RateHeads(d_model=128, max_seq_len=max_seq_len).to(device)
+    r_heads   = RateHeads(
+        d_model=128, max_seq_len=max_seq_len,
+        use_pos_emb=cfg.get("use_pos_emb", False),
+        use_site_entropy=cfg.get("use_site_entropy", False),
+        deep_mut_head=cfg.get("deep_mut_head", False),
+        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
+        d_aa=cfg.get("mut_aa_emb_dim", 16),
+        use_pssm_gate=cfg.get("use_pssm_gate", False),
+        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
+    ).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])
@@ -56,6 +71,18 @@ def load_checkpoint(path, device, max_seq_len=566):
     for m in [node_enc, tree_enc, r_heads]:
         for p in m.parameters():
             p.requires_grad = False
+    col_entropy = ckpt.get("col_entropy", None)
+    if col_entropy is not None:
+        col_entropy = col_entropy.to(device)
+    log_pssm = ckpt.get("log_pssm", None)
+    if log_pssm is not None:
+        log_pssm = log_pssm.to(device)
+    elif cfg.get("use_pssm_gate"):
+        raise RuntimeError(
+            "checkpoint has use_pssm_gate=True but no saved log_pssm"
+        )
+    r_heads._train_log_pssm = log_pssm
+    r_heads._col_entropy = col_entropy
     return node_enc, tree_enc, r_heads
 
 
@@ -167,34 +194,42 @@ def generate_tree(args):
         log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                      active_seqs, args.max_seq_len, device)
 
+        aa_indices = None
+        if getattr(rate_heads, "use_mut_aa_emb", False):
+            aa_indices = _build_seq_indices(active_seqs, args.max_seq_len, device)
+        col_entropy = getattr(rate_heads, "_col_entropy", None)
+        log_pssm = getattr(rate_heads, "_train_log_pssm", None)
+
         # NodeEncoder -> TreeEncoder -> RateHeads
         with torch.no_grad():
             h_t  = node_enc(plm_t, struct_t, lap_t)
             H_t, _ = tree_enc(h_t, node_ids_t, node_times_dict,
                                edge_index_t, branch_lens_t, t_scalar=t)
-            out  = rate_heads(H_t, active_idx, log_R0_mut)
+            out  = rate_heads(
+                H_t, active_idx, log_R0_mut,
+                site_entropy=col_entropy,
+                aa_indices=aa_indices,
+                log_pssm=log_pssm,
+            )
         # out["log_R_theta_mut"] = log_R0 + c_θ  [n_active, L, 20]
 
         # Sample events for each active leaf
         new_node_seqs = dict(tree.node_seqs)
+        mrs = getattr(args, "mutation_rate_scale", 1.0)
 
         for i, leaf_id in enumerate(active_leaves):
             seq     = tree.node_seqs[leaf_id]
             seq_len = min(len(seq), args.max_seq_len)
-
-            # Mutations (M-H: model-guided proposal + ESM fitness gate)
-            new_seq = list(seq)
-            for pos in range(seq_len):
-                curr_idx = AA_TO_IDX.get(seq[pos], -1)
-                if curr_idx < 0:
-                    continue
-                probs = out["log_R_theta_mut"][i, pos].softmax(-1)
-                probs_mut = probs.clone()
-                probs_mut[curr_idx] = 0.0
-                total = probs_mut.sum().item()
-                if total > 0 and torch.rand(1).item() < total * dt:
-                    new_seq[pos] = AA_VOCAB[torch.multinomial(probs_mut / total, 1).item()]
-            new_node_seqs[leaf_id] = "".join(new_seq)
+            log_R_i = out["log_R_theta_mut"][i]
+            if args.site_softmax_sample:
+                new_node_seqs[leaf_id] = mutate_sequence_site_softmax(
+                    log_R_i, seq, seq_len, dt, mrs,
+                    site_temperature=args.site_temperature,
+                )
+            else:
+                new_node_seqs[leaf_id] = mutate_sequence_independent(
+                    log_R_i, seq, seq_len, dt, mrs,
+                )
 
             # Branch
             lam  = out["branching_rate"][i].item() * args.branch_rate_scale
@@ -291,6 +326,13 @@ def main():
                         help="MH acceptance temperature (higher = stricter ESM fitness gate)")
     parser.add_argument("--branch-rate-scale", type=float, default=6.0,
                         help="Multiply model branching rate by this at inference (corrects lam≈1 → lam≈6)")
+    parser.add_argument("--mutation-rate-scale", type=float, default=1.0,
+                        help="Multiply mutation fire rate by this at inference")
+    parser.add_argument("--site-softmax-sample", action="store_true",
+                        help="Sample sites from categorical propensity then AA|site "
+                             "(antiGen-style; off by default)")
+    parser.add_argument("--site-temperature", type=float, default=1.0,
+                        help="Temperature on site-propensity logits (--site-softmax-sample)")
     args = parser.parse_args()
     generate_tree(args)
 

@@ -1,14 +1,31 @@
 #!/usr/bin/env python3
 """
-Frozen-embedding validation suite for the node encoder / graph transformer.
+Frozen-embedding linear-probe suite for the node encoder / graph transformer.
 
-This script reuses the existing tree dataset and model code without changing the
-training pipeline. It produces:
-  - embedding health summaries
-  - linear-probe scores for tree/node targets
-  - mutation-specific probes on single-substitution edges
+Paper mapping: Appendix Table J.1 — does GraphTF add information beyond sequence
+embeddings? Freeze each embedding source, train linear heads only.
 
-Outputs are written as CSV files so they can be pasted into a paper table.
+Targets / metrics:
+  leaf vs internal          AUROC, F1
+  node depth                R², MAE
+  root-to-node distance     R², MAE
+  subtree size              R², Spearman
+  number of children        Acc, macro-F1
+  parent-child pairs        AUROC
+  Hamming to parent         R², MAE
+  substitutions from root   R², MAE
+  mutated residue position  Acc, macro-F1  (single-substitution edges)
+  ancestral AA identity     Acc, macro-F1  (single-substitution edges)
+
+Baselines (frozen sources):
+  plm                 raw ESM-2
+  topological_only    structural + Laplacian PE
+  esm_branch          ESM + structure/PE + branch length + root distance (no MP)
+  node_encoder        trained NodeEncoder (checkpoint)
+  graph_transformer   trained GraphTF (checkpoint)
+  graph_random        randomly initialized GraphTF
+
+Outputs (CSV / JSON) are written for appendix paste-in — do not invent numbers.
 """
 
 from __future__ import annotations
@@ -234,14 +251,21 @@ def accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float((y_true == y_pred).mean()) if len(y_true) else float("nan")
 
 
-def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray, with_spearman: bool = False) -> dict[str, float]:
     y_true = np.asarray(y_true).astype(float)
     y_pred = np.asarray(y_pred).astype(float)
     mae = float(np.mean(np.abs(y_true - y_pred)))
     ss_res = float(np.sum((y_true - y_pred) ** 2))
     ss_tot = float(np.sum((y_true - y_true.mean()) ** 2))
     r2 = float(1.0 - ss_res / ss_tot) if ss_tot > 0 else float("nan")
-    return {"mae": mae, "r2": r2}
+    out = {"mae": mae, "r2": r2}
+    if with_spearman:
+        if len(y_true) >= 2 and np.std(y_true) > 0 and np.std(y_pred) > 0:
+            rho, _ = spearmanr(y_true, y_pred)
+            out["spearman"] = float(rho)
+        else:
+            out["spearman"] = float("nan")
+    return out
 
 
 def classification_metrics(y_true: np.ndarray, y_score: np.ndarray, y_pred: np.ndarray, num_classes: int | None = None) -> dict[str, float]:
@@ -517,11 +541,20 @@ def split_records(records: list[TreeRecord], seed: int, train_frac: float, val_f
     idxs = list(range(len(records)))
     rng.shuffle(idxs)
     n = len(idxs)
+    if n == 0:
+        return [], [], []
+    if n == 1:
+        return [records[idxs[0]]], [records[idxs[0]]], [records[idxs[0]]]
+    if n == 2:
+        return [records[idxs[0]]], [records[idxs[1]]], [records[idxs[1]]]
     n_train = max(1, int(n * train_frac))
     n_val = max(1, int(n * val_frac))
-    n_test = max(1, n - n_train - n_val)
-    if n_train + n_val + n_test > n:
-        n_test = max(1, n - n_train - n_val)
+    if n_train + n_val >= n:
+        n_val = max(1, n - n_train - 1)
+    n_test = n - n_train - n_val
+    if n_test < 1:
+        n_test = 1
+        n_train = max(1, n - n_val - n_test)
     train = [records[i] for i in idxs[:n_train]]
     val = [records[i] for i in idxs[n_train:n_train + n_val]]
     test = [records[i] for i in idxs[n_train + n_val:n_train + n_val + n_test]]
@@ -609,6 +642,8 @@ def build_pair_samples(records: list[TreeRecord], source: str, max_negative_per_
             v = emb[node_to_idx[c]]
             feats.append(torch.cat([u, v, (u - v).abs(), u * v], dim=-1))
             labels.append(0.0)
+    if not feats:
+        return torch.empty(0), torch.empty(0)
     return torch.stack(feats), torch.tensor(labels, dtype=torch.float32)
 
 
@@ -618,14 +653,17 @@ def probe_and_score(
     test_pack: dict[str, torch.Tensor],
     task: str,
     num_classes: int | None = None,
+    with_spearman: bool = False,
 ) -> dict[str, float]:
+    if train_pack["x"].numel() == 0 or val_pack["x"].numel() == 0 or test_pack["x"].numel() == 0:
+        return {"error": float("nan")}
     x_train, x_val, x_test = standardize(train_pack["x"], train_pack["x"], val_pack["x"], test_pack["x"])
 
     if task == "regression":
         model = fit_linear_probe(x_train, train_pack["y"], x_val, val_pack["y"], task="regression")
         with torch.no_grad():
             pred = model(x_test).squeeze(-1).cpu().numpy()
-        return regression_metrics(test_pack["y"].cpu().numpy(), pred)
+        return regression_metrics(test_pack["y"].cpu().numpy(), pred, with_spearman=with_spearman)
 
     if task == "binary":
         model = fit_linear_probe(x_train, train_pack["y"], x_val, val_pack["y"], task="binary")
@@ -726,16 +764,17 @@ def main() -> None:
         val_pack = flatten_node_samples(val_recs, source, args.max_seq_len)
         test_pack = flatten_node_samples(test_recs, source, args.max_seq_len)
 
-        node_tasks = {
-            "leaf_vs_internal": ("binary", train_pack["leaf"], val_pack["leaf"], test_pack["leaf"], None),
-            "node_depth": ("regression", train_pack["depth"], val_pack["depth"], test_pack["depth"], None),
-            "root_to_node_distance": ("regression", train_pack["rootdist"], val_pack["rootdist"], test_pack["rootdist"], None),
-            "subtree_size": ("regression", train_pack["subtree"], val_pack["subtree"], test_pack["subtree"], None),
-            "num_children": ("multiclass", train_pack["numchildren"], val_pack["numchildren"], test_pack["numchildren"], 3),
-            "hamming_to_parent": ("regression", train_pack["parent_hamming"], val_pack["parent_hamming"], test_pack["parent_hamming"], None),
-            "substitutions_from_root": ("regression", train_pack["root_hamming"], val_pack["root_hamming"], test_pack["root_hamming"], None),
-        }
-        for task_name, (kind, y_tr, y_va, y_te, ncls) in node_tasks.items():
+        # (task_name, kind, y_tr, y_va, y_te, ncls, with_spearman)
+        node_tasks = [
+            ("leaf_vs_internal", "binary", train_pack["leaf"], val_pack["leaf"], test_pack["leaf"], None, False),
+            ("node_depth", "regression", train_pack["depth"], val_pack["depth"], test_pack["depth"], None, False),
+            ("root_to_node_distance", "regression", train_pack["rootdist"], val_pack["rootdist"], test_pack["rootdist"], None, False),
+            ("subtree_size", "regression", train_pack["subtree"], val_pack["subtree"], test_pack["subtree"], None, True),
+            ("num_children", "multiclass", train_pack["numchildren"], val_pack["numchildren"], test_pack["numchildren"], 3, False),
+            ("hamming_to_parent", "regression", train_pack["parent_hamming"], val_pack["parent_hamming"], test_pack["parent_hamming"], None, False),
+            ("substitutions_from_root", "regression", train_pack["root_hamming"], val_pack["root_hamming"], test_pack["root_hamming"], None, False),
+        ]
+        for task_name, kind, y_tr, y_va, y_te, ncls, with_rho in node_tasks:
             if kind == "regression" and task_name == "hamming_to_parent":
                 tr_mask = torch.isfinite(y_tr)
                 va_mask = torch.isfinite(y_va)
@@ -747,27 +786,21 @@ def main() -> None:
                 train_pack_use = {"x": train_pack["x"], "y": y_tr}
                 val_pack_use = {"x": val_pack["x"], "y": y_va}
                 test_pack_use = {"x": test_pack["x"], "y": y_te}
+            if train_pack_use["x"].numel() == 0 or test_pack_use["x"].numel() == 0:
+                continue
             if kind == "binary":
                 metrics = probe_and_score(
-                    train_pack_use,
-                    val_pack_use,
-                    test_pack_use,
-                    task="binary",
+                    train_pack_use, val_pack_use, test_pack_use, task="binary",
                 )
             elif kind == "regression":
                 metrics = probe_and_score(
-                    train_pack_use,
-                    val_pack_use,
-                    test_pack_use,
-                    task="regression",
+                    train_pack_use, val_pack_use, test_pack_use,
+                    task="regression", with_spearman=with_rho,
                 )
             else:
                 metrics = probe_and_score(
-                    train_pack_use,
-                    val_pack_use,
-                    test_pack_use,
-                    task="multiclass",
-                    num_classes=ncls,
+                    train_pack_use, val_pack_use, test_pack_use,
+                    task="multiclass", num_classes=ncls,
                 )
             metrics.update({"source": source, "task": task_name})
             probe_rows.append(metrics)
@@ -776,14 +809,15 @@ def main() -> None:
         pair_x_tr, pair_y_tr = build_pair_samples(train_recs, source, args.max_negative_pairs_per_tree)
         pair_x_va, pair_y_va = build_pair_samples(val_recs, source, args.max_negative_pairs_per_tree)
         pair_x_te, pair_y_te = build_pair_samples(test_recs, source, args.max_negative_pairs_per_tree)
-        pair_metrics = probe_and_score(
-            {"x": pair_x_tr, "y": pair_y_tr},
-            {"x": pair_x_va, "y": pair_y_va},
-            {"x": pair_x_te, "y": pair_y_te},
-            task="binary",
-        )
-        pair_metrics.update({"source": source, "task": "parent_child_pair"})
-        probe_rows.append(pair_metrics)
+        if pair_x_tr.numel() and pair_x_va.numel() and pair_x_te.numel():
+            pair_metrics = probe_and_score(
+                {"x": pair_x_tr, "y": pair_y_tr},
+                {"x": pair_x_va, "y": pair_y_va},
+                {"x": pair_x_te, "y": pair_y_te},
+                task="binary",
+            )
+            pair_metrics.update({"source": source, "task": "parent_child_pair"})
+            probe_rows.append(pair_metrics)
 
         # Mutation-specific probes on single-substitution edges only.
         mutpos_rows = []
@@ -862,8 +896,37 @@ def main() -> None:
         wide = wide.melt(id_vars=["source", "task"], value_vars=metric_cols, var_name="metric", value_name="value")
         pivot = wide.pivot_table(index=["task", "metric"], columns="source", values="value")
         pivot.to_csv(out_dir / "probe_table_wide.csv")
+        # Compact J.1-style view: primary metric per task.
+        primary = {
+            "leaf_vs_internal": "auroc",
+            "node_depth": "r2",
+            "root_to_node_distance": "r2",
+            "subtree_size": "spearman",
+            "num_children": "accuracy",
+            "parent_child_pair": "auroc",
+            "hamming_to_parent": "r2",
+            "substitutions_from_root": "r2",
+            "mutated_position": "accuracy",
+            "ancestral_aa_identity": "accuracy",
+        }
+        j1_rows = []
+        for task_name, metric in primary.items():
+            sub = probe_df[probe_df["task"] == task_name]
+            if sub.empty or metric not in sub.columns:
+                continue
+            row = {"task": task_name, "metric": metric}
+            for _, r in sub.iterrows():
+                row[r["source"]] = r[metric]
+            j1_rows.append(row)
+        if j1_rows:
+            j1_df = pd.DataFrame(j1_rows)
+            j1_df.to_csv(out_dir / "probe_table_j1_primary.csv", index=False)
+            print("\nAppendix J.1 primary metrics (measured, not invented):")
+            print(j1_df.to_string(index=False))
 
-    print(f"Wrote validation outputs to {out_dir}")
+    print(f"\nWrote validation outputs to {out_dir}")
+    if args.checkpoint is None:
+        print("Note: --checkpoint omitted; trained node_encoder / graph_transformer skipped.")
 
 
 if __name__ == "__main__":

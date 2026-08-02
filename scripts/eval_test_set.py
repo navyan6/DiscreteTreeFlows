@@ -47,10 +47,20 @@ def load_models(checkpoint, device, max_seq_len):
     ckpt = torch.load(checkpoint, map_location=device, weights_only=False)
     epoch = ckpt.get("epoch", "?")
     print(f"Loaded checkpoint from epoch {epoch}  (val_loss={ckpt.get('val_loss', '?'):.4f})")
+    cfg = ckpt.get("config", {})
 
     node_enc  = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc  = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads   = RateHeads(d_model=128, max_seq_len=max_seq_len).to(device)
+    r_heads   = RateHeads(
+        d_model=128, max_seq_len=max_seq_len,
+        use_pos_emb=cfg.get("use_pos_emb", False),
+        use_site_entropy=cfg.get("use_site_entropy", False),
+        deep_mut_head=cfg.get("deep_mut_head", False),
+        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
+        d_aa=cfg.get("mut_aa_emb_dim", 16),
+        use_pssm_gate=cfg.get("use_pssm_gate", False),
+        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
+    ).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])
@@ -58,6 +68,10 @@ def load_models(checkpoint, device, max_seq_len):
     for m in [node_enc, tree_enc, r_heads]:
         for p in m.parameters():
             p.requires_grad = False
+    log_pssm = ckpt.get("log_pssm", None)
+    if log_pssm is not None:
+        log_pssm = log_pssm.to(device)
+    r_heads._train_log_pssm = log_pssm
     return node_enc, tree_enc, r_heads
 
 
@@ -128,11 +142,21 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
         log_R0_mut    = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                       active_seqs, max_seq_len, device)
 
+        aa_indices = None
+        if getattr(rate_heads, "use_mut_aa_emb", False):
+            from src.bridge.losses import _build_seq_indices
+            aa_indices = _build_seq_indices(active_seqs, max_seq_len, device)
+        log_pssm = getattr(rate_heads, "_train_log_pssm", None)
         with torch.no_grad():
             h_t  = node_enc(plm_t, struct_t, lap_t)
             H_t, _ = tree_enc(h_t, node_ids_t, node_times_dict,
                                edge_index_t, branch_lens_t, t_scalar=t)
-            out  = rate_heads(H_t, active_idx, log_R0_mut, site_entropy=col_entropy)
+            out  = rate_heads(
+                H_t, active_idx, log_R0_mut,
+                site_entropy=col_entropy,
+                aa_indices=aa_indices,
+                log_pssm=log_pssm,
+            )
 
         new_node_seqs = dict(tree.node_seqs)
 

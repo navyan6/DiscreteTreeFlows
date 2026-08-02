@@ -1,4 +1,4 @@
-"""TreeSBM dataset: loads preprocessed trees and returns (root_seq, TreeState) pairs."""
+#TreeSBM dataset: loads preprocessed trees and returns (root_seq, TreeState) pairs.
 import pickle
 from pathlib import Path
 from typing import Optional, Tuple
@@ -10,10 +10,8 @@ from src.tree_state import TreeState
 
 
 class EvolutionaryTreeDataset(Dataset):
-    """
-    Dataset of evolutionary trees with root sequences.
-    Each example is a (root_sequence, TreeState) pair from preprocessed .pkl files.
-    """
+
+    #Each example is a (root_sequence, TreeState) pair from preprocessed .pkl files.
 
     def __init__(
         self,
@@ -22,14 +20,7 @@ class EvolutionaryTreeDataset(Dataset):
         held_out_pattern: Optional[str] = None,
         test_size: float = 0.1,
     ):
-        """
-        Args:
-            processed_dir: directory containing *_tree_data.pkl files from Phase 0
-            split: "train" or "test"
-            held_out_pattern: if set, trees matching this pattern go to test set
-                e.g., "kinase" → all trees with "kinase" in name are test
-            test_size: if held_out_pattern is None, use random split with this fraction
-        """
+
         self.processed_dir = Path(processed_dir)
         self.split = split
         self.held_out_pattern = held_out_pattern
