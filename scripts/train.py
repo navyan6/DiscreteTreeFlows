@@ -38,7 +38,12 @@ from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
 from src.bridge.sample_bridge_state import sample_bridge_state
-from src.bridge.losses import bridge_losses, attach_semigroup_loss, _build_seq_indices
+from src.bridge.losses import (
+    bridge_losses,
+    attach_semigroup_loss,
+    _build_seq_indices,
+    select_mut_hotspots,
+)
 from src.bridge.semigroup import sample_time_triple, semigroup_loss_from_predictor
 
 
@@ -144,6 +149,9 @@ def forward_bridge_step(
     entropy_is_normalized: bool = False,
     mut_normalize: str = "mean",
     col_entropy: torch.Tensor | None = None,
+    mut_hotspot_mask: torch.Tensor | None = None,
+    mut_hotspot_weight: float = 1.0,
+    mut_hotspot_force: bool = False,
     log_pssm: torch.Tensor | None = None,
     embedder: ESM2Embedder | None = None,
 ) -> tuple[dict | None, int]:
@@ -296,6 +304,9 @@ def forward_bridge_step(
         entropy_weight_floor=entropy_weight_floor,
         entropy_is_normalized=ent_is_norm,
         mut_normalize=mut_normalize,
+        mut_hotspot_mask=mut_hotspot_mask,
+        mut_hotspot_weight=mut_hotspot_weight,
+        mut_hotspot_force=mut_hotspot_force,
     )
 
     # ── L_semi: rate-composition consistency from an earlier bridge state T_s
@@ -356,10 +367,11 @@ def forward_bridge_step(
                     raise RuntimeError("use_pssm_gate requires log_pssm")
                 pssm_s = log_pssm.to(device=log_R0_s.device, dtype=log_R0_s.dtype)
 
-            def _rates_at_duration(delta: float):
+            def _rates_at_time(tau: float):
+                # Absolute bridge clock (same t_scalar convention as main step).
                 H_d, _ = tree_enc(
                     h_s, node_ids_s, node_times_dict, edge_index_s, branch_lens_s,
-                    t_scalar=delta,
+                    t_scalar=tau,
                 )
                 return rate_heads(
                     H_d, active_idx_s, log_R0_s,
@@ -368,7 +380,7 @@ def forward_bridge_step(
                     log_pssm=pssm_s,
                 )
 
-            L_semi = semigroup_loss_from_predictor(_rates_at_duration, s, r, u)
+            L_semi = semigroup_loss_from_predictor(_rates_at_time, s, r, u)
             losses = attach_semigroup_loss(losses, L_semi, lambda_semi)
 
     return losses, len(active_leaves_t)
@@ -455,6 +467,21 @@ def main():
                              "'empirical': Shannon entropy of each TRAIN-alignment column "
                              "(antigenic hotspots; computed once, saved in the checkpoint, "
                              "and reused at generation so train/inference never diverge).")
+    parser.add_argument("--mut-hotspot-topk", type=int, default=None,
+                        help="Hard hotspot: upweight the N highest-entropy TRAIN MSA "
+                             "columns in L_mut (mutually exclusive with --mut-hotspot-frac). "
+                             "Off by default. Requires --entropy-source empirical.")
+    parser.add_argument("--mut-hotspot-frac", type=float, default=None,
+                        help="Hard hotspot: upweight the top fraction of columns by "
+                             "TRAIN MSA entropy in L_mut (e.g. 0.15 ≈ top-192 of L=1280). "
+                             "Mutually exclusive with --mut-hotspot-topk.")
+    parser.add_argument("--mut-hotspot-weight", type=float, default=5.0,
+                        help="Extra L_mut multiplier on hotspot columns (default 5.0). "
+                             "Stacks with soft floor+alpha*H when --use-entropy-loss-weighting.")
+    parser.add_argument("--mut-hotspot-force", action="store_true",
+                        help="Also put hotspot columns into L_mut even when aa_t==x1 "
+                             "this step (removed from cons_mask). Default off: only "
+                             "boost mut_mask ∩ hotspot.")
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -557,16 +584,44 @@ def main():
 
     # Empirical column entropy (computed once from the TRAIN split) if requested;
     # otherwise None -> forward_bridge_step falls back to ESM self-entropy.
+    hotspot_requested = (
+        args.mut_hotspot_topk is not None or args.mut_hotspot_frac is not None
+    )
+    if args.mut_hotspot_topk is not None and args.mut_hotspot_frac is not None:
+        raise SystemExit("Pass only one of --mut-hotspot-topk / --mut-hotspot-frac")
+    if hotspot_requested and args.entropy_source != "empirical":
+        raise SystemExit(
+            "Hard MSA hotspots require --entropy-source empirical "
+            "(column entropy from the TRAIN alignment)."
+        )
+    if args.mut_hotspot_force and not hotspot_requested:
+        raise SystemExit("--mut-hotspot-force requires --mut-hotspot-topk or --mut-hotspot-frac")
+
     col_entropy = None
+    mut_hotspot_mask = None
     if args.entropy_source == "empirical" and (
         args.use_site_entropy
         or args.use_entropy_loss_weighting
         or args.use_entropy_cons_weighting
+        or hotspot_requested
     ):
         print("Computing empirical column entropy from the training alignment...")
         col_entropy = compute_empirical_column_entropy(train_ds, args.max_seq_len).to(device)
         print(f"  col_entropy: [{col_entropy.numel()}]  mean={col_entropy.mean():.3f}  "
               f"max={col_entropy.max():.3f}  nonzero={(col_entropy > 0).sum().item()}")
+
+    if hotspot_requested:
+        mut_hotspot_mask = select_mut_hotspots(
+            col_entropy.detach().cpu(),
+            topk=args.mut_hotspot_topk,
+            frac=args.mut_hotspot_frac,
+        ).to(device)
+        n_hot = int(mut_hotspot_mask.sum().item())
+        print(
+            f"  mut hotspots: n={n_hot}/{mut_hotspot_mask.numel()}  "
+            f"weight={args.mut_hotspot_weight}  force={args.mut_hotspot_force}  "
+            f"(topk={args.mut_hotspot_topk} frac={args.mut_hotspot_frac})"
+        )
 
     log_pssm = None
     if args.pssm_gate:
@@ -642,6 +697,9 @@ def main():
                     entropy_is_normalized=args.entropy_is_normalized,
                     mut_normalize=args.mut_normalize,
                     col_entropy=col_entropy,
+                    mut_hotspot_mask=mut_hotspot_mask,
+                    mut_hotspot_weight=args.mut_hotspot_weight if hotspot_requested else 1.0,
+                    mut_hotspot_force=args.mut_hotspot_force,
                     log_pssm=log_pssm,
                     embedder=embedder,
                 )
@@ -691,6 +749,9 @@ def main():
                     entropy_is_normalized=args.entropy_is_normalized,
                     mut_normalize=args.mut_normalize,
                     col_entropy=col_entropy,
+                    mut_hotspot_mask=mut_hotspot_mask,
+                    mut_hotspot_weight=args.mut_hotspot_weight if hotspot_requested else 1.0,
+                    mut_hotspot_force=args.mut_hotspot_force,
                     log_pssm=log_pssm,
                     embedder=embedder,
                 )
@@ -748,6 +809,10 @@ def main():
                     "entropy_weight_floor": args.entropy_weight_floor,
                     "entropy_is_normalized": args.entropy_is_normalized,
                     "entropy_source": args.entropy_source,
+                    "mut_hotspot_topk": args.mut_hotspot_topk,
+                    "mut_hotspot_frac": args.mut_hotspot_frac,
+                    "mut_hotspot_weight": args.mut_hotspot_weight if hotspot_requested else 1.0,
+                    "mut_hotspot_force": args.mut_hotspot_force,
                     "lambda_mut": args.lambda_mut,
                     "lambda_cons": args.lambda_cons,
                     "mut_normalize": args.mut_normalize,
@@ -755,6 +820,9 @@ def main():
                 # empirical column-entropy vector [L] (None for esm_self), so
                 # generation reuses the exact same signal training saw.
                 "col_entropy": col_entropy.cpu() if col_entropy is not None else None,
+                "mut_hotspot_mask": (
+                    mut_hotspot_mask.cpu() if mut_hotspot_mask is not None else None
+                ),
                 # train log-PSSM [L, 20] for --pssm-gate (None when gate off).
                 "log_pssm": log_pssm.cpu() if log_pssm is not None else None,
             }, ckpt_dir / "best.pt")
@@ -794,6 +862,9 @@ def main():
                 entropy_is_normalized=args.entropy_is_normalized,
                 mut_normalize=args.mut_normalize,
                 col_entropy=col_entropy,
+                mut_hotspot_mask=mut_hotspot_mask,
+                mut_hotspot_weight=args.mut_hotspot_weight if hotspot_requested else 1.0,
+                mut_hotspot_force=args.mut_hotspot_force,
                 log_pssm=log_pssm,
                 embedder=embedder,
             )

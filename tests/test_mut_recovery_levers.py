@@ -2,7 +2,7 @@
 
 import torch
 
-from src.bridge.losses import bridge_losses
+from src.bridge.losses import bridge_losses, select_mut_hotspots
 from src.bridge.mutation_sample import (
     AA_VOCAB,
     mutate_sequence_independent,
@@ -136,3 +136,64 @@ def test_site_softmax_and_independent_samplers():
     out2 = mutate_sequence_independent(log_R, seq, L, dt=1.0, mutation_rate_scale=5.0)
     assert len(out) == L
     assert len(out2) == L
+
+
+def test_select_mut_hotspots_topk_and_frac():
+    # Known high-H columns at indices 1 and 3.
+    ent = torch.tensor([0.05, 0.90, 0.10, 0.80, 0.02])
+    mask_k = select_mut_hotspots(ent, topk=2)
+    assert mask_k.tolist() == [False, True, False, True, False]
+    mask_f = select_mut_hotspots(ent, frac=0.4)  # ceil(0.4*5)=2
+    assert mask_f.tolist() == mask_k.tolist()
+    mask_all = select_mut_hotspots(ent, topk=10)
+    assert int(mask_all.sum()) == 5
+
+
+def test_hotspot_boost_raises_mut_weight_and_loss():
+    kwargs = _toy_bridge_inputs(L=4)
+    # mut positions: n0 site0 (A→A? wait: ACDE→AADE so site1 C→A), n1 site3 (E→F)
+    site_entropy = torch.tensor([0.1, 0.9, 0.1, 0.85])
+    hotspot = select_mut_hotspots(site_entropy, topk=2)  # sites 1 and 3
+    assert hotspot.tolist() == [False, True, False, True]
+
+    base = bridge_losses(
+        **kwargs,
+        site_entropy=site_entropy,
+        use_entropy_loss_weighting=True,
+        entropy_weight_alpha=1.0,
+        entropy_is_normalized=True,
+        mut_normalize="count",
+    )
+    boosted = bridge_losses(
+        **kwargs,
+        site_entropy=site_entropy,
+        use_entropy_loss_weighting=True,
+        entropy_weight_alpha=1.0,
+        entropy_is_normalized=True,
+        mut_normalize="count",
+        mut_hotspot_mask=hotspot,
+        mut_hotspot_weight=5.0,
+    )
+    assert boosted["max_mut_weight"] > base["max_mut_weight"]
+    assert boosted["L_mut"] > base["L_mut"]
+
+
+def test_hotspot_force_includes_cons_hotspot_sites():
+    # Both leaves already match target everywhere except we force hotspots into L_mut.
+    kwargs = _toy_bridge_inputs(L=4)
+    kwargs["seqs_t"] = ["AADE", "ACDF"]  # already at targets → empty mut_mask
+    kwargs["T1_mut_targets"] = {"n0": "AADE", "n1": "ACDF"}
+    hotspot = torch.tensor([False, True, False, False])
+
+    off = bridge_losses(**kwargs)
+    assert off["L_mut"].item() == 0.0
+
+    forced = bridge_losses(
+        **kwargs,
+        mut_hotspot_mask=hotspot,
+        mut_hotspot_weight=3.0,
+        mut_hotspot_force=True,
+        mut_normalize="count",
+    )
+    assert forced["L_mut"].item() > 0.0
+    assert forced["max_mut_weight"].item() == 3.0

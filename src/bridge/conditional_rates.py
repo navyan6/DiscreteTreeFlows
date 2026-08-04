@@ -13,42 +13,62 @@ import torch.nn.functional as F
 
 PAD_IDX = 20
 
+# Guard against kappa→1 (log1p(-kappa)→-inf / NaN). At t≥1-eps the target is
+# exactly the terminal one-hot (pure CE on x1).
+_T_ONE_EPS = 1e-6
+
 
 def conditional_bridge_log_target(
-    log_R0_mut: torch.Tensor,  
-    x1_idx: torch.Tensor,       
+    log_R0_mut: torch.Tensor,
+    x1_idx: torch.Tensor,
     t: float,
     c: float = 1.0,
 ) -> torch.Tensor:
     """
     Return log pi_cond, the log conditional-bridge target distribution over the
     20 amino acids, shape [..., 20], normalized along the last dim.
-    """
-    log_q = F.log_softmax(log_R0_mut, dim=-1)            
-    log_kappa = -c * (1.0 - t)
-    kappa = torch.exp(torch.tensor(log_kappa, device=log_R0_mut.device))
-    log_1m_kappa = torch.log1p(-kappa).item()          
 
-    x1_safe = x1_idx.clamp(0, 19).unsqueeze(-1)        
-    log_q_x1 = log_q.gather(-1, x1_safe).squeeze(-1)   
+    As t→1 the mixture concentrates on x1. Exactly at t=1 (and for
+    t≥1-_T_ONE_EPS) we return a pure point mass on x1 so training stays finite
+    even if ``t_max=1`` or inclusive sampling hits the endpoint.
+    """
+    log_q = F.log_softmax(log_R0_mut, dim=-1)
+    x1_safe = x1_idx.clamp(0, 19).unsqueeze(-1)
+
+    t_val = float(t)
+    if t_val >= 1.0 - _T_ONE_EPS:
+        # t→1 limit: pure CE on x1. Soft one-hot (finite logits) so
+        # KL(target || p_theta) stays well-defined (no 0·(-inf) NaNs).
+        peaked = torch.zeros_like(log_q)
+        peaked.scatter_(-1, x1_safe, 1.0e4)
+        return F.log_softmax(peaked, dim=-1)
+
+    t_eff = min(max(t_val, 0.0), 1.0 - _T_ONE_EPS)
+    log_kappa = -c * (1.0 - t_eff)
+    kappa = torch.exp(
+        torch.tensor(log_kappa, device=log_R0_mut.device, dtype=log_q.dtype)
+    ).clamp(max=1.0 - _T_ONE_EPS)
+    log_1m_kappa = torch.log1p(-kappa)
+
+    log_q_x1 = log_q.gather(-1, x1_safe).squeeze(-1)
 
     log_h_x1 = torch.logaddexp(
         torch.full_like(log_q_x1, log_kappa),
         log_1m_kappa + log_q_x1,
-    )                                             
-    log_h_other = log_1m_kappa + log_q_x1             
-    boost = log_h_x1 - log_h_other                
+    )
+    log_h_other = log_1m_kappa + log_q_x1
+    boost = log_h_x1 - log_h_other
 
     log_target = log_q.clone()
     log_target.scatter_add_(-1, x1_safe, boost.unsqueeze(-1))
-    log_target = F.log_softmax(log_target, dim=-1)      
+    log_target = F.log_softmax(log_target, dim=-1)
     return log_target
 
 
 def conditional_bridge_kl(
-    log_R_theta_mut: torch.Tensor, 
-    log_R0_mut: torch.Tensor,     
-    x1_idx: torch.Tensor,        
+    log_R_theta_mut: torch.Tensor,
+    log_R0_mut: torch.Tensor,
+    x1_idx: torch.Tensor,
     t: float,
     c: float = 1.0,
 ) -> torch.Tensor:
@@ -57,9 +77,9 @@ def conditional_bridge_kl(
     localized to the site's destination distribution.
     """
     log_target = conditional_bridge_log_target(log_R0_mut, x1_idx, t, c)
-    log_p_theta = F.log_softmax(log_R_theta_mut, dim=-1)               
+    log_p_theta = F.log_softmax(log_R_theta_mut, dim=-1)
     target = log_target.exp()
-    return (target * (log_target - log_p_theta)).sum(-1)         
+    return (target * (log_target - log_p_theta)).sum(-1)
 
 
 if __name__ == "__main__":
@@ -88,6 +108,15 @@ if __name__ == "__main__":
     assert mass_on_x1.min() > 0.99, "target should concentrate on x1 as t->1"
     assert gaps == sorted(gaps, reverse=True), "KL-CE gap should shrink monotonically as t->1"
     assert gaps[-1] < 2e-3, "KL should approach CE as t->1"
+
+    # 2b. t=1.0 must be finite and equal to CE (pure one-hot target)
+    lt1 = conditional_bridge_log_target(log_R0, x1, t=1.0, c=1.0)
+    assert torch.isfinite(lt1.exp()).all(), "t=1 target must be finite"
+    mass1 = lt1.exp().gather(-1, x1.unsqueeze(-1)).squeeze(-1)
+    assert torch.allclose(mass1, torch.ones_like(mass1), atol=1e-5)
+    kl1 = conditional_bridge_kl(log_theta, log_R0, x1, t=1.0, c=1.0)
+    ce1 = F.cross_entropy(log_theta.reshape(-1, 20), x1.reshape(-1), reduction="none").reshape(n, L)
+    assert torch.allclose(kl1, ce1, atol=1e-5), "t=1 KL must equal CE"
 
     # 3. conserved site (x1 == current a): target favors staying at a
     a = torch.tensor([[3]])

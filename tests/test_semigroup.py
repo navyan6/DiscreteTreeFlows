@@ -56,21 +56,38 @@ def test_finite_gap_when_rates_disagree():
 
 
 def test_predictor_wrapper_matches_manual():
+    # Absolute bridge clocks s,r,t (not durations).
     cache = {
-        0.8: _fake_rates(offset=0.0),
-        0.3: _fake_rates(offset=1.0),
-        0.5: _fake_rates(offset=2.0),
+        0.1: _fake_rates(offset=0.0),
+        0.4: _fake_rates(offset=1.0),
+        0.9: _fake_rates(offset=2.0),
     }
 
-    def rates_at(delta):
-        # Exact key lookup for the fixed triple below.
-        key = round(delta, 1)
+    def rates_at(tau):
+        key = round(tau, 1)
         return cache[key]
 
-    s, r, t = 0.1, 0.4, 0.9  # durations 0.8, 0.3, 0.5
+    s, r, t = 0.1, 0.4, 0.9
     wrapped = semigroup_loss_from_predictor(rates_at, s, r, t)
-    manual = semigroup_rate_loss(cache[0.8], cache[0.3], cache[0.5], s, r, t)
+    # Mapping: out_st=R(t), out_sr=R(s), out_rt=R(r)
+    manual = semigroup_rate_loss(cache[0.9], cache[0.1], cache[0.4], s, r, t)
     assert torch.allclose(wrapped, manual)
+
+
+def test_predictor_queries_absolute_times_not_durations():
+    """P0: t_scalar convention must be absolute bridge time, not Δ."""
+    queried = []
+
+    def rates_at(tau):
+        queried.append(round(tau, 6))
+        return _fake_rates(offset=float(tau))
+
+    s, r, t = 0.1, 0.4, 0.9
+    semigroup_loss_from_predictor(rates_at, s, r, t)
+    # Absolute clocks (order: t, s, r per semigroup_loss_from_predictor).
+    assert queried == [0.9, 0.1, 0.4]
+    # Must NOT be the old duration keys (0.8, 0.3, 0.5).
+    assert 0.8 not in queried and 0.3 not in queried and 0.5 not in queried
 
 
 def test_loss_differentiable():

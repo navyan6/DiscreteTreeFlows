@@ -7,9 +7,10 @@ Paper:
 
 Full tree-rollout composition is too expensive every train step. Default mode is
 a cheap **rate-space** surrogate: from a fixed bridge state T_s, query the
-network at three interval *durations* Δ_st, Δ_sr, Δ_rt (passed as t_scalar),
-compose the short-hop rates by time-weighted averaging, and match to the
-direct long-hop rates (MSE on mut logits / branch λ / BL / stop).
+network at three **absolute** bridge clocks s, r, t (same ``t_scalar``
+convention as the main bridge step), compose the short-hop rates by
+duration-weighted averaging, and match to the long-hop rates (MSE on mut
+logits / branch λ / BL / stop). Durations enter only the composition weights.
 
 Optional ``rollout`` distance (sequence-matched RF + Hamming) is exposed for
 rare offline checks via ``tree_composition_distance``.
@@ -92,24 +93,26 @@ def semigroup_rate_loss(
 
 
 def semigroup_loss_from_predictor(
-    rates_at_duration: Callable[[float], dict[str, torch.Tensor]],
+    rates_at_time: Callable[[float], dict[str, torch.Tensor]],
     s: float,
     r: float,
     t: float,
     **loss_kwargs,
 ) -> torch.Tensor:
     """
-    Query ``rates_at_duration(delta)`` for Δ∈{t−s, r−s, t−r} and return L_semi.
+    Query ``rates_at_time(tau)`` at absolute bridge clocks τ∈{s, r, t} and
+    return L_semi.
 
-    ``rates_at_duration`` should run tree_enc + rate_heads with t_scalar=delta
-    on a fixed bridge state T_s (same features, only time conditioning changes).
+    ``rates_at_time`` should run tree_enc + rate_heads with ``t_scalar=tau``
+    (absolute bridge time in [0, 1], same convention as the main train step)
+    on a fixed bridge state T_s. Composition weights still use durations
+    (r−s)/(t−s) and (t−r)/(t−s) inside ``compose_rates``.
+
+    Mapping: R(s)≈short hop [s,r], R(r)≈short hop [r,t], R(t)≈direct [s,t].
     """
-    dt_st = max(t - s, 1e-8)
-    dt_sr = max(r - s, 1e-8)
-    dt_rt = max(t - r, 1e-8)
-    out_st = rates_at_duration(dt_st)
-    out_sr = rates_at_duration(dt_sr)
-    out_rt = rates_at_duration(dt_rt)
+    out_st = rates_at_time(t)
+    out_sr = rates_at_time(s)
+    out_rt = rates_at_time(r)
     return semigroup_rate_loss(out_st, out_sr, out_rt, s, r, t, **loss_kwargs)
 
 

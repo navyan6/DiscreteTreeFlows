@@ -98,6 +98,79 @@ def _prepare_alignment_entropy(
     return entropy.clamp(min=0.0, max=1.0)
 
 
+def select_mut_hotspots(
+    site_entropy: torch.Tensor,
+    topk: int | None = None,
+    frac: float | None = None,
+) -> torch.Tensor:
+    """
+    Binary hotspot mask over alignment columns from TRAIN MSA column entropy.
+
+    Selects the N highest-entropy sites (``topk``) or the top ``frac`` fraction
+    of columns (``ceil(frac * L)``, at least 1 if frac>0). Exactly one of
+    ``topk`` / ``frac`` must be set. Ties are broken by column index (stable).
+
+    Returns a bool tensor of shape [L]. Off-by-default callers pass this into
+    ``bridge_losses`` to hard-boost L_mut at mutating regions (vs soft
+    floor+alpha*H, which reweights all columns continuously).
+    """
+    entropy = torch.as_tensor(site_entropy)
+    if entropy.ndim != 1:
+        raise ValueError(f"site_entropy for hotspot selection must be [L], got {tuple(entropy.shape)}")
+    L = int(entropy.numel())
+    if L == 0:
+        return torch.zeros(0, dtype=torch.bool, device=entropy.device)
+
+    if (topk is None) == (frac is None):
+        raise ValueError("Provide exactly one of topk or frac for hotspot selection")
+    if topk is not None:
+        if topk < 0:
+            raise ValueError("mut_hotspot_topk must be non-negative")
+        k = min(int(topk), L)
+    else:
+        if not (0.0 <= frac <= 1.0):
+            raise ValueError("mut_hotspot_frac must be in [0, 1]")
+        k = int(math.ceil(frac * L)) if frac > 0 else 0
+        k = min(k, L)
+
+    mask = torch.zeros(L, dtype=torch.bool, device=entropy.device)
+    if k == 0:
+        return mask
+    # Stable top-k: highest entropy first; equal entropy → lower index first.
+    order = torch.argsort(entropy, descending=True, stable=True)
+    mask[order[:k]] = True
+    return mask
+
+
+def _expand_hotspot_mask(
+    mut_hotspot_mask: torch.Tensor,
+    n: int,
+    max_seq_len: int,
+    device,
+) -> torch.Tensor:
+    """Broadcast hotspot mask to [n, L] bool."""
+    hot = torch.as_tensor(mut_hotspot_mask, device=device)
+    if hot.ndim == 1:
+        hot = hot.unsqueeze(0)
+    if hot.ndim != 2:
+        raise ValueError(
+            "mut_hotspot_mask must have shape [L], [1, L], or [n, L], "
+            f"got {tuple(hot.shape)}"
+        )
+    if hot.shape[1] != max_seq_len:
+        raise ValueError(
+            f"mut_hotspot_mask length {hot.shape[1]} does not match "
+            f"max_seq_len={max_seq_len}"
+        )
+    if hot.shape[0] == 1:
+        hot = hot.expand(n, -1)
+    elif hot.shape[0] != n:
+        raise ValueError(
+            f"mut_hotspot_mask batch dimension must be 1 or {n}, got {hot.shape[0]}"
+        )
+    return hot.bool()
+
+
 def bridge_losses(
     log_R_theta_mut: torch.Tensor,
     log_R_theta_branch: torch.Tensor,
@@ -127,7 +200,22 @@ def bridge_losses(
     entropy_weight_floor: float = 1.0,
     entropy_is_normalized: bool = False,
     mut_normalize: str = "mean",
+    mut_hotspot_mask: torch.Tensor | None = None,
+    mut_hotspot_weight: float = 1.0,
+    mut_hotspot_force: bool = False,
 ) -> dict:
+    """
+    Bridge matching losses.
+
+    Hard MSA-entropy hotspots (``mut_hotspot_mask`` from ``select_mut_hotspots``):
+      Default: multiply L_mut site weights by ``mut_hotspot_weight`` on
+      mut_mask ∩ hotspot (soft floor+αH still applies if enabled). Does **not**
+      pull conserved (aa_t==x1) positions into L_mut.
+      Optional ``mut_hotspot_force``: L_mut mask becomes
+      (mut_mask | hotspot) & valid, and those hotspot∩cons sites are removed from
+      cons_mask so high-entropy columns train as mutation sites even when this
+      sample is already at the T1 AA.
+    """
     n = len(active_leaves)
     eps_rate = 1e-6
 
@@ -141,6 +229,10 @@ def bridge_losses(
         raise ValueError("lambda_cons must be non-negative")
     if mut_normalize not in ("mean", "count"):
         raise ValueError("mut_normalize must be 'mean' or 'count'")
+    if mut_hotspot_weight <= 0:
+        raise ValueError("mut_hotspot_weight must be greater than zero")
+    if mut_hotspot_force and mut_hotspot_mask is None:
+        raise ValueError("mut_hotspot_force requires mut_hotspot_mask")
 
     alpha_cons = (
         entropy_weight_alpha
@@ -184,10 +276,11 @@ def bridge_losses(
     # Upweight rare mutating positions (sparse signal); time-weighting is already
     # handled inside the h-transform, so no extra 1/(1-t) factor.
     #
-    # Optional alignment-entropy weighting (computed once, used by both terms):
+    # Soft alignment-entropy weighting (optional):
     #   L_mut  weight = floor + alpha * entropy         -> mutate freely at hotspots
     #   L_cons weight = floor + alpha * (1 - entropy)    -> stay put at cold sites
-    # The L_cons variant directly fights over-mutation of conserved regions.
+    # Hard top-k/frac hotspot boost (optional, stacks with soft):
+    #   L_mut weight *= mut_hotspot_weight on hotspot columns (see docstring).
     normalized_entropy = None
     if use_entropy_loss_weighting or use_entropy_cons_weighting:
         if site_entropy is None:
@@ -204,10 +297,35 @@ def bridge_losses(
             entropy_is_normalized=entropy_is_normalized,
         )
 
+    hotspot_2d = None
+    if mut_hotspot_mask is not None:
+        hotspot_2d = _expand_hotspot_mask(
+            mut_hotspot_mask, n, max_seq_len, kl_per_pos.device
+        )
+        if mut_hotspot_force:
+            # High-entropy columns contribute to L_mut even when aa_t == x1
+            # this step; drop them from cons_mask to avoid opposing gradients.
+            forced = hotspot_2d & valid_mask
+            mut_mask = mut_mask | forced
+            cons_mask = cons_mask & ~forced
+
     n_mut = mut_mask.sum().clamp_min(1).to(dtype=kl_per_pos.dtype)
 
-    if use_entropy_loss_weighting:
-        site_weights = entropy_weight_floor + entropy_weight_alpha * normalized_entropy
+    # Force only expands mut_mask; weight≠1 enters the weighted path.
+    use_weighted_mut = use_entropy_loss_weighting or (
+        hotspot_2d is not None and mut_hotspot_weight != 1.0
+    )
+    if use_weighted_mut:
+        if use_entropy_loss_weighting:
+            site_weights = entropy_weight_floor + entropy_weight_alpha * normalized_entropy
+        else:
+            site_weights = torch.ones_like(kl_per_pos)
+        if hotspot_2d is not None and mut_hotspot_weight != 1.0:
+            site_weights = torch.where(
+                hotspot_2d,
+                site_weights * mut_hotspot_weight,
+                site_weights,
+            )
         if mut_mask.any():
             mut_kl = kl_per_pos[mut_mask]
             mut_weights = site_weights[mut_mask]
@@ -218,7 +336,10 @@ def bridge_losses(
                 L_mut = weighted_sum / n_mut
             else:
                 L_mut = weighted_sum / mut_weights.sum().clamp_min(1e-8)
-            mean_mut_entropy = normalized_entropy[mut_mask].detach().mean()
+            if normalized_entropy is not None:
+                mean_mut_entropy = normalized_entropy[mut_mask].detach().mean()
+            else:
+                mean_mut_entropy = torch.zeros((), device=kl_per_pos.device)
             mean_mut_weight = mut_weights.detach().mean()
             max_mut_weight = mut_weights.detach().max()
         else:
