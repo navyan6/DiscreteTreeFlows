@@ -154,9 +154,21 @@ def positional_recovery(root: str, gt: str, gen: str) -> dict:
     Split positions by root-vs-GT and score the generated sequence:
       conserved (root==gt): model should keep root AA -> retention
       mutating  (root!=gt): model should reach GT AA  -> recovery
+
+    Factorization of mut_recovery (exact when a wrong AA still counts as a site hit):
+      mut_recovery      = P(gen==GT | root!=GT)
+      site_recall       = P(gen!=root | root!=GT)          # mut-site hit rate
+      aa_acc_given_hit  = P(gen==GT | root!=GT & gen!=root)
+      => mut_recovery = site_recall * aa_acc_given_hit
+         (when site_hits>0; if site_hits==0 then mut_recovery==0 and aa_acc is nan)
+
+    Optional site_precision = P(root!=GT | gen!=root): among sites the model
+    mutated away from root, fraction that were true mutating sites.
     """
     L = min(len(root), len(gt), len(gen))
     mut_correct = mut_total = cons_correct = cons_total = 0
+    site_hits = site_hit_correct = 0  # true mut sites where gen!=root; among those gen==GT
+    gen_mut_total = gen_mut_true = 0  # gen!=root; among those root!=GT
     for i in range(L):
         r, g, m = root[i], gt[i], gen[i]
         if r == g:
@@ -165,9 +177,24 @@ def positional_recovery(root: str, gt: str, gen: str) -> dict:
         else:
             mut_total += 1
             mut_correct += (m == g)
+            if m != r:
+                site_hits += 1
+                site_hit_correct += (m == g)
+        if m != r:
+            gen_mut_total += 1
+            gen_mut_true += (r != g)
     return {
         "mut_recovery": mut_correct / mut_total if mut_total else float("nan"),
         "cons_retention": cons_correct / cons_total if cons_total else float("nan"),
+        "site_recall": site_hits / mut_total if mut_total else float("nan"),
+        "aa_acc_given_hit": (
+            site_hit_correct / site_hits if site_hits else float("nan")
+        ),
+        "site_precision": (
+            gen_mut_true / gen_mut_total if gen_mut_total else float("nan")
+        ),
         "mut_total": mut_total,
         "cons_total": cons_total,
+        "site_hits": site_hits,
+        "gen_mut_total": gen_mut_total,
     }

@@ -52,6 +52,37 @@ def test_positional_recovery():
     r = S.positional_recovery("AAA", "ABA", "ABA")
     assert r["mut_recovery"] == 1.0 and r["cons_retention"] == 1.0
     assert r["mut_total"] == 1 and r["cons_total"] == 2
+    assert r["site_recall"] == 1.0 and r["aa_acc_given_hit"] == 1.0
+    assert r["site_precision"] == 1.0
+
+
+def test_mut_recovery_factorization():
+    """mut_recovery = site_recall * aa_acc_given_hit when wrong AA still counts as hit.
+
+    Toy: root=AAAA, gt=BBBB (4 true mut sites).
+    gen  = BCAA  → hits at sites 0,1 (gen!=root); correct AA only at site 0.
+      site_recall      = 2/4 = 0.5
+      aa_acc_given_hit = 1/2 = 0.5
+      mut_recovery     = 1/4 = 0.25 = 0.5 * 0.5
+    Also site_precision = 2/2 (both gen muts are true mut sites).
+    """
+    root, gt, gen = "AAAA", "BBBB", "BCAA"
+    r = S.positional_recovery(root, gt, gen)
+    assert r["mut_total"] == 4
+    assert r["site_hits"] == 2
+    assert abs(r["site_recall"] - 0.5) < 1e-9
+    assert abs(r["aa_acc_given_hit"] - 0.5) < 1e-9
+    assert abs(r["mut_recovery"] - 0.25) < 1e-9
+    assert abs(r["mut_recovery"] - r["site_recall"] * r["aa_acc_given_hit"]) < 1e-9
+    assert r["site_precision"] == 1.0
+
+    # Miss all true sites but fire on a conserved site: recall 0, recovery 0, aa_acc nan
+    r2 = S.positional_recovery("AAAA", "BBAA", "AACB")
+    assert r2["mut_total"] == 2
+    assert r2["site_recall"] == 0.0
+    assert r2["mut_recovery"] == 0.0
+    assert r2["aa_acc_given_hit"] != r2["aa_acc_given_hit"]  # nan
+    assert abs(r2["site_precision"] - 0.0) < 1e-9  # gen muts at sites 2,3; both conserved
 
 
 # ── distributions ───────────────────────────────────────────────────────────

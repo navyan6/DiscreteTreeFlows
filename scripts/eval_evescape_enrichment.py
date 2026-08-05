@@ -120,6 +120,7 @@ def main():
     print(f"Evaluating {n} test trees  (mut_rate={args.mutation_rate_scale} n_steps={args.n_steps})\n")
 
     recs, rets, idents = [], [], []
+    site_recs, aa_accs, site_precs = [], [], []
     model_ev, gt_ev = [], []            # per-mutation EVEscape scores, pooled
     model_frac_rbd, gt_frac_rbd = [], []  # fraction of mutations that fall in RBD
     per_tree = []
@@ -150,6 +151,7 @@ def main():
 
         # recovery/retention + identity: best-match gen leaf per sampled GT leaf
         t_rec, t_ret, t_id = [], [], []
+        t_site_rec, t_aa_acc, t_site_prec = [], [], []
         for gl in gt_sample:
             gt_seq = batch["seqs"][gl]
             best, best_id = None, -1.0
@@ -161,7 +163,12 @@ def main():
                 continue
             r = positional_recovery(root_seq, gt_seq, best)
             t_rec.append(r["mut_recovery"]); t_ret.append(r["cons_retention"]); t_id.append(best_id)
+            t_site_rec.append(r["site_recall"]); t_aa_acc.append(r["aa_acc_given_hit"])
+            t_site_prec.append(r["site_precision"])
         recs.append(_mean(t_rec)); rets.append(_mean(t_ret)); idents.append(_mean(t_id))
+        site_recs.append(_mean(t_site_rec))
+        aa_accs.append(_mean(t_aa_acc))
+        site_precs.append(_mean(t_site_prec))
 
         # EVEscape: pool per-mutation scores across gen leaves and (real) GT leaves
         tree_model_ev, tree_gt_ev = [], []
@@ -181,11 +188,16 @@ def main():
 
         per_tree.append({"tree": i, "gen_leaves": len(gen_leaves),
                          "mut_recovery": _mean(t_rec), "cons_retention": _mean(t_ret),
+                         "site_recall": _mean(t_site_rec),
+                         "aa_acc_given_hit": _mean(t_aa_acc),
+                         "site_precision": _mean(t_site_prec),
                          "identity": _mean(t_id),
                          "model_evescape": _mean(tree_model_ev) if evescape is not None else None,
                          "gt_evescape": _mean(tree_gt_ev) if evescape is not None else None})
         print(f"[{i+1}/{n}] gen_leaves={len(gen_leaves):3d}  "
-              f"recovery={_mean(t_rec):.4f}  retention={_mean(t_ret):.4f}  identity={_mean(t_id):.4f}"
+              f"recovery={_mean(t_rec):.4f}  site_rec={_mean(t_site_rec):.4f}  "
+              f"aa_acc={_mean(t_aa_acc):.4f}  retention={_mean(t_ret):.4f}  "
+              f"identity={_mean(t_id):.4f}"
               + (f"  model_EVEscape={_mean(tree_model_ev):.4f}" if evescape is not None else ""))
 
     # ── summary
@@ -193,10 +205,16 @@ def main():
     print(f"AGGREGATE ({len(recs)} trees)  checkpoint={args.checkpoint}")
     print("=" * 64)
     print(f"  mutation recovery : {_mean(recs):.4f}")
+    print(f"  site recall       : {_mean(site_recs):.4f}  (= P(gen!=root | root!=GT))")
+    print(f"  aa_acc | hit      : {_mean(aa_accs):.4f}  (= P(gen==GT | root!=GT & gen!=root))")
+    print(f"  site precision    : {_mean(site_precs):.4f}  (= P(root!=GT | gen!=root))")
     print(f"  conserved retention: {_mean(rets):.4f}")
     print(f"  best-match identity: {_mean(idents):.4f}")
     summary = {"checkpoint": args.checkpoint, "n_trees": len(recs),
                "mut_recovery": _mean(recs), "cons_retention": _mean(rets),
+               "site_recall": _mean(site_recs),
+               "aa_acc_given_hit": _mean(aa_accs),
+               "site_precision": _mean(site_precs),
                "identity": _mean(idents)}
     if evescape is not None:
         m_ev, g_ev = _mean(model_ev), _mean(gt_ev)

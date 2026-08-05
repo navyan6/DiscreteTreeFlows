@@ -396,25 +396,51 @@ def positional_recovery(root: str, gt: str, gen: str) -> dict:
     Given root sequence and a GT leaf, split positions into:
       - conserved: root[i] == gt[i] -> model should keep root AA
       - mutating:  root[i] != gt[i]  -> model should reach gt AA
-    Returns fraction correct at each set.
+
+    Factorization (exact when wrong AA still counts as a site hit):
+      mut_recovery     = P(gen==GT | root!=GT)
+      site_recall      = P(gen!=root | root!=GT)
+      aa_acc_given_hit = P(gen==GT | root!=GT & gen!=root)
+      => mut_recovery = site_recall * aa_acc_given_hit  (when site_hits>0)
+
+    Also reports site_precision = P(root!=GT | gen!=root).
     """
     L = min(len(root), len(gt), len(gen))
     mut_correct = mut_total = cons_correct = cons_total = 0
+    site_hits = site_hit_correct = 0
+    gen_mut_total = gen_mut_true = 0
     for i in range(L):
         r, g, m = root[i], gt[i], gen[i]
-        if r == g:         
+        if r == g:
             cons_total += 1
             if m == r:
                 cons_correct += 1
-        else:          
+        else:
             mut_total += 1
             if m == g:
                 mut_correct += 1
+            if m != r:
+                site_hits += 1
+                if m == g:
+                    site_hit_correct += 1
+        if m != r:
+            gen_mut_total += 1
+            if r != g:
+                gen_mut_true += 1
     return {
         "mut_recovery":  mut_correct  / mut_total  if mut_total  else float("nan"),
         "cons_retention": cons_correct / cons_total if cons_total else float("nan"),
+        "site_recall": site_hits / mut_total if mut_total else float("nan"),
+        "aa_acc_given_hit": (
+            site_hit_correct / site_hits if site_hits else float("nan")
+        ),
+        "site_precision": (
+            gen_mut_true / gen_mut_total if gen_mut_total else float("nan")
+        ),
         "mut_total":  mut_total,
         "cons_total": cons_total,
+        "site_hits": site_hits,
+        "gen_mut_total": gen_mut_total,
     }
 
 
@@ -456,11 +482,15 @@ def eval_gt_comparison(gen_tree, gen_leaves, gt_batch):
     # For each (GT leaf → best gen leaf) pair, use GT root as anchor to classify positions
     all_mut_rec  = []
     all_cons_ret = []
+    all_site_rec = []
+    all_aa_acc = []
     for gl, best_gen, _ in best_matches:
         rec = positional_recovery(gt_root_seq, gt_seqs[gl], gen_tree.node_seqs[best_gen])
         if not (rec["mut_total"] == 0 and rec["cons_total"] == 0):
             all_mut_rec.append(rec["mut_recovery"])
             all_cons_ret.append(rec["cons_retention"])
+            all_site_rec.append(rec["site_recall"])
+            all_aa_acc.append(rec["aa_acc_given_hit"])
 
     def _mean(vals):
         finite = [v for v in vals if v == v]  # filter NaN
@@ -470,6 +500,10 @@ def eval_gt_comparison(gen_tree, gen_leaves, gt_batch):
     print(f"  Mutating sites  (root→GT differs): "
           f"mean recovery   = {_mean(all_mut_rec):.4f}  "
           f"[fraction of GT mutations the model got right]")
+    print(f"  Site recall     (gen!=root | root!=GT): "
+          f"mean            = {_mean(all_site_rec):.4f}")
+    print(f"  AA acc | hit    (gen==GT | hit): "
+          f"mean            = {_mean(all_aa_acc):.4f}")
     print(f"  Conserved sites (root→GT same):    "
           f"mean retention  = {_mean(all_cons_ret):.4f}  "
           f"[fraction of conserved sites model left unchanged]")
