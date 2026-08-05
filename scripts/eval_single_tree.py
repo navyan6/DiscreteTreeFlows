@@ -40,6 +40,7 @@ from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
 from src.bridge.losses import _build_seq_indices
+from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
 from src.bridge.mutation_sample import (
     mutate_sequence_independent,
     mutate_sequence_site_softmax,
@@ -168,6 +169,8 @@ def load_models(checkpoint, device, max_seq_len):
         )
     # Stash on module so generate_tree / callers keep the 4-tuple unpack stable.
     r_heads._train_log_pssm = log_pssm
+    r_heads._fitness_beta = float(cfg.get("fitness_beta", 0.0))
+    r_heads._fitness_score = cfg.get("fitness_score", "log_R0")
     return node_enc, tree_enc, r_heads, col_entropy
 
 
@@ -177,11 +180,17 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                   node_enc, tree_enc, rate_heads, embedder,
                   tokenizer, esm_model, aa_token_ids, device, col_entropy=None,
                   site_softmax_sample: bool = False,
-                  site_temperature: float = 1.0):
+                  site_temperature: float = 1.0,
+                  fitness_beta: float | None = None,
+                  fitness_score: str | None = None):
     tree = TreeState.root_only(root_seq)
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
     log_pssm = getattr(rate_heads, "_train_log_pssm", None)
+    if fitness_beta is None:
+        fitness_beta = getattr(rate_heads, "_fitness_beta", 0.0)
+    if fitness_score is None:
+        fitness_score = getattr(rate_heads, "_fitness_score", "log_R0")
 
     for step in range(n_steps):
         t = step / n_steps
@@ -206,6 +215,9 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
         active_seqs = [tree.node_seqs[v] for v in active_leaves]
         log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                      active_seqs, max_seq_len, device)
+        log_R0_mut = tilt_log_R0_by_fitness(
+            log_R0_mut, beta=fitness_beta, score=fitness_score
+        )
         aa_indices = None
         if getattr(rate_heads, "use_mut_aa_emb", False):
             aa_indices = _build_seq_indices(active_seqs, max_seq_len, device)
@@ -563,6 +575,17 @@ def main():
                              "propensity (Σ_aa mut mass), then AA|site. Off by default.")
     parser.add_argument("--site-temperature", type=float, default=1.0,
                         help="Temperature on site-propensity logits (--site-softmax-sample).")
+    parser.add_argument(
+        "--fitness-beta", "--ref-tilt-beta",
+        type=float, default=None, dest="fitness_beta",
+        help="§4.2 R0 fitness tilt β. Default: checkpoint config. Alias: --ref-tilt-beta.",
+    )
+    parser.add_argument(
+        "--fitness-score",
+        choices=["log_R0", "log_softmax"],
+        default=None,
+        help="Fitness proxy for tilting (default: checkpoint / log_R0).",
+    )
     parser.add_argument("--seed",                type=int,   default=42)
     args = parser.parse_args()
 
@@ -604,6 +627,8 @@ def main():
         tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy,
         site_softmax_sample=args.site_softmax_sample,
         site_temperature=args.site_temperature,
+        fitness_beta=args.fitness_beta,
+        fitness_score=args.fitness_score,
     )
     gen_leaves = get_leaves(gen_tree)
     print(f"Generated: {len(gen_tree.node_ids)} nodes, {len(gen_leaves)} leaves")

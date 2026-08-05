@@ -38,6 +38,7 @@ from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
+from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
 
 AA_VOCAB   = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX  = {aa: i for i, aa in enumerate(AA_VOCAB)}
@@ -72,7 +73,12 @@ def load_models(checkpoint, device, max_seq_len):
     if log_pssm is not None:
         log_pssm = log_pssm.to(device)
     r_heads._train_log_pssm = log_pssm
-    return node_enc, tree_enc, r_heads
+    col_entropy = ckpt.get("col_entropy", None)
+    if col_entropy is not None:
+        col_entropy = col_entropy.to(device)
+    r_heads._fitness_beta = float(cfg.get("fitness_beta", 0.0))
+    r_heads._fitness_score = cfg.get("fitness_score", "log_R0")
+    return node_enc, tree_enc, r_heads, col_entropy
 
 
 def get_lm_logits(tokenizer, esm_model, aa_token_ids, sequences, max_seq_len, device):
@@ -106,10 +112,16 @@ def all_valid_aa(seq: str) -> bool:
 def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rate_scale,
                  max_leaves,
                  node_enc, tree_enc, rate_heads, embedder,
-                 tokenizer, esm_model, aa_token_ids, device, col_entropy=None):
+                 tokenizer, esm_model, aa_token_ids, device, col_entropy=None,
+                 fitness_beta: float | None = None,
+                 fitness_score: str | None = None):
     tree = TreeState.root_only(root_seq)
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
+    if fitness_beta is None:
+        fitness_beta = getattr(rate_heads, "_fitness_beta", 0.0)
+    if fitness_score is None:
+        fitness_score = getattr(rate_heads, "_fitness_score", "log_R0")
 
     def _mem_gb():
         with open("/proc/self/status") as f:
@@ -141,6 +153,9 @@ def generate_one(root_seq, n_steps, max_seq_len, pll_threshold, beta, branch_rat
         active_seqs   = [tree.node_seqs[v] for v in active_leaves]
         log_R0_mut    = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                       active_seqs, max_seq_len, device)
+        log_R0_mut = tilt_log_R0_by_fitness(
+            log_R0_mut, beta=fitness_beta, score=fitness_score
+        )
 
         aa_indices = None
         if getattr(rate_heads, "use_mut_aa_emb", False):
@@ -234,7 +249,19 @@ def main():
     parser.add_argument("--max-seq-len",   type=int,   default=566)
     parser.add_argument("--pll-threshold",     type=float, default=-100.0,
                         help="Terminate new child if ESM PLL < this; -100 disables gate")
-    parser.add_argument("--beta",              type=float, default=1.0)
+    parser.add_argument("--beta",              type=float, default=1.0,
+                        help="(legacy, unused) MH acceptance temperature")
+    parser.add_argument(
+        "--fitness-beta", "--ref-tilt-beta",
+        type=float, default=None, dest="fitness_beta",
+        help="§4.2 R0 fitness tilt β. Default: checkpoint config. Alias: --ref-tilt-beta.",
+    )
+    parser.add_argument(
+        "--fitness-score",
+        choices=["log_R0", "log_softmax"],
+        default=None,
+        help="Fitness proxy for tilting (default: checkpoint / log_R0).",
+    )
     parser.add_argument("--branch-rate-scale", type=float, default=6.0,
                         help="Multiply model branching rate by this at inference")
     parser.add_argument("--max-leaves",        type=int,   default=200,
@@ -293,6 +320,8 @@ def main():
                 args.max_leaves,
                 node_enc, tree_enc, rate_heads, embedder,
                 tokenizer, esm_model, aa_token_ids, device, col_entropy=col_entropy,
+                fitness_beta=args.fitness_beta,
+                fitness_score=args.fitness_score,
             )
         except Exception as e:
             print(f"  ERROR: {e}")

@@ -40,6 +40,7 @@ from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
 from src.bridge.losses import _build_seq_indices
+from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
 from src.bridge.mutation_sample import (
     mutate_sequence_independent,
     mutate_sequence_site_softmax,
@@ -83,6 +84,9 @@ def load_checkpoint(path, device, max_seq_len=566):
         )
     r_heads._train_log_pssm = log_pssm
     r_heads._col_entropy = col_entropy
+    # Stash tilt config from checkpoint so generate matches train (CLI can override).
+    r_heads._fitness_beta = float(cfg.get("fitness_beta", 0.0))
+    r_heads._fitness_score = cfg.get("fitness_score", "log_R0")
     return node_enc, tree_enc, r_heads
 
 
@@ -193,6 +197,16 @@ def generate_tree(args):
         active_seqs = [tree.node_seqs[v] for v in active_leaves]
         log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
                                      active_seqs, args.max_seq_len, device)
+        # §4.2 Option A: same tilt as training (CLI overrides checkpoint).
+        fitness_beta = getattr(args, "fitness_beta", None)
+        if fitness_beta is None:
+            fitness_beta = getattr(rate_heads, "_fitness_beta", 0.0)
+        fitness_score = getattr(args, "fitness_score", None) or getattr(
+            rate_heads, "_fitness_score", "log_R0"
+        )
+        log_R0_mut = tilt_log_R0_by_fitness(
+            log_R0_mut, beta=fitness_beta, score=fitness_score
+        )
 
         aa_indices = None
         if getattr(rate_heads, "use_mut_aa_emb", False):
@@ -323,7 +337,19 @@ def main():
     parser.add_argument("--pll-threshold",    type=float, default=-100.0,
                         help="Terminate new child if ESM PLL < this (nats/position); -100 disables gate")
     parser.add_argument("--beta",             type=float, default=1.0,
-                        help="MH acceptance temperature (higher = stricter ESM fitness gate)")
+                        help="(legacy, unused) MH acceptance temperature")
+    parser.add_argument(
+        "--fitness-beta", "--ref-tilt-beta",
+        type=float, default=None, dest="fitness_beta",
+        help="§4.2 R0 fitness tilt β (Option A). Default: checkpoint config, else 0. "
+             "Alias: --ref-tilt-beta.",
+    )
+    parser.add_argument(
+        "--fitness-score",
+        choices=["log_R0", "log_softmax"],
+        default=None,
+        help="Fitness proxy for tilting (default: checkpoint / log_R0).",
+    )
     parser.add_argument("--branch-rate-scale", type=float, default=6.0,
                         help="Multiply model branching rate by this at inference (corrects lam≈1 → lam≈6)")
     parser.add_argument("--mutation-rate-scale", type=float, default=1.0,

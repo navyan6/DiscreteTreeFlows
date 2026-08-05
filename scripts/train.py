@@ -37,6 +37,7 @@ from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
+from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
 from src.bridge.sample_bridge_state import sample_bridge_state
 from src.bridge.losses import (
     bridge_losses,
@@ -154,6 +155,8 @@ def forward_bridge_step(
     mut_hotspot_force: bool = False,
     log_pssm: torch.Tensor | None = None,
     embedder: ESM2Embedder | None = None,
+    fitness_beta: float = 0.0,
+    fitness_score: str = "log_R0",
 ) -> tuple[dict | None, int]:
     """
     One forward pass of Algorithm 1.
@@ -162,6 +165,9 @@ def forward_bridge_step(
 
     When lambda_semi > 0, also samples 0≤s<r<u≤t_max, builds bridge state at s,
     and adds rate-composition L_semi (§4.5) to the total.
+
+    fitness_beta / fitness_score: §4.2 Option A tilt of log_R0 before RateHeads
+    so log R_θ = log R0_tilted + c_θ (β=0 disables).
     """
     node_ids= batch["node_ids"]              # list[str], N
     node_times_t    = batch["node_times"]            # [N] tensor
@@ -256,6 +262,12 @@ def forward_bridge_step(
             if entropy_is_normalized:
                 site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
 
+    # §4.2 Option A: tilt R0 before RateHeads / bridge losses.
+    # Entropy (above) uses untiled R0 so β does not change the entropy signal.
+    log_R0_mut = tilt_log_R0_by_fitness(
+        log_R0_mut, beta=fitness_beta, score=fitness_score
+    )
+
     active_seqs_t = [seqs_t[nid] for nid in active_leaves_t]
     aa_indices = None
     if getattr(rate_heads, "use_mut_aa_emb", False):
@@ -273,8 +285,9 @@ def forward_bridge_step(
         aa_indices=aa_indices,
         log_pssm=pssm_t,
     )
-    # out["log_R_theta_mut"] = log_R0 + c_θ (optionally PSSM-gated), inside RateHeads
+            # out["log_R_theta_mut"] = log_R0 + c_θ (optionally PSSM-gated), inside RateHeads
 
+    # §4.2: pass the same tilted R0 used by RateHeads into Doob / PLL losses.
     losses = bridge_losses(
         log_R_theta_mut=out["log_R_theta_mut"],
         log_R_theta_branch=out["branching_rate"],
@@ -356,6 +369,10 @@ def forward_bridge_step(
                     if entropy_is_normalized:
                         site_ent_s = (site_ent_s / math.log(20.0)).clamp(min=0.0, max=1.0)
 
+            log_R0_s = tilt_log_R0_by_fitness(
+                log_R0_s, beta=fitness_beta, score=fitness_score
+            )
+
             aa_idx_s = None
             if getattr(rate_heads, "use_mut_aa_emb", False):
                 aa_idx_s = _build_seq_indices(
@@ -422,6 +439,22 @@ def main():
     parser.add_argument("--bridge-c",    type=float, default=1.0,
                         help="Reference resampling rate c in the conditional bridge target "
                              "(kappa = exp(-c(1-t))); larger = sharper terminal pull earlier")
+    parser.add_argument(
+        "--fitness-beta", "--ref-tilt-beta",
+        type=float, default=0.0, dest="fitness_beta",
+        help="§4.2 exponential tilt β on R0 (Option A site-local). "
+             "log q_F = log_softmax(log_R0) + β·score; then re-softmax. "
+             "0 = disabled (default, backward compatible). "
+             "Try 1.0 for paper-faithful fitness weighting. Alias: --ref-tilt-beta.",
+    )
+    parser.add_argument(
+        "--fitness-score",
+        choices=["log_R0", "log_softmax"],
+        default="log_R0",
+        help="Per-AA fitness proxy score_a for tilting: "
+             "'log_R0' (default) uses the stored ESM log-rates; "
+             "'log_softmax' uses normalized site logprobs.",
+    )
     parser.add_argument("--per-site-pos-emb", action="store_true",
                         help="Add a learned positional embedding to the mutation head so "
                              "c_theta can act per-site (attacks the recovery ceiling). "
@@ -497,6 +530,11 @@ def main():
     random.seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
+    if args.fitness_beta != 0.0:
+        print(
+            f"§4.2 fitness tilt: β={args.fitness_beta}  score={args.fitness_score} "
+            f"(log R_θ = log R0_tilted + c_θ)"
+        )
 
     # ── data: pre-split dirs (temporal or geographic) OR random subtype-binned split
     if args.val_data and args.test_data:
@@ -702,6 +740,8 @@ def main():
                     mut_hotspot_force=args.mut_hotspot_force,
                     log_pssm=log_pssm,
                     embedder=embedder,
+                    fitness_beta=args.fitness_beta,
+                    fitness_score=args.fitness_score,
                 )
                 if losses is None or n_active == 0:
                     continue
@@ -754,6 +794,8 @@ def main():
                     mut_hotspot_force=args.mut_hotspot_force,
                     log_pssm=log_pssm,
                     embedder=embedder,
+                    fitness_beta=args.fitness_beta,
+                    fitness_score=args.fitness_score,
                 )
                 if losses is None or n_active == 0:
                     continue
@@ -816,6 +858,8 @@ def main():
                     "lambda_mut": args.lambda_mut,
                     "lambda_cons": args.lambda_cons,
                     "mut_normalize": args.mut_normalize,
+                    "fitness_beta": args.fitness_beta,
+                    "fitness_score": args.fitness_score,
                 },
                 # empirical column-entropy vector [L] (None for esm_self), so
                 # generation reuses the exact same signal training saw.
@@ -867,6 +911,8 @@ def main():
                 mut_hotspot_force=args.mut_hotspot_force,
                 log_pssm=log_pssm,
                 embedder=embedder,
+                fitness_beta=args.fitness_beta,
+                fitness_score=args.fitness_score,
             )
             if losses is None or n_active == 0:
                 continue

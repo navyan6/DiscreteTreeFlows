@@ -1,13 +1,20 @@
 """
 Phase 3: Reference evolutionary process P^0.
-Implements mutation prior Q^0, fitness-biased mutations Q^0_F, and branching intensity λ(x).
+
+Implements mutation prior Q^0, fitness-biased mutations Q^0_F (§4.2 Option A),
+and branching intensity λ(x) (scaffold only — Poisson λ is NOT wired into
+TreeSBM train/gen).
+
+Fitness tilting used by train/gen lives in ``src/bridge/fitness_tilt.py``
+(site-local Option A). This module reuses the same helper for documentation
+consistency with ReferenceRollout scaffold / unit tests.
 """
 import torch
 import torch.nn as nn
 import numpy as np
-from typing import Optional
 
 from src.tree_state import TreeState
+from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
 
 
 class BranchingIntensityMLP(nn.Module):
@@ -35,8 +42,9 @@ class ReferenceProcess:
     Biologically grounded reference process P^0(T_{0:1} | x0).
     Combines:
     - Mutation prior Q^0(x, x') from ESM-2 masked LM
-    - Fitness-biased mutations Q^0_F(x, x') ∝ Q^0(x, x') exp(βF(x'))
-    - Branching intensity λ(x_v) from trained MLP
+    - Fitness-biased mutations Q^0_F via site-local Option A
+      (``tilt_log_R0_by_fitness`` — same as TreeSBM train/gen)
+    - Branching intensity λ(x_v) from trained MLP (scaffold; not in train path)
     """
 
     def __init__(
@@ -46,6 +54,7 @@ class ReferenceProcess:
         esm_c_model,
         branching_mlp: BranchingIntensityMLP,
         beta: float = 1.0,
+        fitness_score: str = "log_R0",
     ):
         """
         Args:
@@ -53,13 +62,15 @@ class ReferenceProcess:
             esm2_alphabet: ESM-2 alphabet for tokenization
             esm_c_model: Loaded ESM-C model for embeddings
             branching_mlp: Trained 1-layer MLP for λ(x)
-            beta: Fitness temperature parameter
+            beta: Fitness temperature (§4.2). 0 disables tilt.
+            fitness_score: "log_R0" (default) or "log_softmax"
         """
         self.esm2_model = esm2_model
         self.esm2_alphabet = esm2_alphabet
         self.esm_c_model = esm_c_model
         self.branching_mlp = branching_mlp
         self.beta = beta
+        self.fitness_score = fitness_score
 
         # Freeze all models
         for model in [esm2_model, esm_c_model]:
@@ -69,37 +80,32 @@ class ReferenceProcess:
 
     def get_mutation_rates(self, seq: str) -> np.ndarray:
         """
-        Compute Q^0_F(x, x') for all single-residue mutations.
+        Compute Q^0_F(x, x') for all single-residue mutations (Option A).
+
+        Site-local tilt (paper §4.2 cheap proxy):
+            log q_F(a) = log_softmax(log_R0)_a + β · score_a
+            then log_softmax again (see ``tilt_log_R0_by_fitness``).
 
         Returns:
-            mutation_rates: (L, 20) array of transition rates
-                where mutation_rates[i, j] = rate of position i → amino acid j
+            mutation_rates: (L, 20) array of transition probabilities
+                where mutation_rates[i, j] = P(position i → amino acid j)
         """
         with torch.no_grad():
-            # Tokenize
             tokens = self.esm2_alphabet.encode(seq)
             tokens = torch.tensor(tokens).unsqueeze(0)  # (1, L)
 
-            # Get logits from ESM-2
             results = self.esm2_model(tokens, repr_layers=[33])
             logits = results["logits"][0]  # (L, 33 vocab)
 
-            # Extract amino acid logits (indices 4-23 for 20 standard AAs)
+            # Amino acid logits (indices 4-23 for 20 standard AAs)
             aa_logits = logits[:, 4:24]  # (L, 20)
+            log_R0 = torch.log_softmax(aa_logits, dim=-1)
 
-            # Convert to probabilities
-            aa_probs = torch.softmax(aa_logits, dim=-1)  # (L, 20)
-
-            # Get fitness for this sequence: mean per-position log prob
-            aa_logprobs = torch.log_softmax(aa_logits, dim=-1)
-            fitness = aa_logprobs.mean().item()  # scalar
-
-            # Bias mutations by fitness of target: Q^0_F(x, x') ∝ Q^0(x, x') exp(β F(x'))
-            # For simplicity: use current sequence fitness as proxy
-            # Better: would compute F(x') for each mutation, but expensive
-            fitness_factor = np.exp(self.beta * fitness)
-
-            mutation_rates = (aa_probs.cpu().numpy() * fitness_factor)
+            # Same Option A helper as TreeSBM train/gen
+            log_R0_tilted = tilt_log_R0_by_fitness(
+                log_R0, beta=self.beta, score=self.fitness_score
+            )
+            mutation_rates = log_R0_tilted.exp().cpu().numpy()
 
         return mutation_rates  # (L, 20)
 
@@ -185,61 +191,29 @@ class ReferenceProcess:
 
     def _mutate_sequence(self, seq: str) -> str:
         """
-        Algorithm 3, Lines 7-8: Sample mutation and accept/reject by fitness.
+        Sample a mutation from tilted Q^0_F (Option A site distribution).
 
-        1. Sample edit proposal x' from p_pLM (Q^0)
-        2. Accept x' with probability ∝ exp(βF(x'))
-
-        Args:
-            seq: current sequence
-
-        Returns:
-            mutated sequence (after accept/reject)
+        Uses get_mutation_rates (tilt_log_R0_by_fitness) rather than a separate
+        MH accept/reject on full-sequence PLL.
         """
         aa_alphabet = "ACDEFGHIKLMNPQRSTVWY"
+        qf_probs = self.get_mutation_rates(seq)  # (L, 20)
 
-        with torch.no_grad():
-            # Get Q^0 (ESM-2 mutation probabilities)
-            tokens = self.esm2_alphabet.encode(seq)
-            tokens = torch.tensor(tokens).unsqueeze(0)
-            results = self.esm2_model(tokens, repr_layers=[33])
-            logits = results["logits"][0]
-            aa_logits = logits[:, 4:24]
-            q0_probs = torch.softmax(aa_logits, dim=-1).cpu().numpy()  # (L, 20)
-
-        # Sample position and target amino acid from Q^0
-        pos_probs = q0_probs.sum(axis=1)
+        # Sample position and target amino acid from Q^0_F
+        pos_probs = qf_probs.sum(axis=1)
         pos_probs /= pos_probs.sum()
         pos = np.random.choice(len(seq), p=pos_probs)
 
-        target_probs = q0_probs[pos]
+        target_probs = qf_probs[pos]
         target_probs /= target_probs.sum()
         target_aa = np.random.choice(aa_alphabet, p=target_probs)
 
-        # Create mutant
-        mutant = seq[:pos] + target_aa + seq[pos+1:]
-
-        # Accept/reject: compute F(x') and accept with prob ∝ exp(βF(x'))
-        fitness_mutant = self._get_fitness(mutant)
-        accept_prob = np.exp(self.beta * fitness_mutant)
-
-        # Cap acceptance probability at 1
-        accept_prob = min(accept_prob, 1.0)
-
-        if np.random.rand() < accept_prob:
-            return mutant
-        else:
-            return seq  # Reject: stay at current sequence
+        return seq[:pos] + target_aa + seq[pos + 1 :]
 
     def _get_fitness(self, seq: str) -> float:
         """
         Compute fitness F(x) = mean per-position log-probability under ESM-2.
-
-        Args:
-            seq: amino acid sequence
-
-        Returns:
-            fitness: scalar (can be negative)
+        Kept for Option B / ablations; train path uses site-local Option A.
         """
         with torch.no_grad():
             tokens = self.esm2_alphabet.encode(seq)
