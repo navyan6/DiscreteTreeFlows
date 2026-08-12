@@ -29,8 +29,6 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 import torch
-import torch.nn.functional as F
-from transformers import AutoTokenizer, EsmForMaskedLM
 
 from src.tree_state import TreeState
 from src.treeencoder.node_encoder import NodeEncoder
@@ -40,7 +38,14 @@ from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
 from src.bridge.losses import _build_seq_indices
-from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
+from src.bridge.fitness_tilt import (
+    TILT_FULL_ESM,
+    TILT_SITE_LOCAL,
+    make_sequence_pll_scorer,
+    tilt_log_R0_by_fitness,
+)
+from src.r0_backends import build_r0_backend, normalize_backend_name
+from src.reference_process import sample_poisson_offspring
 from src.bridge.mutation_sample import (
     mutate_sequence_independent,
     mutate_sequence_site_softmax,
@@ -84,27 +89,20 @@ def load_checkpoint(path, device, max_seq_len=566):
         )
     r_heads._train_log_pssm = log_pssm
     r_heads._col_entropy = col_entropy
-    # Stash tilt config from checkpoint so generate matches train (CLI can override).
+    # Stash tilt / R0 config from checkpoint so generate matches train (CLI can override).
     r_heads._fitness_beta = float(cfg.get("fitness_beta", 0.0))
     r_heads._fitness_score = cfg.get("fitness_score", "log_R0")
+    r_heads._fitness_tilt_mode = cfg.get("fitness_tilt_mode", TILT_SITE_LOCAL)
+    r_heads._fitness_esm_batch_size = int(cfg.get("fitness_esm_batch_size", 8))
+    r_heads._fitness_esm_top_k = cfg.get("fitness_esm_top_k")
+    r_heads._ckpt_config = cfg
     return node_enc, tree_enc, r_heads
 
 
-def get_lm_logits(tokenizer, esm_model, aa_token_ids, sequences, max_seq_len, device):
-    N, L = len(sequences), max_seq_len
-    log_rates = torch.zeros(N, L, 20, dtype=torch.float32, device=device)
-    with torch.no_grad():
-        tokens = tokenizer(sequences, return_tensors="pt", padding=True,
-                           truncation=False).to(device)
-        logits = esm_model(**tokens).logits          # [N, max_len+2, vocab]
-    seq_lens = tokens["attention_mask"].sum(dim=1)
-    for i in range(N):
-        actual_L = int(seq_lens[i].item()) - 2
-        aa_logits = logits[i, 1:actual_L + 1, :][:, aa_token_ids]
-        log_probs = F.log_softmax(aa_logits, dim=-1)
-        clip = min(actual_L, L)
-        log_rates[i, :clip, :] = log_probs[:clip]
-    return log_rates
+def get_lm_logits(r0_backend, sequences, max_seq_len, device):
+    """Live R0 log-rates via multi-pLM / substitution backend."""
+    log_rates = r0_backend.log_mutation_rates(sequences, max_seq_len=max_seq_len)
+    return log_rates.to(device)
 
 
 def tree_to_newick(tree: TreeState) -> str:
@@ -144,19 +142,15 @@ def generate_tree(args):
 
     node_enc, tree_enc, rate_heads = load_checkpoint(args.checkpoint, device, args.max_seq_len)
 
-    # ESM-2-8M 
+    # ESM-2-8M embeddings for the tree encoder (unchanged); R0 may be a different prior.
     embedder = ESM2Embedder(device=device)
 
-    # ESM-2-8M 
-    model_id = "facebook/esm2_t6_8M_UR50D"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    esm_model = EsmForMaskedLM.from_pretrained(model_id).to(device)
-    esm_model.eval()
-    for p in esm_model.parameters():
-        p.requires_grad = False
-    aa_token_ids = torch.tensor(
-        [tokenizer.convert_tokens_to_ids(aa) for aa in AA_VOCAB], dtype=torch.long
-    )
+    ckpt_cfg = getattr(rate_heads, "_ckpt_config", {})
+    r0_name = getattr(args, "r0_backend", None) or ckpt_cfg.get("r0_backend", "esm2")
+    r0_name = normalize_backend_name(r0_name)
+    r0_model = getattr(args, "r0_model", None)
+    print(f"R0 backend: {r0_name}  model={r0_model or '(default)'}")
+    r0_backend = build_r0_backend(r0_name, model_id=r0_model, device=device)
 
     # t=0: root-only tree
     tree = TreeState.root_only(args.root_seq)
@@ -195,17 +189,47 @@ def generate_tree(args):
 
         # R0 log-rates computed first so mutation head can condition on them
         active_seqs = [tree.node_seqs[v] for v in active_leaves]
-        log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
-                                     active_seqs, args.max_seq_len, device)
-        # §4.2 Option A: same tilt as training (CLI overrides checkpoint).
+        log_R0_mut  = get_lm_logits(r0_backend, active_seqs, args.max_seq_len, device)
+        # §4.2: same tilt as training (CLI overrides checkpoint).
         fitness_beta = getattr(args, "fitness_beta", None)
         if fitness_beta is None:
             fitness_beta = getattr(rate_heads, "_fitness_beta", 0.0)
         fitness_score = getattr(args, "fitness_score", None) or getattr(
             rate_heads, "_fitness_score", "log_R0"
         )
+        fitness_tilt_mode = getattr(args, "fitness_tilt_mode", None) or getattr(
+            rate_heads, "_fitness_tilt_mode", TILT_SITE_LOCAL
+        )
+        fitness_cache = getattr(args, "_fitness_cache", None)
+        if fitness_cache is None:
+            fitness_cache = {}
+            args._fitness_cache = fitness_cache
+        fitness_scorer = getattr(args, "_fitness_scorer", None)
+        if (
+            fitness_tilt_mode == TILT_FULL_ESM
+            and float(fitness_beta) != 0.0
+            and fitness_scorer is None
+        ):
+            fitness_scorer = make_sequence_pll_scorer(
+                r0_backend, max_seq_len=args.max_seq_len
+            )
+            args._fitness_scorer = fitness_scorer
+        top_k = getattr(args, "fitness_esm_top_k", None)
+        if top_k is None:
+            top_k = getattr(rate_heads, "_fitness_esm_top_k", None)
+        batch_sz = getattr(args, "fitness_esm_batch_size", None)
+        if batch_sz is None:
+            batch_sz = getattr(rate_heads, "_fitness_esm_batch_size", 8)
         log_R0_mut = tilt_log_R0_by_fitness(
-            log_R0_mut, beta=fitness_beta, score=fitness_score
+            log_R0_mut,
+            beta=fitness_beta,
+            score=fitness_score,
+            mode=fitness_tilt_mode,
+            sequences=active_seqs if fitness_tilt_mode == TILT_FULL_ESM else None,
+            fitness_scorer=fitness_scorer,
+            cache=fitness_cache,
+            batch_size=int(batch_sz),
+            top_k_aas=top_k,
         )
 
         aa_indices = None
@@ -245,10 +269,16 @@ def generate_tree(args):
                     log_R_i, seq, seq_len, dt, mrs,
                 )
 
-            # Branch
-            lam  = out["branching_rate"][i].item() * args.branch_rate_scale
-            p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
-            n_ch = 2 if torch.rand(1).item() < p_branch else 0
+            # Branch: learned RateHeads (default) or paper Alg. 3 Poisson(λ Δt).
+            branching_mode = getattr(args, "branching_mode", "learned")
+            if branching_mode == "poisson_ref":
+                ref_lam = float(getattr(args, "ref_lambda", 1.0))
+                n_ch = sample_poisson_offspring(ref_lam, dt)
+                n_ch = min(n_ch, 2)  # keep bifurcate clamp for fair TreeSBM compare
+            else:
+                lam  = out["branching_rate"][i].item() * args.branch_rate_scale
+                p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
+                n_ch = 2 if torch.rand(1).item() < p_branch else 0
             if n_ch > 0:
                 child_seqs = [new_node_seqs[leaf_id]] * n_ch
                 tree = TreeState(
@@ -321,7 +351,7 @@ def generate_tree(args):
             tag = "root" if nid == tree.root_id else ("leaf" if nid not in has_children else "internal")
             f.write(f">{nid}|{tag}\n{tree.node_seqs[nid]}\n")
     print(f"Sequences saved to {fasta_path}")
-
+    r0_backend.close()
     return tree
 
 
@@ -341,14 +371,57 @@ def main():
     parser.add_argument(
         "--fitness-beta", "--ref-tilt-beta",
         type=float, default=None, dest="fitness_beta",
-        help="§4.2 R0 fitness tilt β (Option A). Default: checkpoint config, else 0. "
+        help="§4.2 R0 fitness tilt β. Default: checkpoint config, else 0. "
              "Alias: --ref-tilt-beta.",
     )
     parser.add_argument(
         "--fitness-score",
         choices=["log_R0", "log_softmax"],
         default=None,
-        help="Fitness proxy for tilting (default: checkpoint / log_R0).",
+        help="Fitness proxy for site_local tilting (default: checkpoint / log_R0).",
+    )
+    parser.add_argument(
+        "--fitness-tilt-mode",
+        choices=[TILT_SITE_LOCAL, TILT_FULL_ESM],
+        default=None,
+        help="site_local (Option A, default) or full_esm (Option B mutant PLL). "
+             "Default: checkpoint config / site_local.",
+    )
+    parser.add_argument(
+        "--fitness-esm-batch-size",
+        type=int,
+        default=None,
+        help="Batch size for full_esm mutant scoring.",
+    )
+    parser.add_argument(
+        "--fitness-esm-top-k",
+        type=int,
+        default=None,
+        help="Only score/tilt top-k untilted AAs per site under full_esm.",
+    )
+    parser.add_argument(
+        "--r0-backend",
+        default=None,
+        help="Frozen R0 prior for live logits (default: checkpoint config, else esm2). "
+             "Table 7: esm2 / esm2_650m / esmc / jtt / wag / lg.",
+    )
+    parser.add_argument(
+        "--r0-model",
+        default=None,
+        help="Optional model id override for --r0-backend.",
+    )
+    parser.add_argument(
+        "--branching-mode",
+        choices=["learned", "poisson_ref"],
+        default="learned",
+        help="Branching dynamics: 'learned' = RateHeads Bernoulli bifurcate (default); "
+             "'poisson_ref' = Alg. 3 Poisson(λ Δt) with --ref-lambda (D.2).",
+    )
+    parser.add_argument(
+        "--ref-lambda",
+        type=float,
+        default=1.0,
+        help="Constant Poisson λ when --branching-mode poisson_ref.",
     )
     parser.add_argument("--branch-rate-scale", type=float, default=6.0,
                         help="Multiply model branching rate by this at inference (corrects lam≈1 → lam≈6)")

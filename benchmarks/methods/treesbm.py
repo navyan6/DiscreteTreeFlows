@@ -27,8 +27,13 @@ class TreeSBMMethod(Method):
 
     def __init__(self, checkpoint: str, n_steps: int = 50, branch_rate_scale: float = 6.0,
                  rate_per_H: float = 1.2, max_seq_len: int = 566, cushion: float = 1.6,
-                 max_retries: int = 4):
-        self.gen = TreeSBMGenerator(checkpoint, max_seq_len=max_seq_len)
+                 max_retries: int = 4, r0_backend=None, fitness_beta: float | None = None,
+                 ablate_bridge: bool = False):
+        self.gen = TreeSBMGenerator(
+            checkpoint, max_seq_len=max_seq_len,
+            r0_backend=r0_backend, fitness_beta=fitness_beta,
+            ablate_bridge=ablate_bridge,
+        )
         self.n_steps = n_steps
         self.branch_rate_scale = branch_rate_scale
         self.rate_per_H = rate_per_H

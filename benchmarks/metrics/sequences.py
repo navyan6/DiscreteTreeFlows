@@ -5,6 +5,28 @@ to observed/true sequences, anchored on the root.
 Used by both synthetic (Track A) and real viral blind forecasting (Track B1),
 where generated leaves do NOT share identities with observed leaves — so metrics
 are coverage / recovery based (best-of-K, coverage@K, mutation P/R/F1), not RF.
+
+## Leaf vs tree (important)
+
+Primary KPIs ``mut_recovery`` / ``site_recall`` / ``aa_acc_given_hit`` /
+``cons_retention`` from ``positional_recovery`` are **leaf-only**:
+
+  - GT: terminal (leaf) sequences vs root
+  - Gen: best-matching generated **leaf** vs that GT leaf
+  - Internal / ancestral nodes are **not** scored
+
+This is intentional for forecasting (observed tips). Timing of when a mutation
+appears on an internal edge does not enter the primary metric — only the leaf
+AA matters. If GT mutations are tip-restricted while the model mutates on
+internal edges (or vice versa), leaf scoring is still the fair end-state check;
+use the tree-wide helpers below when you also want path-aggregated credit.
+
+Tree-wide / fairer companions (do **not** replace the primary leaf metrics):
+  - ``any_descendant_mut_recovery``: credit a GT leaf mut if **any** gen leaf
+    reaches the GT AA (or mutates the site)
+  - ``path_union_mutation_recovery``: union of mut sites over all GT leaves vs
+    union over gen leaves (set recovery)
+  - ``mutation_pr_f1`` (already leaf-union): precision/recall of mut sets
 """
 
 from __future__ import annotations
@@ -17,9 +39,11 @@ import numpy as np
 __all__ = [
     "hamming", "identity", "mutations_vs_root", "sites_vs_root",
     "best_of_k_identity", "min_hamming", "coverage_at_k",
+    "coverage_at_e", "frac_gen_within_e",
     "mutation_pr_f1", "unique_mutations_recovered",
     "sitewise_entropy", "mutation_spectrum", "pairwise_distance_distribution",
     "positional_recovery",
+    "any_descendant_mut_recovery", "path_union_mutation_recovery",
 ]
 
 
@@ -69,6 +93,34 @@ def coverage_at_k(targets: list[str], gen_seqs: list[str], eps_frac: float = 0.0
         if any(hamming(t, g) <= thresh for g in gen_seqs):
             covered += 1
     return covered / len(targets)
+
+
+def coverage_at_e(targets: list[str], gen_seqs: list[str], e: int = 0) -> float:
+    """
+    Obs→gen coverage at absolute Hamming radius e:
+      |{t ∈ targets : ∃g, d_H(t,g) ≤ e}| / |targets|
+    """
+    if not targets:
+        return float("nan")
+    if e < 0:
+        raise ValueError("e must be >= 0")
+    covered = sum(1 for t in targets if min_hamming(t, gen_seqs) <= e)
+    return covered / len(targets)
+
+
+def frac_gen_within_e(targets: list[str], gen_seqs: list[str], e: int = 0) -> float:
+    """
+    Gen→obs fraction at absolute Hamming radius e:
+      |{g ∈ gen_seqs : ∃t, d_H(t,g) ≤ e}| / |gen_seqs|
+    """
+    if not gen_seqs:
+        return float("nan")
+    if e < 0:
+        raise ValueError("e must be >= 0")
+    if not targets:
+        return 0.0
+    near = sum(1 for g in gen_seqs if min_hamming(g, targets) <= e)
+    return near / len(gen_seqs)
 
 
 # ── mutation precision / recall / F1 ────────────────────────────────────────
@@ -151,7 +203,8 @@ def pairwise_distance_distribution(seqs: list[str], max_pairs: int = 2000,
 
 def positional_recovery(root: str, gt: str, gen: str) -> dict:
     """
-    Split positions by root-vs-GT and score the generated sequence:
+    **Primary leaf metric.** Split positions by root-vs-GT leaf and score one
+    generated leaf:
       conserved (root==gt): model should keep root AA -> retention
       mutating  (root!=gt): model should reach GT AA  -> recovery
 
@@ -164,6 +217,8 @@ def positional_recovery(root: str, gt: str, gen: str) -> dict:
 
     Optional site_precision = P(root!=GT | gen!=root): among sites the model
     mutated away from root, fraction that were true mutating sites.
+
+    Does **not** look at internal nodes — see module docstring.
     """
     L = min(len(root), len(gt), len(gen))
     mut_correct = mut_total = cons_correct = cons_total = 0
@@ -197,4 +252,86 @@ def positional_recovery(root: str, gt: str, gen: str) -> dict:
         "cons_total": cons_total,
         "site_hits": site_hits,
         "gen_mut_total": gen_mut_total,
+    }
+
+
+def any_descendant_mut_recovery(
+    root: str,
+    gt: str,
+    gen_seqs: list[str],
+) -> dict:
+    """
+    Tree-wide companion to leaf ``positional_recovery`` for one GT leaf.
+
+    For each site where root≠GT, credit recovery if **any** generated leaf has
+    gen==GT at that site; site hit if any gen≠root. Conserved retention requires
+    **all** gen leaves to keep root (strict) — also report soft mean retention.
+
+    Primary leaf ``mut_recovery`` is unchanged; this is an additional KPI.
+    """
+    if not gen_seqs:
+        return {
+            "mut_recovery_any_descendant": float("nan"),
+            "site_recall_any_descendant": float("nan"),
+            "cons_retention_all_gen": float("nan"),
+            "mut_total": 0,
+            "cons_total": 0,
+        }
+    L = min(len(root), len(gt), *(len(g) for g in gen_seqs))
+    mut_correct = mut_total = site_hits = 0
+    cons_correct = cons_total = 0
+    for i in range(L):
+        r, g = root[i], gt[i]
+        gens = [s[i] for s in gen_seqs]
+        if r == g:
+            cons_total += 1
+            cons_correct += int(all(m == r for m in gens))
+        else:
+            mut_total += 1
+            mut_correct += int(any(m == g for m in gens))
+            site_hits += int(any(m != r for m in gens))
+    return {
+        "mut_recovery_any_descendant": (
+            mut_correct / mut_total if mut_total else float("nan")
+        ),
+        "site_recall_any_descendant": (
+            site_hits / mut_total if mut_total else float("nan")
+        ),
+        "cons_retention_all_gen": (
+            cons_correct / cons_total if cons_total else float("nan")
+        ),
+        "mut_total": mut_total,
+        "cons_total": cons_total,
+    }
+
+
+def path_union_mutation_recovery(
+    root: str,
+    gt_seqs: list[str],
+    gen_seqs: list[str],
+) -> dict:
+    """
+    Path-/tree-aggregated mutation set recovery (leaf unions vs root).
+
+    GT mut sites = ∪_leaves sites_vs_root(root, gt_leaf)
+    Gen mut sites = ∪_leaves sites_vs_root(root, gen_leaf)
+    Gen substitutions = ∪_leaves mutations_vs_root(root, gen_leaf)
+
+    Reports site-level recall/precision/F1 plus substitution-level recall of
+    (pos, aa) pairs that appear on any GT leaf. Complements leaf-paired
+    ``positional_recovery``; does not replace it.
+    """
+    site = mutation_pr_f1(gen_seqs, gt_seqs, root, level="site")
+    sub = mutation_pr_f1(gen_seqs, gt_seqs, root, level="substitution")
+    return {
+        "mut_site_recall_path_union": site["recall"],
+        "mut_site_precision_path_union": site["precision"],
+        "mut_site_f1_path_union": site["f1"],
+        "mut_sub_recall_path_union": sub["recall"],
+        "mut_sub_precision_path_union": sub["precision"],
+        "mut_sub_f1_path_union": sub["f1"],
+        "n_gt_mut_sites": site["n_obs"],
+        "n_gen_mut_sites": site["n_gen"],
+        "n_gt_mut_subs": sub["n_obs"],
+        "n_gen_mut_subs": sub["n_gen"],
     }

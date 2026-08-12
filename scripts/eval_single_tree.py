@@ -40,7 +40,11 @@ from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
 from src.bridge.losses import _build_seq_indices
-from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
+from src.bridge.fitness_tilt import (
+    TILT_FULL_ESM,
+    TILT_SITE_LOCAL,
+    tilt_log_R0_by_fitness,
+)
 from src.bridge.mutation_sample import (
     mutate_sequence_independent,
     mutate_sequence_site_softmax,
@@ -71,6 +75,77 @@ def get_lm_logits(tokenizer, esm_model, aa_token_ids, sequences, max_seq_len, de
         clip = min(actual_L, max_seq_len)
         log_rates[i, :clip, :] = log_probs[:clip]
     return log_rates
+
+
+def _seq_keyed_cached_batch(
+    sequences: list[str],
+    cache: dict[str, torch.Tensor],
+    compute_fn,
+    device,
+    stats: dict | None = None,
+) -> torch.Tensor:
+    """Exact recompute-on-miss cache keyed by AA string.
+
+    ``compute_fn(miss_seqs)`` must return a tensor stacked in the same order as
+    unique ``miss_seqs``. Hits are reused unchanged (no freeze-R0 approximation).
+    Duplicate sequences within one batch are deduped before the forward.
+    """
+    if not sequences:
+        raise ValueError("sequences must be non-empty")
+    miss_seqs = list(dict.fromkeys(s for s in sequences if s not in cache))
+    n_hit = sum(1 for s in sequences if s in cache)
+    if miss_seqs:
+        fresh = compute_fn(miss_seqs)
+        if fresh.shape[0] != len(miss_seqs):
+            raise RuntimeError(
+                f"compute_fn returned {fresh.shape[0]} rows for {len(miss_seqs)} misses"
+            )
+        for j, s in enumerate(miss_seqs):
+            cache[s] = fresh[j].detach().cpu()
+    if stats is not None:
+        stats["hits"] = stats.get("hits", 0) + n_hit
+        stats["misses"] = stats.get("misses", 0) + len(miss_seqs)
+        stats["unique"] = len(cache)
+    return torch.stack([cache[s].to(device) for s in sequences], dim=0)
+
+
+def embed_sequences_cached(
+    embedder,
+    sequences: list[str],
+    cache: dict[str, torch.Tensor],
+    device,
+    stats: dict | None = None,
+) -> torch.Tensor:
+    """Seq-keyed wrapper around ``embedder.embed_sequences`` (exact on miss)."""
+    return _seq_keyed_cached_batch(
+        sequences,
+        cache,
+        lambda miss: embedder.embed_sequences(miss),
+        device,
+        stats=stats,
+    )
+
+
+def get_lm_logits_cached(
+    tokenizer,
+    esm_model,
+    aa_token_ids,
+    sequences: list[str],
+    max_seq_len: int,
+    device,
+    cache: dict[str, torch.Tensor],
+    stats: dict | None = None,
+) -> torch.Tensor:
+    """Seq-keyed wrapper around ``get_lm_logits`` (exact on miss)."""
+    return _seq_keyed_cached_batch(
+        sequences,
+        cache,
+        lambda miss: get_lm_logits(
+            tokenizer, esm_model, aa_token_ids, miss, max_seq_len, device
+        ),
+        device,
+        stats=stats,
+    )
 
 
 def esm_pll_seq(log_R0_i: torch.Tensor, seq: str, max_seq_len: int) -> float:
@@ -171,6 +246,9 @@ def load_models(checkpoint, device, max_seq_len):
     r_heads._train_log_pssm = log_pssm
     r_heads._fitness_beta = float(cfg.get("fitness_beta", 0.0))
     r_heads._fitness_score = cfg.get("fitness_score", "log_R0")
+    r_heads._fitness_tilt_mode = cfg.get("fitness_tilt_mode", TILT_SITE_LOCAL)
+    r_heads._fitness_esm_batch_size = int(cfg.get("fitness_esm_batch_size", 8))
+    r_heads._fitness_esm_top_k = cfg.get("fitness_esm_top_k")
     return node_enc, tree_enc, r_heads, col_entropy
 
 
@@ -182,7 +260,35 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                   site_softmax_sample: bool = False,
                   site_temperature: float = 1.0,
                   fitness_beta: float | None = None,
-                  fitness_score: str | None = None):
+                  fitness_score: str | None = None,
+                  fitness_tilt_mode: str | None = None,
+                  fitness_esm_batch_size: int | None = None,
+                  fitness_esm_top_k: int | None = None,
+                  cache_esm: bool = True,
+                  esm_cache_stats: dict | None = None,
+                  ablate_bridge: bool = False,
+                  ablate_tree_context: bool = False,
+                  branching_mode: str = "learned",
+                  ref_lambda: float = 1.0,
+                  ablate_branch_length_head: bool = False,
+                  ablate_internal_node_seqs: bool = False,
+                  r0_backend=None):
+    """Generate a tree (Algorithm 4).
+
+    ``cache_esm`` (default True): keep in-memory seq→embedding and seq→log_R0
+    caches across steps. Unchanged AA strings reuse cached tensors; misses run
+    a full ESM forward (exact recompute, not freeze-R0).
+
+    Table 8 gen ablations (no retrain):
+      ablate_bridge: force log R_θ = log R0 (zero c_θ)
+      ablate_tree_context: zero H_T before RateHeads
+      branching_mode='poisson_ref': constant-λ Poisson branching (no seq-dep head)
+      ablate_branch_length_head: use constant BL=dt instead of BL head
+      ablate_internal_node_seqs: zero PLM embeddings for non-leaf nodes
+
+    Table 7: pass ``r0_backend`` (from ``src.r0_backends.build_r0_backend``) to
+    swap the frozen mutation prior (JTT / ESM-2-650M / ESM-C / …).
+    """
     tree = TreeState.root_only(root_seq)
     node_birth_step = {tree.root_id: 0}
     dt = 1.0 / n_steps
@@ -191,6 +297,50 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
         fitness_beta = getattr(rate_heads, "_fitness_beta", 0.0)
     if fitness_score is None:
         fitness_score = getattr(rate_heads, "_fitness_score", "log_R0")
+    if fitness_tilt_mode is None:
+        fitness_tilt_mode = getattr(rate_heads, "_fitness_tilt_mode", TILT_SITE_LOCAL)
+    if fitness_esm_batch_size is None:
+        fitness_esm_batch_size = getattr(rate_heads, "_fitness_esm_batch_size", 8)
+    if fitness_esm_top_k is None:
+        fitness_esm_top_k = getattr(rate_heads, "_fitness_esm_top_k", None)
+    fitness_cache: dict = {}
+    emb_cache: dict[str, torch.Tensor] = {}
+    r0_cache: dict[str, torch.Tensor] = {}
+    emb_stats = None
+    r0_stats = None
+    if esm_cache_stats is not None:
+        emb_stats = esm_cache_stats.setdefault("emb", {"hits": 0, "misses": 0, "unique": 0})
+        r0_stats = esm_cache_stats.setdefault("r0", {"hits": 0, "misses": 0, "unique": 0})
+    fitness_scorer = None
+    if fitness_tilt_mode == TILT_FULL_ESM and float(fitness_beta) != 0.0:
+        from src.r0_backends import AA_TO_IDX as _AA_TO_IDX
+
+        def fitness_scorer(sequences):
+            L = max((len(s) for s in sequences), default=max_seq_len)
+            seqs = list(sequences)
+            if r0_backend is not None:
+                log_R0 = r0_backend.log_mutation_rates(seqs, L, device=device)
+                if torch.is_tensor(log_R0):
+                    log_R0 = log_R0.detach().cpu()
+            elif cache_esm:
+                log_R0 = get_lm_logits_cached(
+                    tokenizer, esm_model, aa_token_ids, seqs, L, device,
+                    r0_cache, stats=r0_stats,
+                ).cpu()
+            else:
+                log_R0 = get_lm_logits(
+                    tokenizer, esm_model, aa_token_ids, seqs, L, device
+                ).cpu()
+            out = []
+            for i, seq in enumerate(seqs):
+                vals = []
+                for pos, aa in enumerate(seq[:L]):
+                    j = _AA_TO_IDX.get(aa)
+                    if j is None:
+                        continue
+                    vals.append(float(log_R0[i, pos, j].item()))
+                out.append(sum(vals) / len(vals) if vals else float("-inf"))
+            return torch.tensor(out, dtype=torch.float32)
 
     for step in range(n_steps):
         t = step / n_steps
@@ -209,14 +359,69 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
         edge_index_t, _, edge_attr_t = build_edges(tree, node_to_idx)
         edge_index_t  = edge_index_t.to(device)
         branch_lens_t = edge_attr_t.squeeze(-1).to(device)
-        plm_t = embedder.embed_sequences(
-            [tree.node_seqs[nid] for nid in node_ids_t]).to(device)
+        node_seqs = [tree.node_seqs[nid] for nid in node_ids_t]
+        if ablate_internal_node_seqs:
+            # Table 8: without internal-node sequences — only leaf PLM features
+            # enter NodeEncoder/TreeEncoder; internals get zero embeddings.
+            # Stack is a fresh tensor (cache stores CPU copies), so in-place
+            # zeroing cannot poison emb_cache.
+            leaf_set = set(active_leaves)
+            plm_t = torch.zeros(len(node_ids_t), 320, device=device)
+            leaf_pos = [i for i, nid in enumerate(node_ids_t) if nid in leaf_set]
+            if leaf_pos:
+                leaf_seqs_emb = [node_seqs[i] for i in leaf_pos]
+                if cache_esm:
+                    leaf_plm = embed_sequences_cached(
+                        embedder, leaf_seqs_emb, emb_cache, device, stats=emb_stats
+                    )
+                else:
+                    leaf_plm = embedder.embed_sequences(leaf_seqs_emb).to(device)
+                plm_t[leaf_pos] = leaf_plm
+        elif cache_esm:
+            plm_t = embed_sequences_cached(
+                embedder, node_seqs, emb_cache, device, stats=emb_stats
+            )
+        else:
+            plm_t = embedder.embed_sequences(node_seqs).to(device)
 
         active_seqs = [tree.node_seqs[v] for v in active_leaves]
-        log_R0_mut  = get_lm_logits(tokenizer, esm_model, aa_token_ids,
-                                     active_seqs, max_seq_len, device)
+        if r0_backend is not None:
+            if cache_esm:
+                log_R0_mut = _seq_keyed_cached_batch(
+                    active_seqs,
+                    r0_cache,
+                    lambda miss: r0_backend.log_mutation_rates(
+                        miss, max_seq_len, device=device
+                    ),
+                    device,
+                    stats=r0_stats,
+                )
+            else:
+                log_R0_mut = r0_backend.log_mutation_rates(
+                    active_seqs, max_seq_len, device=device
+                )
+            if not torch.is_tensor(log_R0_mut):
+                raise TypeError("r0_backend.log_mutation_rates must return a tensor")
+            log_R0_mut = log_R0_mut.to(device)
+        elif cache_esm:
+            log_R0_mut = get_lm_logits_cached(
+                tokenizer, esm_model, aa_token_ids, active_seqs, max_seq_len,
+                device, r0_cache, stats=r0_stats,
+            )
+        else:
+            log_R0_mut = get_lm_logits(
+                tokenizer, esm_model, aa_token_ids, active_seqs, max_seq_len, device
+            )
         log_R0_mut = tilt_log_R0_by_fitness(
-            log_R0_mut, beta=fitness_beta, score=fitness_score
+            log_R0_mut,
+            beta=fitness_beta,
+            score=fitness_score,
+            mode=fitness_tilt_mode,
+            sequences=active_seqs if fitness_tilt_mode == TILT_FULL_ESM else None,
+            fitness_scorer=fitness_scorer,
+            cache=fitness_cache,
+            batch_size=int(fitness_esm_batch_size),
+            top_k_aas=fitness_esm_top_k,
         )
         aa_indices = None
         if getattr(rate_heads, "use_mut_aa_emb", False):
@@ -225,12 +430,18 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
             h_t     = node_enc(plm_t, struct_t, lap_t)
             H_t, _  = tree_enc(h_t, node_ids_t, node_times_dict,
                                 edge_index_t, branch_lens_t, t_scalar=t)
+            if ablate_tree_context:
+                H_t = torch.zeros_like(H_t)
             out     = rate_heads(
                 H_t, active_idx, log_R0_mut,
                 site_entropy=col_entropy,
                 aa_indices=aa_indices,
                 log_pssm=log_pssm,
             )
+            if ablate_bridge:
+                # Table 8: without bridge matching → pure R0 (no learned c_θ).
+                out = dict(out)
+                out["log_R_theta_mut"] = log_R0_mut
 
         new_node_seqs = dict(tree.node_seqs)
 
@@ -249,9 +460,13 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                 )
 
             at_cap   = len(tree.active_leaves) >= max_leaves
-            lam      = out["branching_rate"][i].item() * branch_rate_scale
-            p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
-            n_ch     = 0 if at_cap else (2 if torch.rand(1).item() < p_branch else 0)
+            if branching_mode == "poisson_ref":
+                from src.reference_process import sample_poisson_offspring
+                n_ch = 0 if at_cap else min(sample_poisson_offspring(float(ref_lambda), dt), 2)
+            else:
+                lam      = out["branching_rate"][i].item() * branch_rate_scale
+                p_branch = 1.0 - math.exp(-max(0.0, lam) * dt)
+                n_ch     = 0 if at_cap else (2 if torch.rand(1).item() < p_branch else 0)
 
             if n_ch > 0:
                 child_seqs = [new_node_seqs[leaf_id]] * n_ch
@@ -260,7 +475,7 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                     edges=tree.edges, branch_lengths=tree.branch_lengths,
                     node_seqs=new_node_seqs, active_leaves=list(tree.active_leaves))
                 tree = tree.branch_node(leaf_id, child_seqs)
-                bl_pred = out["branch_length"][i].item()
+                bl_pred = dt if ablate_branch_length_head else out["branch_length"][i].item()
                 new_children = tree.get_children(leaf_id)
                 tree = TreeState(
                     node_ids=tree.node_ids, root_id=tree.root_id,
@@ -584,7 +799,29 @@ def main():
         "--fitness-score",
         choices=["log_R0", "log_softmax"],
         default=None,
-        help="Fitness proxy for tilting (default: checkpoint / log_R0).",
+        help="Fitness proxy for site_local tilting (default: checkpoint / log_R0).",
+    )
+    parser.add_argument(
+        "--fitness-tilt-mode",
+        choices=[TILT_SITE_LOCAL, TILT_FULL_ESM],
+        default=None,
+        help="site_local (Option A) or full_esm (Option B). Default: checkpoint.",
+    )
+    parser.add_argument("--fitness-esm-batch-size", type=int, default=None)
+    parser.add_argument("--fitness-esm-top-k", type=int, default=None)
+    parser.add_argument(
+        "--r0-backend",
+        default=None,
+        help="Table 7 frozen R0 prior (esm2 / esm2_650m / esmc / jtt / wag / lg). "
+             "Default: checkpoint config / ESM-2-8M logits path.",
+    )
+    parser.add_argument("--r0-model", default=None, help="Optional R0 model id override.")
+    parser.add_argument(
+        "--cache-esm",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Incremental seq-keyed ESM emb + R0/MLM cache during generation "
+             "(default: on). Use --no-cache-esm to disable.",
     )
     parser.add_argument("--seed",                type=int,   default=42)
     args = parser.parse_args()
@@ -620,6 +857,13 @@ def main():
     print(f"Generating ({args.n_steps} steps, max_leaves={args.max_leaves}, "
           f"scale={args.branch_rate_scale})...")
 
+    r0_live = None
+    if args.r0_backend:
+        from src.r0_backends import build_r0_backend, normalize_backend_name
+        r0_name = normalize_backend_name(args.r0_backend)
+        print(f"R0 backend override: {r0_name}")
+        r0_live = build_r0_backend(r0_name, model_id=args.r0_model, device=device)
+
     gen_tree = generate_tree(
         root_seq, args.n_steps, args.max_seq_len,
         args.branch_rate_scale, args.max_leaves, args.mutation_rate_scale,
@@ -629,6 +873,11 @@ def main():
         site_temperature=args.site_temperature,
         fitness_beta=args.fitness_beta,
         fitness_score=args.fitness_score,
+        fitness_tilt_mode=args.fitness_tilt_mode,
+        fitness_esm_batch_size=args.fitness_esm_batch_size,
+        fitness_esm_top_k=args.fitness_esm_top_k,
+        cache_esm=args.cache_esm,
+        r0_backend=r0_live,
     )
     gen_leaves = get_leaves(gen_tree)
     print(f"Generated: {len(gen_tree.node_ids)} nodes, {len(gen_leaves)} leaves")

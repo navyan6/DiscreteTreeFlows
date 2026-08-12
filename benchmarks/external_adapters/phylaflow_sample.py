@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-Post-process PhylaFlow sampled trees into a TreeSBM topology-prior pool.
+Post-process PhylaFlow sampled trees into a TreeSBM pool for Table 2.
 
 PhylaFlow is posterior-basin transport in BHV space for a fixed alignment — it is
 NOT root-conditioned forward generation. This adapter never reimplements the
-flow; it only consumes trees produced by PhylaFlow's own sampling scripts and
-writes anonymized bare newicks for TopologyPriorMethod (row: phylaflow_adapted).
+flow; it only consumes trees from PhylaFlow's own sampling scripts and writes
+anonymized newicks (BLs kept by default for native row `phylaflow`;
+topology-only with --no-keep-branch-lengths for `phylaflow_adapted`).
 
-Typical upstream (run inside PhylaFlow's env + data layout; see EXTERNAL.md):
+Typical upstream (H3N2-trained ckpt inside PhylaFlow env; see EXTERNAL.md —
+NOT DS1–8 / launch_ds_local.sh ds*):
     python scripts/evaluate_per_dataset_sample_kl.py \\
-        --config configs/...yaml --checkpoint /path/to.ckpt \\
+        --config configs/h3n2_N16.yaml --checkpoint /path/to.ckpt \\
         --sample-config ... --output-dir samples/treesbm_N16 \\
-        --num-samples 50 --num-datasets 8 --dump-trees
+        --num-samples 50 --dump-trees
 
 Then (treesbm or PhylaFlow env; needs ete3):
     python phylaflow_sample.py \\
@@ -42,16 +44,19 @@ except ImportError as e:
     ) from e
 
 
-def _anonymize(newick: str, ntips: int) -> str | None:
-    """Bare topology with leaves relabeled 0..ntips-1; None if leaf count ≠ ntips."""
+def _anonymize(newick: str, ntips: int, keep_branch_lengths: bool = True) -> str | None:
+    """Leaves relabeled 0..ntips-1; None if leaf count ≠ ntips.
+
+    keep_branch_lengths=True (default): format=1 — used by native `phylaflow` row.
+    keep_branch_lengths=False: format=9 topology-only — fine for `phylaflow_adapted`.
+    """
     tree = EteTree(str(newick), format=1)
     leaves = tree.get_leaves()
     if len(leaves) != ntips:
         return None
     for i, leaf in enumerate(leaves):
         leaf.name = str(i)
-    # format=9: topology + leaf names only (no branch lengths / internal labels)
-    return tree.write(format=9)
+    return tree.write(format=1 if keep_branch_lengths else 9)
 
 
 def _collect_from_json(path: Path) -> list[str]:
@@ -97,6 +102,13 @@ def main():
     ap.add_argument("--ntips", type=int, required=True)
     ap.add_argument("--n-samples", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--keep-branch-lengths",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Keep PhylaFlow BLs (default; native phylaflow row). "
+             "Pass --no-keep-branch-lengths for topology-only adapted pools.",
+    )
     ap.add_argument("--out", required=True,
                     help="Output path, e.g. .../external_pools/sampled/phylaflow_N16.nwk")
     args = ap.parse_args()
@@ -118,7 +130,7 @@ def main():
     accepted: list[str] = []
     skipped = 0
     for nw in raw:
-        anon = _anonymize(nw, args.ntips)
+        anon = _anonymize(nw, args.ntips, keep_branch_lengths=args.keep_branch_lengths)
         if anon is None:
             skipped += 1
             continue

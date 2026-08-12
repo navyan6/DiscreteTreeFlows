@@ -55,13 +55,17 @@ def score_group(gt, root_seq, gen_trees, max_gt=60, max_gen_pool=800, seed=0):
     cov = S.coverage_at_k(gt_sub, gen_pool_sub, eps_frac=0.02)
 
     # positional recovery: each GT leaf -> its nearest generated leaf, GT root anchor
-    mut_rec, cons_ret = [], []
+    mut_rec, cons_ret, site_rec_pos, aa_acc = [], [], [], []
     for g in gt_sub:
         best = max(gen_pool_sub, key=lambda x: S.identity(g, x))
         pr = S.positional_recovery(root_seq, g, best)
         if pr["mut_total"] or pr["cons_total"]:
             mut_rec.append(pr["mut_recovery"])
             cons_ret.append(pr["cons_retention"])
+            if pr["site_recall"] == pr["site_recall"]:
+                site_rec_pos.append(pr["site_recall"])
+            if pr["aa_acc_given_hit"] == pr["aa_acc_given_hit"]:
+                aa_acc.append(pr["aa_acc_given_hit"])
 
     # ── tree-shape agreement (gen mean vs GT)
     gt_shape = {"sackin": T.sackin_index(gt), "colless": T.colless_index(gt),
@@ -80,6 +84,8 @@ def score_group(gt, root_seq, gen_trees, max_gt=60, max_gen_pool=800, seed=0):
     return {
         "mut_recovery": mean(_fin(mut_rec)) if _fin(mut_rec) else float("nan"),
         "cons_retention": mean(_fin(cons_ret)) if _fin(cons_ret) else float("nan"),
+        "aa_acc_given_hit": mean(_fin(aa_acc)) if _fin(aa_acc) else float("nan"),
+        "site_recall_positional": mean(_fin(site_rec_pos)) if _fin(site_rec_pos) else float("nan"),
         "best_of_k_identity": best_of_k,
         "coverage@k_eps2pct": cov,
         "mut_precision": prf_sub["precision"], "mut_recall": prf_sub["recall"],
@@ -131,6 +137,7 @@ def main():
         per_group[g] = res
         print(f"[{g}] recovery={res['mut_recovery']:.3f} cons={res['cons_retention']:.3f} "
               f"cov@k={res['coverage@k_eps2pct']:.3f} mutF1={res['mut_f1']:.3f} "
+              f"aa_acc={res['aa_acc_given_hit']:.3f} "
               f"BLratio={res['branch_len_ratio']:.2f} couple={res['seq_patristic_corr']:.2f}")
 
     # aggregate (mean over groups, ignoring NaN)

@@ -99,14 +99,18 @@ def _prepare_alignment_entropy(
 
 
 def select_mut_hotspots(
-    site_entropy: torch.Tensor,
+    site_scores: torch.Tensor,
     topk: int | None = None,
     frac: float | None = None,
 ) -> torch.Tensor:
     """
-    Binary hotspot mask over alignment columns from TRAIN MSA column entropy.
+    Binary hotspot mask over alignment columns from a per-column TRAIN score.
 
-    Selects the N highest-entropy sites (``topk``) or the top ``frac`` fraction
+    ``site_scores`` is typically either:
+      - MSA column Shannon entropy (``--mut-hotspot-score entropy``), or
+      - tree-aware parent→child mut frequency (``--mut-hotspot-score mut_freq``).
+
+    Selects the N highest-scoring sites (``topk``) or the top ``frac`` fraction
     of columns (``ceil(frac * L)``, at least 1 if frac>0). Exactly one of
     ``topk`` / ``frac`` must be set. Ties are broken by column index (stable).
 
@@ -114,12 +118,12 @@ def select_mut_hotspots(
     ``bridge_losses`` to hard-boost L_mut at mutating regions (vs soft
     floor+alpha*H, which reweights all columns continuously).
     """
-    entropy = torch.as_tensor(site_entropy)
-    if entropy.ndim != 1:
-        raise ValueError(f"site_entropy for hotspot selection must be [L], got {tuple(entropy.shape)}")
-    L = int(entropy.numel())
+    scores = torch.as_tensor(site_scores)
+    if scores.ndim != 1:
+        raise ValueError(f"site_scores for hotspot selection must be [L], got {tuple(scores.shape)}")
+    L = int(scores.numel())
     if L == 0:
-        return torch.zeros(0, dtype=torch.bool, device=entropy.device)
+        return torch.zeros(0, dtype=torch.bool, device=scores.device)
 
     if (topk is None) == (frac is None):
         raise ValueError("Provide exactly one of topk or frac for hotspot selection")
@@ -133,11 +137,11 @@ def select_mut_hotspots(
         k = int(math.ceil(frac * L)) if frac > 0 else 0
         k = min(k, L)
 
-    mask = torch.zeros(L, dtype=torch.bool, device=entropy.device)
+    mask = torch.zeros(L, dtype=torch.bool, device=scores.device)
     if k == 0:
         return mask
-    # Stable top-k: highest entropy first; equal entropy → lower index first.
-    order = torch.argsort(entropy, descending=True, stable=True)
+    # Stable top-k: highest score first; equal score → lower index first.
+    order = torch.argsort(scores, descending=True, stable=True)
     mask[order[:k]] = True
     return mask
 

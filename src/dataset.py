@@ -16,6 +16,7 @@ from src.tree_state import TreeState
 from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
+from src.r0_backends import ref_rates_filename
 
 AA_VOCAB = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
@@ -72,10 +73,19 @@ def parse_newick(nwk_path: str):
 
 
 class TreeDataset(Dataset):
-    def __init__(self, data_dir: str, laplacian_dim: int = 8, max_seq_len: int = 566):
+    def __init__(
+        self,
+        data_dir: str,
+        laplacian_dim: int = 8,
+        max_seq_len: int = 566,
+        ref_rates_tag: str = "",
+    ):
         self.data_dir = Path(data_dir)
         self.laplacian_dim = laplacian_dim
         self.max_seq_len = max_seq_len
+        # Filename tag for multi-pLM R0 caches: group_XXX_ref_rates{tag}.pt
+        # Empty tag → legacy group_XXX_ref_rates.pt (ESM-2-8M default).
+        self.ref_rates_tag = ref_rates_tag or ""
 
         # Find all complete groups (need all 3 files)
         self.groups = sorted([
@@ -140,11 +150,11 @@ class TreeDataset(Dataset):
         else:
             plm_embeddings = None
 
-        ref_path = d / f"group_{g:03d}_ref_rates.pt"
+        ref_path = d / ref_rates_filename(g, self.ref_rates_tag)
         if ref_path.exists():
             log_ref_mut_rates = torch.load(ref_path, weights_only=True)["log_mut_rates"]
         else:
-            log_ref_mut_rates = None 
+            log_ref_mut_rates = None
 
         return {
             "group": g,

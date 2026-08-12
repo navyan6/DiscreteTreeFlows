@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Precompute ESM-2 reference mutation log-rates [N, 566, 20] for all groups.
-use in forward pass
+Precompute reference mutation log-rates [N, L, 20] for all groups.
+
+Supports multi-pLM / substitution R0 backends (paper Table 7 / D.1):
+  --r0-backend esm2|esm2_650m|esmc|jtt|wag|lg|neutral|progen2|evo2
+
+Default ``esm2`` writes legacy ``group_XXX_ref_rates.pt``.
+Other backends write ``group_XXX_ref_rates_<tag>.pt`` (see src/r0_backends.py).
 """
 
 import argparse
@@ -12,36 +17,63 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 import torch
-import torch.nn.functional as F
 from Bio import SeqIO
-from transformers import AutoTokenizer, EsmForMaskedLM
 
 from src.dataset import parse_newick
-
-AA_VOCAB = "ACDEFGHIKLMNPQRSTVWY" 
+from src.r0_backends import (
+    STUB_BACKENDS,
+    build_r0_backend,
+    cache_tag_for_backend,
+    list_backends,
+    normalize_backend_name,
+    ref_rates_filename,
+)
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Precompute R0 mutation log-rates for TreeSBM."
+    )
     parser.add_argument("--data", default="data/train")
     parser.add_argument("--max-seq-len", type=int, default=566)
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument(
+        "--r0-backend",
+        default="esm2",
+        help=f"Mutation prior backend. One of: {', '.join(list_backends())}.",
+    )
+    parser.add_argument(
+        "--r0-model",
+        default=None,
+        help="Optional model id override (HF id for ESM-2, esmc_300m/esmc_600m for ESM-C).",
+    )
+    parser.add_argument(
+        "--ref-rates-tag",
+        default=None,
+        help="Override cache filename tag (default derived from --r0-backend). "
+             "Empty string forces legacy group_*_ref_rates.pt.",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Recompute even if the cache file already exists.",
+    )
     args = parser.parse_args()
 
+    backend_name = normalize_backend_name(args.r0_backend)
+    if backend_name in STUB_BACKENDS:
+        raise SystemExit(
+            f"Backend {backend_name!r} is stubbed and cannot precompute. "
+            "See src/r0_backends.py."
+        )
+
+    tag = cache_tag_for_backend(backend_name, override=args.ref_rates_tag)
     data_dir = ROOT / args.data
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
+    print(f"R0 backend: {backend_name}  model={args.r0_model or '(default)'}  tag={tag!r}")
 
-    model_id = "facebook/esm2_t6_8M_UR50D"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = EsmForMaskedLM.from_pretrained(model_id).to(device)
-    model.eval()
-    for p in model.parameters():
-        p.requires_grad = False
-
-    aa_token_ids = torch.tensor(
-        [tokenizer.convert_tokens_to_ids(aa) for aa in AA_VOCAB], dtype=torch.long
-    ) 
+    backend = build_r0_backend(backend_name, model_id=args.r0_model, device=device)
 
     groups = sorted([
         int(p.stem.split("_")[1])
@@ -51,14 +83,15 @@ def main():
     print(f"Found {len(groups)} complete groups\n")
 
     for g in groups:
-        out_path = data_dir / f"group_{g:03d}_ref_rates.pt"
-        if out_path.exists():
-            print(f"[{g:03d}] already cached, skipping")
+        out_path = data_dir / ref_rates_filename(g, tag)
+        if out_path.exists() and not args.overwrite:
+            print(f"[{g:03d}] already cached ({out_path.name}), skipping")
             continue
 
         root_id, node_ids, _, _ = parse_newick(
             str(data_dir / f"group_{g:03d}_rooted.nwk")
         )
+        del root_id
         seqs = {
             rec.id: str(rec.seq)
             for rec in SeqIO.parse(data_dir / f"group_{g:03d}_anc_aa.fasta", "fasta")
@@ -70,28 +103,26 @@ def main():
         sequences = [seqs[nid] for nid in node_ids]
         N, L = len(sequences), args.max_seq_len
 
-        print(f"[{g:03d}] {N} sequences ...", end=" ", flush=True)
+        print(f"[{g:03d}] {N} sequences via {backend_name} ...", end=" ", flush=True)
         log_mut_rates = torch.zeros(N, L, 20, dtype=torch.float32)
 
         for start in range(0, N, args.batch_size):
             batch_seqs = sequences[start : start + args.batch_size]
-            with torch.no_grad():
-                tokens = tokenizer(
-                    batch_seqs, return_tensors="pt", padding=True, truncation=False
-                ).to(device)
-                logits = model(**tokens).logits  
-            seq_lens = tokens["attention_mask"].sum(dim=1)  
+            log_batch = backend.log_mutation_rates(batch_seqs, max_seq_len=L)
+            log_mut_rates[start : start + len(batch_seqs)] = log_batch
 
-            for i in range(len(batch_seqs)):
-                actual_L = int(seq_lens[i].item()) - 2 
-                aa_logits = logits[i, 1 : actual_L + 1, :][:, aa_token_ids] 
-                log_probs = F.log_softmax(aa_logits, dim=-1)
-                clip = min(actual_L, L)
-                log_mut_rates[start + i, :clip, :] = log_probs[:clip].cpu()
+        torch.save(
+            {
+                "node_ids": node_ids,
+                "log_mut_rates": log_mut_rates,
+                "r0_backend": backend_name,
+                "r0_model": args.r0_model,
+            },
+            out_path,
+        )
+        print(f"done  shape={tuple(log_mut_rates.shape)} → {out_path.name}")
 
-        torch.save({"node_ids": node_ids, "log_mut_rates": log_mut_rates}, out_path)
-        print(f"done  shape={tuple(log_mut_rates.shape)}")
-
+    backend.close()
     print("\nAll groups done.")
 
 

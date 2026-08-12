@@ -37,7 +37,12 @@ from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
-from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
+from src.bridge.fitness_tilt import (
+    TILT_FULL_ESM,
+    TILT_SITE_LOCAL,
+    make_sequence_pll_scorer,
+    tilt_log_R0_by_fitness,
+)
 from src.bridge.sample_bridge_state import sample_bridge_state
 from src.bridge.losses import (
     bridge_losses,
@@ -45,6 +50,7 @@ from src.bridge.losses import (
     _build_seq_indices,
     select_mut_hotspots,
 )
+from src.bridge.site_stats import compute_msa_column_mut_freq
 from src.bridge.semigroup import sample_time_triple, semigroup_loss_from_predictor
 
 
@@ -157,6 +163,11 @@ def forward_bridge_step(
     embedder: ESM2Embedder | None = None,
     fitness_beta: float = 0.0,
     fitness_score: str = "log_R0",
+    fitness_tilt_mode: str = TILT_SITE_LOCAL,
+    fitness_scorer=None,
+    fitness_cache: dict | None = None,
+    fitness_esm_batch_size: int = 8,
+    fitness_esm_top_k: int | None = None,
 ) -> tuple[dict | None, int]:
     """
     One forward pass of Algorithm 1.
@@ -166,8 +177,9 @@ def forward_bridge_step(
     When lambda_semi > 0, also samples 0≤s<r<u≤t_max, builds bridge state at s,
     and adds rate-composition L_semi (§4.5) to the total.
 
-    fitness_beta / fitness_score: §4.2 Option A tilt of log_R0 before RateHeads
-    so log R_θ = log R0_tilted + c_θ (β=0 disables).
+    fitness_beta / fitness_score / fitness_tilt_mode: §4.2 tilt of log_R0 before
+    RateHeads so log R_θ = log R0_tilted + c_θ (β=0 disables).
+    mode=site_local (default Option A) or full_esm (Option B; needs fitness_scorer).
     """
     node_ids= batch["node_ids"]              # list[str], N
     node_times_t    = batch["node_times"]            # [N] tensor
@@ -262,13 +274,23 @@ def forward_bridge_step(
             if entropy_is_normalized:
                 site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
 
-    # §4.2 Option A: tilt R0 before RateHeads / bridge losses.
+    # §4.2: tilt R0 before RateHeads / bridge losses.
     # Entropy (above) uses untiled R0 so β does not change the entropy signal.
+    # site_local = Option A; full_esm = Option B (needs fitness_scorer + sequences).
+    active_seqs_for_tilt = [seqs_t[nid] for nid in active_leaves_t]
     log_R0_mut = tilt_log_R0_by_fitness(
-        log_R0_mut, beta=fitness_beta, score=fitness_score
+        log_R0_mut,
+        beta=fitness_beta,
+        score=fitness_score,
+        mode=fitness_tilt_mode,
+        sequences=active_seqs_for_tilt if fitness_tilt_mode == TILT_FULL_ESM else None,
+        fitness_scorer=fitness_scorer,
+        cache=fitness_cache,
+        batch_size=fitness_esm_batch_size,
+        top_k_aas=fitness_esm_top_k,
     )
 
-    active_seqs_t = [seqs_t[nid] for nid in active_leaves_t]
+    active_seqs_t = active_seqs_for_tilt
     aa_indices = None
     if getattr(rate_heads, "use_mut_aa_emb", False):
         aa_indices = _build_seq_indices(active_seqs_t, max_seq_len, device)
@@ -370,7 +392,18 @@ def forward_bridge_step(
                         site_ent_s = (site_ent_s / math.log(20.0)).clamp(min=0.0, max=1.0)
 
             log_R0_s = tilt_log_R0_by_fitness(
-                log_R0_s, beta=fitness_beta, score=fitness_score
+                log_R0_s,
+                beta=fitness_beta,
+                score=fitness_score,
+                mode=fitness_tilt_mode,
+                sequences=(
+                    [T_s["seqs_t"][nid] for nid in active_s]
+                    if fitness_tilt_mode == TILT_FULL_ESM else None
+                ),
+                fitness_scorer=fitness_scorer,
+                cache=fitness_cache,
+                batch_size=fitness_esm_batch_size,
+                top_k_aas=fitness_esm_top_k,
             )
 
             aa_idx_s = None
@@ -442,8 +475,8 @@ def main():
     parser.add_argument(
         "--fitness-beta", "--ref-tilt-beta",
         type=float, default=0.0, dest="fitness_beta",
-        help="§4.2 exponential tilt β on R0 (Option A site-local). "
-             "log q_F = log_softmax(log_R0) + β·score; then re-softmax. "
+        help="§4.2 exponential tilt β on R0. "
+             "log q_F = log_softmax(log_R0) + β·F; then re-softmax. "
              "0 = disabled (default, backward compatible). "
              "Try 1.0 for paper-faithful fitness weighting. Alias: --ref-tilt-beta.",
     )
@@ -451,9 +484,45 @@ def main():
         "--fitness-score",
         choices=["log_R0", "log_softmax"],
         default="log_R0",
-        help="Per-AA fitness proxy score_a for tilting: "
+        help="Per-AA fitness proxy for site_local tilting: "
              "'log_R0' (default) uses the stored ESM log-rates; "
-             "'log_softmax' uses normalized site logprobs.",
+             "'log_softmax' uses normalized site logprobs. Ignored for full_esm.",
+    )
+    parser.add_argument(
+        "--fitness-tilt-mode",
+        choices=[TILT_SITE_LOCAL, TILT_FULL_ESM],
+        default=TILT_SITE_LOCAL,
+        help="§4.2 tilt mode: 'site_local' (Option A, default, cheap) or "
+             "'full_esm' (Option B: score each single-AA mutant with ESM PLL). "
+             "full_esm loads a live R0 backend for scoring — expensive "
+             "(~N·L·19 ESM forwards/step unless --fitness-esm-top-k is set).",
+    )
+    parser.add_argument(
+        "--fitness-esm-batch-size",
+        type=int,
+        default=8,
+        help="Batch size for full_esm mutant PLL scoring.",
+    )
+    parser.add_argument(
+        "--fitness-esm-top-k",
+        type=int,
+        default=None,
+        help="If set, full_esm only scores/tilts the top-k untilted AAs per site "
+             "(big speedup). Remaining AAs keep untilted mass.",
+    )
+    parser.add_argument(
+        "--r0-backend",
+        default="esm2",
+        help="Which frozen R0 mutation prior cache to load (paper Table 7 / D.1). "
+             "Must match precompute --r0-backend. "
+             "One of: esm2, esm2_650m, esmc, jtt, wag, lg, neutral "
+             "(progen2/evo2 stubbed). Default esm2 → legacy group_*_ref_rates.pt.",
+    )
+    parser.add_argument(
+        "--ref-rates-tag",
+        default=None,
+        help="Override R0 cache filename tag (default derived from --r0-backend). "
+             "Pass '' to force legacy group_*_ref_rates.pt.",
     )
     parser.add_argument("--per-site-pos-emb", action="store_true",
                         help="Add a learned positional embedding to the mutation head so "
@@ -501,13 +570,33 @@ def main():
                              "(antigenic hotspots; computed once, saved in the checkpoint, "
                              "and reused at generation so train/inference never diverge).")
     parser.add_argument("--mut-hotspot-topk", type=int, default=None,
-                        help="Hard hotspot: upweight the N highest-entropy TRAIN MSA "
+                        help="Hard hotspot: upweight the N highest-scoring TRAIN MSA "
                              "columns in L_mut (mutually exclusive with --mut-hotspot-frac). "
-                             "Off by default. Requires --entropy-source empirical.")
+                             "Off by default. Score = --mut-hotspot-score.")
     parser.add_argument("--mut-hotspot-frac", type=float, default=None,
                         help="Hard hotspot: upweight the top fraction of columns by "
-                             "TRAIN MSA entropy in L_mut (e.g. 0.15 ≈ top-192 of L=1280). "
+                             "--mut-hotspot-score in L_mut (e.g. 0.15 ≈ top-192 of L=1280). "
                              "Mutually exclusive with --mut-hotspot-topk.")
+    parser.add_argument(
+        "--mut-hotspot-score",
+        choices=("entropy", "mut_freq"),
+        default="entropy",
+        help="How to rank MSA columns for hard hotspots (MSA-select → tree-apply). "
+             "'entropy': TRAIN column Shannon entropy (requires --entropy-source empirical). "
+             "'mut_freq': fraction of TRAIN MSA sequences ≠ column consensus/modal AA "
+             "(no entropy-source requirement). Selected indices feed mut_hotspot_mask "
+             "on the tree bridge loss.",
+    )
+    parser.add_argument(
+        "--mut-hotspot-mask",
+        type=str,
+        default=None,
+        help="Optional path to a precomputed bool [L] hotspot mask .pt "
+             "(e.g. results/covid_mutfreq_vs_lit/mut_hotspot_mask_pmc_lit.pt). "
+             "Overrides --mut-hotspot-score / topk / frac ranking when set; "
+             "still requires --mut-hotspot-topk or --mut-hotspot-frac OR this flag alone "
+             "to enable hotspot weighting (pass --mut-hotspot-weight).",
+    )
     parser.add_argument("--mut-hotspot-weight", type=float, default=5.0,
                         help="Extra L_mut multiplier on hotspot columns (default 5.0). "
                              "Stacks with soft floor+alpha*H when --use-entropy-loss-weighting.")
@@ -515,6 +604,13 @@ def main():
                         help="Also put hotspot columns into L_mut even when aa_t==x1 "
                              "this step (removed from cons_mask). Default off: only "
                              "boost mut_mask ∩ hotspot.")
+    parser.add_argument(
+        "--no-lit-hotspot-mask", "--no-mut-hotspot-mask",
+        action="store_true",
+        dest="no_lit_hotspot_mask",
+        help="Table 8 train ablation: disable lit/PMC/MSA hotspot mask even if "
+             "--mut-hotspot-mask / topk / frac were passed.",
+    )
     parser.add_argument("--max-seq-len", type=int,   default=566)
     parser.add_argument("--patience",    type=int,   default=30,
                         help="Early stopping: stop if val loss doesn't improve for this many epochs")
@@ -532,21 +628,51 @@ def main():
     print(f"Device: {device}")
     if args.fitness_beta != 0.0:
         print(
-            f"§4.2 fitness tilt: β={args.fitness_beta}  score={args.fitness_score} "
-            f"(log R_θ = log R0_tilted + c_θ)"
+            f"§4.2 fitness tilt: β={args.fitness_beta}  mode={args.fitness_tilt_mode}  "
+            f"score={args.fitness_score}  (log R_θ = log R0_tilted + c_θ)"
         )
+        if args.fitness_tilt_mode == TILT_FULL_ESM:
+            print(
+                "  WARNING: full_esm scores up to N·L·19 mutants per bridge step "
+                "(batched). Prefer --fitness-esm-top-k 5 for trainable cost; "
+                "site_local remains the default for existing recipes."
+            )
 
+    from src.r0_backends import cache_tag_for_backend, normalize_backend_name, build_r0_backend
+
+    r0_backend = normalize_backend_name(args.r0_backend)
+    ref_rates_tag = cache_tag_for_backend(r0_backend, override=args.ref_rates_tag)
+    print(f"R0 backend: {r0_backend}  ref_rates_tag={ref_rates_tag!r}")
+
+    # Option B scorer: live R0 backend (same family as cache) for mutant PLL.
+    fitness_scorer = None
+    fitness_cache: dict = {}
+    fitness_r0_live = None
+    if args.fitness_tilt_mode == TILT_FULL_ESM and args.fitness_beta != 0.0:
+        print(f"Loading live R0 backend for full_esm fitness scoring ({r0_backend}) …")
+        fitness_r0_live = build_r0_backend(r0_backend, device=device)
+        fitness_scorer = make_sequence_pll_scorer(
+            fitness_r0_live, max_seq_len=args.max_seq_len
+        )
     # ── data: pre-split dirs (temporal or geographic) OR random subtype-binned split
     if args.val_data and args.test_data:
         print("Pre-split data: loading train/val/test from separate dirs")
-        train_ds = TreeDataset(args.data,      max_seq_len=args.max_seq_len)
-        val_ds   = TreeDataset(args.val_data,  max_seq_len=args.max_seq_len)
-        test_ds  = TreeDataset(args.test_data, max_seq_len=args.max_seq_len)
-        dataset  = train_ds  # used for the PLM-cache probe / export below
+        train_ds = TreeDataset(
+            args.data, max_seq_len=args.max_seq_len, ref_rates_tag=ref_rates_tag
+        )
+        val_ds = TreeDataset(
+            args.val_data, max_seq_len=args.max_seq_len, ref_rates_tag=ref_rates_tag
+        )
+        test_ds = TreeDataset(
+            args.test_data, max_seq_len=args.max_seq_len, ref_rates_tag=ref_rates_tag
+        )
+        dataset = train_ds  # used for the PLM-cache probe / export below
         Path(args.ckpt_dir).mkdir(exist_ok=True)
         print(f"Total — Train: {len(train_ds)}  Val: {len(val_ds)}  Test: {len(test_ds)}")
     else:
-        dataset = TreeDataset(args.data, max_seq_len=args.max_seq_len)
+        dataset = TreeDataset(
+            args.data, max_seq_len=args.max_seq_len, ref_rates_tag=ref_rates_tag
+        )
 
         def subtype_of(group: int) -> str:
             if   1   <= group <= 48:  return "h3n2"
@@ -620,45 +746,106 @@ def main():
         pssm_gate_fixed_w=args.pssm_gate_fixed_w,
     ).to(device)
 
-    # Empirical column entropy (computed once from the TRAIN split) if requested;
-    # otherwise None -> forward_bridge_step falls back to ESM self-entropy.
+    # Hard hotspots: MSA-select (entropy / mut_freq / precomputed mask) → tree-apply.
+    if args.no_lit_hotspot_mask:
+        if args.mut_hotspot_mask or args.mut_hotspot_topk or args.mut_hotspot_frac:
+            print("NOTE: --no-lit-hotspot-mask: clearing mut hotspot mask/topk/frac")
+        args.mut_hotspot_mask = None
+        args.mut_hotspot_topk = None
+        args.mut_hotspot_frac = None
     hotspot_requested = (
-        args.mut_hotspot_topk is not None or args.mut_hotspot_frac is not None
+        args.mut_hotspot_topk is not None
+        or args.mut_hotspot_frac is not None
+        or args.mut_hotspot_mask is not None
     )
     if args.mut_hotspot_topk is not None and args.mut_hotspot_frac is not None:
         raise SystemExit("Pass only one of --mut-hotspot-topk / --mut-hotspot-frac")
-    if hotspot_requested and args.entropy_source != "empirical":
+    if args.mut_hotspot_mask is not None and (
+        args.mut_hotspot_topk is not None or args.mut_hotspot_frac is not None
+    ):
+        print(
+            "NOTE: --mut-hotspot-mask set; ignoring --mut-hotspot-topk/--mut-hotspot-frac ranking"
+        )
+    if (
+        hotspot_requested
+        and args.mut_hotspot_mask is None
+        and args.mut_hotspot_score == "entropy"
+        and args.entropy_source != "empirical"
+    ):
         raise SystemExit(
-            "Hard MSA hotspots require --entropy-source empirical "
+            "--mut-hotspot-score entropy requires --entropy-source empirical "
             "(column entropy from the TRAIN alignment)."
         )
     if args.mut_hotspot_force and not hotspot_requested:
-        raise SystemExit("--mut-hotspot-force requires --mut-hotspot-topk or --mut-hotspot-frac")
+        raise SystemExit(
+            "--mut-hotspot-force requires --mut-hotspot-topk, --mut-hotspot-frac, "
+            "or --mut-hotspot-mask"
+        )
 
     col_entropy = None
     mut_hotspot_mask = None
-    if args.entropy_source == "empirical" and (
+    need_entropy = args.entropy_source == "empirical" and (
         args.use_site_entropy
         or args.use_entropy_loss_weighting
         or args.use_entropy_cons_weighting
-        or hotspot_requested
-    ):
+        or (
+            hotspot_requested
+            and args.mut_hotspot_mask is None
+            and args.mut_hotspot_score == "entropy"
+        )
+    )
+    if need_entropy:
         print("Computing empirical column entropy from the training alignment...")
         col_entropy = compute_empirical_column_entropy(train_ds, args.max_seq_len).to(device)
         print(f"  col_entropy: [{col_entropy.numel()}]  mean={col_entropy.mean():.3f}  "
               f"max={col_entropy.max():.3f}  nonzero={(col_entropy > 0).sum().item()}")
 
     if hotspot_requested:
-        mut_hotspot_mask = select_mut_hotspots(
-            col_entropy.detach().cpu(),
-            topk=args.mut_hotspot_topk,
-            frac=args.mut_hotspot_frac,
-        ).to(device)
+        if args.mut_hotspot_mask is not None:
+            blob = torch.load(args.mut_hotspot_mask, map_location="cpu", weights_only=False)
+            if isinstance(blob, dict) and "mut_hotspot_mask" in blob:
+                mut_hotspot_mask = blob["mut_hotspot_mask"].bool().cpu()
+                score_name = blob.get("score", "precomputed")
+            else:
+                mut_hotspot_mask = torch.as_tensor(blob).bool().cpu()
+                score_name = "precomputed"
+            if mut_hotspot_mask.ndim != 1 or mut_hotspot_mask.numel() != args.max_seq_len:
+                raise SystemExit(
+                    f"--mut-hotspot-mask length {tuple(mut_hotspot_mask.shape)} "
+                    f"!= max_seq_len={args.max_seq_len}"
+                )
+            print(
+                f"  loaded hotspot mask from {args.mut_hotspot_mask} "
+                f"(score={score_name})"
+            )
+        else:
+            if args.mut_hotspot_score == "mut_freq":
+                print(
+                    "Computing TRAIN MSA column mut-freq "
+                    "(frac ≠ consensus/modal AA) for hard hotspots..."
+                )
+                hotspot_scores = compute_msa_column_mut_freq(train_ds, args.max_seq_len)
+                print(
+                    f"  msa_mut_freq: [{hotspot_scores.numel()}]  "
+                    f"mean={hotspot_scores.mean():.4f}  max={hotspot_scores.max():.4f}  "
+                    f"nonzero={(hotspot_scores > 0).sum().item()}"
+                )
+                score_name = "mut_freq"
+            else:
+                hotspot_scores = col_entropy.detach().cpu()
+                score_name = "entropy"
+            mut_hotspot_mask = select_mut_hotspots(
+                hotspot_scores,
+                topk=args.mut_hotspot_topk,
+                frac=args.mut_hotspot_frac,
+            )
+        mut_hotspot_mask = mut_hotspot_mask.to(device)
         n_hot = int(mut_hotspot_mask.sum().item())
         print(
-            f"  mut hotspots: n={n_hot}/{mut_hotspot_mask.numel()}  "
+            f"  mut hotspots ({score_name}): n={n_hot}/{mut_hotspot_mask.numel()}  "
             f"weight={args.mut_hotspot_weight}  force={args.mut_hotspot_force}  "
-            f"(topk={args.mut_hotspot_topk} frac={args.mut_hotspot_frac})"
+            f"(topk={args.mut_hotspot_topk} frac={args.mut_hotspot_frac} "
+            f"mask={args.mut_hotspot_mask})"
         )
 
     log_pssm = None
@@ -742,6 +929,11 @@ def main():
                     embedder=embedder,
                     fitness_beta=args.fitness_beta,
                     fitness_score=args.fitness_score,
+                    fitness_tilt_mode=args.fitness_tilt_mode,
+                    fitness_scorer=fitness_scorer,
+                    fitness_cache=fitness_cache,
+                    fitness_esm_batch_size=args.fitness_esm_batch_size,
+                    fitness_esm_top_k=args.fitness_esm_top_k,
                 )
                 if losses is None or n_active == 0:
                     continue
@@ -796,6 +988,11 @@ def main():
                     embedder=embedder,
                     fitness_beta=args.fitness_beta,
                     fitness_score=args.fitness_score,
+                    fitness_tilt_mode=args.fitness_tilt_mode,
+                    fitness_scorer=fitness_scorer,
+                    fitness_cache=fitness_cache,
+                    fitness_esm_batch_size=args.fitness_esm_batch_size,
+                    fitness_esm_top_k=args.fitness_esm_top_k,
                 )
                 if losses is None or n_active == 0:
                     continue
@@ -853,6 +1050,8 @@ def main():
                     "entropy_source": args.entropy_source,
                     "mut_hotspot_topk": args.mut_hotspot_topk,
                     "mut_hotspot_frac": args.mut_hotspot_frac,
+                    "mut_hotspot_score": args.mut_hotspot_score if hotspot_requested else None,
+                    "mut_hotspot_mask_path": args.mut_hotspot_mask,
                     "mut_hotspot_weight": args.mut_hotspot_weight if hotspot_requested else 1.0,
                     "mut_hotspot_force": args.mut_hotspot_force,
                     "lambda_mut": args.lambda_mut,
@@ -860,6 +1059,11 @@ def main():
                     "mut_normalize": args.mut_normalize,
                     "fitness_beta": args.fitness_beta,
                     "fitness_score": args.fitness_score,
+                    "fitness_tilt_mode": args.fitness_tilt_mode,
+                    "fitness_esm_batch_size": args.fitness_esm_batch_size,
+                    "fitness_esm_top_k": args.fitness_esm_top_k,
+                    "r0_backend": r0_backend,
+                    "ref_rates_tag": ref_rates_tag,
                 },
                 # empirical column-entropy vector [L] (None for esm_self), so
                 # generation reuses the exact same signal training saw.
@@ -913,6 +1117,11 @@ def main():
                 embedder=embedder,
                 fitness_beta=args.fitness_beta,
                 fitness_score=args.fitness_score,
+                fitness_tilt_mode=args.fitness_tilt_mode,
+                fitness_scorer=fitness_scorer,
+                fitness_cache=fitness_cache,
+                fitness_esm_batch_size=args.fitness_esm_batch_size,
+                fitness_esm_top_k=args.fitness_esm_top_k,
             )
             if losses is None or n_active == 0:
                 continue
@@ -921,6 +1130,9 @@ def main():
     if n_test_steps > 0:
         test_loss /= n_test_steps
     print(f"Test  loss: {test_loss:.4f}  ({n_test_steps} trees)")
+
+    if fitness_r0_live is not None:
+        fitness_r0_live.close()
 
     # export embeddings
     print("\nExporting embeddings with trained weights")

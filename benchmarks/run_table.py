@@ -34,6 +34,7 @@ from benchmarks.heldout.build_examples import build_examples, list_groups, load_
 from benchmarks.methods.bd_methods import NeutralBD, EmpiricalBD
 from benchmarks.methods.plm_prior import PLMPrior
 from benchmarks.methods.topology_prior import TopologyPriorMethod
+from benchmarks.methods.phylaflow_native import NativePhylaFlowMethod
 from benchmarks.adapters.branch_length import BranchLengthAdapter
 from benchmarks.adapters.sequence import evolve_pyvolve
 from benchmarks import validity as V
@@ -112,25 +113,45 @@ def build_methods(args, params, esm, train_trees: list[TreeState] | None = None)
                                 params.get("subst_scale", 1.0)))
     if args.checkpoint:
         from benchmarks.methods.treesbm import TreeSBMMethod
-        methods.append(TreeSBMMethod(args.checkpoint))
+        r0_live = None
+        if getattr(args, "r0_backend", None):
+            from src.r0_backends import build_r0_backend, normalize_backend_name
+            r0_live = build_r0_backend(
+                normalize_backend_name(args.r0_backend),
+                model_id=getattr(args, "r0_model", None),
+            )
+        methods.append(TreeSBMMethod(
+            args.checkpoint, max_seq_len=getattr(args, "max_seq_len", 566),
+            r0_backend=r0_live,
+            fitness_beta=getattr(args, "fitness_beta", None),
+            ablate_bridge=bool(getattr(args, "ablate_bridge", False)),
+        ))
 
-    # adapted rows: ARTreeFormer / PhyloVAE / PhylaFlow as unconditional topology
-    # priors + the shared BranchLengthAdapter + shared JTT sequence adapter
-    # (same --empirical-model as the native JTT+BD row, for a like-for-like
-    # sequence model across native and adapted rows). Only added if their
-    # sampled pools already exist (see benchmarks/EXTERNAL.md) -- absent pools
-    # just mean those rows are skipped, not an error.
+    # External topology models (ARTreeFormer / PhyloVAE / PhylaFlow). Pools under
+    # benchmarks/external_pools/sampled/ — absent pools skip the row (not an error).
+    # PhylaFlow native (`phylaflow`): official sampler topo+BL, shared JTT seqs.
+    # PhylaFlow adapted (`phylaflow_adapted`): same pool topo + shared BL adapter.
+    # Neither is root-conditioned forward gen (see BLOCKERS.md / EXTERNAL.md).
+    pool_dir = ROOT / "benchmarks/external_pools/sampled"
+    seq_fn = lambda topo, root_seq, seed: evolve_pyvolve(
+        topo, root_seq, model=args.empirical_model, seed=seed)
+
+    phyla_pool = load_external_pools(pool_dir, "phylaflow", args.N)
+    if phyla_pool:
+        methods.append(NativePhylaFlowMethod(phyla_pool, seq_fn))
+
     if train_trees:
-        pool_dir = ROOT / "benchmarks/external_pools/sampled"
         bl_adapter = BranchLengthAdapter().fit(train_trees)
-        seq_fn = lambda topo, root_seq, seed: evolve_pyvolve(
-            topo, root_seq, model=args.empirical_model, seed=seed)
         for tag, prefix in [("artreeformer_adapted", "artreeformer"),
                             ("phylovae_adapted", "phylovae"),
                             ("phylaflow_adapted", "phylaflow")]:
             pool_by_N = load_external_pools(pool_dir, prefix, args.N)
             if pool_by_N:
                 methods.append(TopologyPriorMethod(tag, pool_by_N, bl_adapter, seq_fn))
+    elif phyla_pool:
+        # Native PhylaFlow does not need train_trees (no shared BL fit); adapted
+        # rows still skipped until train_trees are loaded.
+        pass
     return methods
 
 
@@ -165,12 +186,21 @@ def main():
     ap.add_argument("--max-roots", type=int, default=100)
     ap.add_argument("--regimes", nargs="+", default=REGIMES)
     ap.add_argument("--no-esm", action="store_true")
+    ap.add_argument("--max-seq-len", type=int, default=566,
+                    help="ESM logits + TreeSBM RateHeads length "
+                         "(H3N2/H1=566, COVID Spike=1280)")
+    ap.add_argument("--r0-backend", default=None,
+                    help="Table 7: swap TreeSBM frozen R0 prior.")
+    ap.add_argument("--r0-model", default=None)
+    ap.add_argument("--fitness-beta", type=float, default=None)
+    ap.add_argument("--ablate-bridge", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="benchmarks/results/results.csv")
     args = ap.parse_args()
 
     params = json.loads((ROOT / args.params).read_text())
-    esm = None if args.no_esm else ESM("cuda" if _cuda() else "cpu")
+    esm = None if args.no_esm else ESM(
+        "cuda" if _cuda() else "cpu", max_len=args.max_seq_len)
     pool_dir = ROOT / "benchmarks/external_pools/sampled"
     have_pools = pool_dir.exists() and any(pool_dir.glob("*.nwk"))
     train_trees = None

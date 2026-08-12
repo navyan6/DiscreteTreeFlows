@@ -149,6 +149,20 @@ def test_select_mut_hotspots_topk_and_frac():
     assert int(mask_all.sum()) == 5
 
 
+def test_msa_column_mut_freq_consensus():
+    from src.bridge.site_stats import compute_msa_column_mut_freq
+
+    # Col0: all A → 0; col1: 3A+1C → 0.25; col2: 2A+2C → 0.5
+    seqs = ["AAA", "AAC", "ACA", "ACC"]
+    freq = compute_msa_column_mut_freq(None, 3, sequences=seqs)
+    assert abs(freq[0].item() - 0.0) < 1e-6
+    assert abs(freq[1].item() - 0.5) < 1e-6
+    assert abs(freq[2].item() - 0.5) < 1e-6
+    hot = select_mut_hotspots(freq, topk=1)
+    assert int(hot.sum()) == 1
+    assert hot[0].item() is False
+
+
 def test_hotspot_boost_raises_mut_weight_and_loss():
     kwargs = _toy_bridge_inputs(L=4)
     # mut positions: n0 site0 (A→A? wait: ACDE→AADE so site1 C→A), n1 site3 (E→F)

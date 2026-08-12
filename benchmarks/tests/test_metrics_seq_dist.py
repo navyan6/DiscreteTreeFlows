@@ -30,6 +30,9 @@ def test_best_of_k_and_coverage():
     assert S.coverage_at_k(["AAA"], ["AAA"], eps_frac=0.0) == 1.0
     assert S.coverage_at_k(["AAA"], ["ABA"], eps_frac=0.0) == 0.0
     assert S.coverage_at_k(["AAA"], ["ABA"], eps_frac=0.5) == 1.0  # 1 mismatch <= 1.5
+    assert S.coverage_at_e(["AAA"], ["ABA"], e=0) == 0.0
+    assert S.coverage_at_e(["AAA"], ["ABA"], e=1) == 1.0
+    assert S.frac_gen_within_e(["AAA"], ["AAA", "ABA"], e=0) == 0.5
 
 
 def test_mutation_pr_f1():
@@ -83,6 +86,27 @@ def test_mut_recovery_factorization():
     assert r2["mut_recovery"] == 0.0
     assert r2["aa_acc_given_hit"] != r2["aa_acc_given_hit"]  # nan
     assert abs(r2["site_precision"] - 0.0) < 1e-9  # gen muts at sites 2,3; both conserved
+
+
+def test_any_descendant_and_path_union():
+    """Tree-wide companions: any-gen-leaf credit + leaf-union set recovery."""
+    root = "AAAA"
+    gt = "BBAA"
+    # Best single leaf only recovers site 0; another leaf recovers site 1.
+    gen_pool = ["BAAA", "ABAA"]
+    ad = S.any_descendant_mut_recovery(root, gt, gen_pool)
+    assert ad["mut_total"] == 2
+    assert ad["mut_recovery_any_descendant"] == 1.0  # both GT AAs appear somewhere
+    assert ad["site_recall_any_descendant"] == 1.0
+
+    # Path union: GT leaves introduce sites {0,1}; gen pool covers both.
+    pu = S.path_union_mutation_recovery(root, [gt, "AABA"], gen_pool)
+    assert pu["n_gt_mut_sites"] == 3  # sites 0,1 from first; site 2 from second
+    assert pu["mut_site_recall_path_union"] > 0.0
+    # Primary leaf metric stays stricter when matching one gen leaf.
+    best = max(gen_pool, key=lambda g: S.identity(gt, g))
+    leaf = S.positional_recovery(root, gt, best)
+    assert leaf["mut_recovery"] <= ad["mut_recovery_any_descendant"]
 
 
 # ── distributions ───────────────────────────────────────────────────────────

@@ -29,9 +29,20 @@ ESM_ID = "facebook/esm2_t6_8M_UR50D"
 class TreeSBMGenerator:
     """Load a TreeSBM checkpoint once; sample K future trees from any root."""
 
-    def __init__(self, checkpoint: str, max_seq_len: int = 566, device: str | None = None):
+    def __init__(
+        self,
+        checkpoint: str,
+        max_seq_len: int = 566,
+        device: str | None = None,
+        r0_backend=None,
+        fitness_beta: float | None = None,
+        ablate_bridge: bool = False,
+    ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.max_seq_len = max_seq_len
+        self.r0_backend = r0_backend
+        self.fitness_beta = fitness_beta
+        self.ablate_bridge = ablate_bridge
         self.node_enc, self.tree_enc, self.rate_heads, self.col_entropy = load_models(
             checkpoint, self.device, max_seq_len
         )
@@ -53,6 +64,7 @@ class TreeSBMGenerator:
         branch_rate_scale: float = 6.0,
         mutation_rate_scale: float = 0.04,
         base_seed: int = 0,
+        cache_esm: bool = True,
     ) -> list[TreeState]:
         trees: list[TreeState] = []
         for k in range(K):
@@ -63,6 +75,10 @@ class TreeSBMGenerator:
                 mutation_rate_scale, self.node_enc, self.tree_enc, self.rate_heads,
                 self.embedder, self.tokenizer, self.esm_model, self.aa_token_ids, self.device,
                 col_entropy=self.col_entropy,
+                cache_esm=cache_esm,
+                fitness_beta=self.fitness_beta,
+                ablate_bridge=self.ablate_bridge,
+                r0_backend=self.r0_backend,
             ))
         return trees
 
