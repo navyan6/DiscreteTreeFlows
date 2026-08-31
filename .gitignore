@@ -1,5 +1,8 @@
-# Data — transfer to cluster separately via rsync
-data/
+# Data — sequences stay off git; split metadata (SPLIT_PROTOCOL.json + group CSVs) is tracked
+data/**
+!data/**/
+!data/**/SPLIT_PROTOCOL.json
+!data/**/*_group_*.csv
 
 # Python
 __pycache__/
@@ -19,8 +22,11 @@ checkpoints/
 # Jupyter
 .ipynb_checkpoints/
 
-# CSV/zip source data
+# CSV/zip source data (except split group CSVs under data/)
 *.csv.zip
 protein_sequences_table.csv
 all_proteins.txt
 proteins.txt
+
+# External vendored at eval time (optional clone)
+external/

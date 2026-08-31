@@ -1,0 +1,1704 @@
+{
+  "split_type": "geographic",
+  "gene": "HIV-1 Env (nucleotide CDS \u2192 AA after ASR)",
+  "raw_glob": "data/hiv/*.fasta",
+  "allocation": "greedy largest-first 80/10/10 by seq count over units",
+  "unit_assignment": {
+    "USA": "train",
+    "Malawi": "train",
+    "South Africa": "train",
+    "Thailand": "train",
+    "China": "val",
+    "Zambia": "test",
+    "Germany": "train",
+    "Tanzania": "train",
+    "Uganda": "test",
+    "Trinidad and Tobago": "test",
+    "Russia": "train",
+    "Netherlands": "val",
+    "France": "train",
+    "Russia: St. Petersburg": "test",
+    "South Korea": "val",
+    "Kenya": "train",
+    "Denmark": "test",
+    "Rwanda": "val",
+    "Canada": "test",
+    "Switzerland": "train",
+    "Nigeria": "val",
+    "USA: Iowa City": "train",
+    "India": "test",
+    "United Kingdom": "val",
+    "Zambia: Copperbelt": "test",
+    "Brazil": "train",
+    "Botswana": "val",
+    "USA: Seattle": "test",
+    "Cameroon": "train",
+    "Spain": "val",
+    "Sweden": "train",
+    "Italy": "val",
+    "Belgium": "test",
+    "Singapore": "train",
+    "Colombia": "val",
+    "Gambia": "test",
+    "Cyprus": "train",
+    "Nepal": "val",
+    "Peru": "val",
+    "Japan": "test",
+    "Indonesia": "train",
+    "Democratic Republic of the Congo": "train",
+    "Senegal": "test",
+    "Viet Nam": "train",
+    "Romania": "val",
+    "Djibouti": "test",
+    "Ethiopia": "test",
+    "Portugal": "val",
+    "Republic of the Congo": "train",
+    "Angola": "test",
+    "Bulgaria": "val",
+    "Chile": "test",
+    "Dominican Republic": "train",
+    "Guinea-Bissau": "val",
+    "Jamaica": "test",
+    "Laos": "train",
+    "Pakistan": "val",
+    "Paraguay": "test",
+    "Somalia": "train",
+    "Zimbabwe": "val"
+  },
+  "unit_counts": {
+    "South Africa": 4318,
+    "Uganda": 880,
+    "Kenya": 457,
+    "Zambia": 1714,
+    "Tanzania": 968,
+    "Malawi": 5068,
+    "Nigeria": 338,
+    "Zambia: Copperbelt": 206,
+    "Rwanda": 420,
+    "Cameroon": 105,
+    "Djibouti": 2,
+    "Senegal": 8,
+    "Somalia": 1,
+    "Ethiopia": 2,
+    "Angola": 1,
+    "Guinea-Bissau": 1,
+    "Botswana": 185,
+    "Zimbabwe": 1,
+    "Democratic Republic of the Congo": 8,
+    "Republic of the Congo": 2,
+    "Gambia": 23,
+    "Thailand": 4071,
+    "India": 280,
+    "China": 2977,
+    "South Korea": 497,
+    "Japan": 12,
+    "Cyprus": 21,
+    "Laos": 1,
+    "Indonesia": 10,
+    "Pakistan": 1,
+    "Singapore": 37,
+    "Nepal": 20,
+    "Viet Nam": 5,
+    "Netherlands": 586,
+    "Germany": 1540,
+    "Denmark": 438,
+    "Italy": 58,
+    "Belgium": 52,
+    "Spain": 76,
+    "Switzerland": 355,
+    "Russia": 627,
+    "Sweden": 64,
+    "France": 585,
+    "Bulgaria": 1,
+    "United Kingdom": 219,
+    "Portugal": 2,
+    "Romania": 3,
+    "Russia: St. Petersburg": 521,
+    "USA": 24745,
+    "Canada": 402,
+    "USA: Iowa City": 319,
+    "USA: Seattle": 155,
+    "Jamaica": 1,
+    "Trinidad and Tobago": 739,
+    "Dominican Republic": 1,
+    "Peru": 20,
+    "Brazil": 200,
+    "Paraguay": 1,
+    "Chile": 1,
+    "Colombia": 34
+  },
+  "grouping": {
+    "group_size": 300,
+    "min_group": 200,
+    "max_span_years": 6,
+    "loc_min": 100,
+    "rule": "date-contiguous within one geoloc unit; no region mix"
+  },
+  "eligibility": {
+    "n_raw": 314794,
+    "bad_header": 0,
+    "empty_date": 80904,
+    "range_or_bad_date": 5622,
+    "year_oob": 41,
+    "not_env_or_genome": 159981,
+    "extract_fail": 13861,
+    "dup": 0,
+    "kept": 54385,
+    "kept_from_genome": 187,
+    "kept_from_env_cds": 54198
+  },
+  "n_trees": {
+    "train": 140,
+    "val": 14,
+    "test": 16
+  },
+  "tree_frac": {
+    "train": 0.8235294117647058,
+    "val": 0.08235294117647059,
+    "test": 0.09411764705882353
+  },
+  "n_leaves": {
+    "train": 41853,
+    "val": 4073,
+    "test": 4222
+  },
+  "groups": {
+    "train": [
+      {
+        "group": 1,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1985,
+        "year_max": 1990,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 2,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1990,
+        "year_max": 1991,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 3,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1991,
+        "year_max": 1991,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 4,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1991,
+        "year_max": 1992,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 5,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1992,
+        "year_max": 1993,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 6,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1993,
+        "year_max": 1993,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 7,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1993,
+        "year_max": 1996,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 8,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1996,
+        "year_max": 1997,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 9,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1997,
+        "year_max": 1998,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 10,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1998,
+        "year_max": 1999,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 11,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1999,
+        "year_max": 1999,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 12,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1999,
+        "year_max": 2000,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 13,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2000,
+        "year_max": 2001,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 14,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2001,
+        "year_max": 2002,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 15,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2002,
+        "year_max": 2003,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 16,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2003,
+        "year_max": 2003,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 17,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2003,
+        "year_max": 2004,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 18,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2004,
+        "year_max": 2004,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 19,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2004,
+        "year_max": 2004,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 20,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2004,
+        "year_max": 2005,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 21,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2005,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 22,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2005,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 23,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2005,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 24,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2006,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 25,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 26,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 27,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 28,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 29,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 30,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2007,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 31,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2007,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 32,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2007,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 33,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2007,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 34,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2007,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 35,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2008,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 36,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2008,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 37,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2008,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 38,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2009,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 39,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 40,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 41,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 42,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2010,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 43,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2010,
+        "year_max": 2010,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 44,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2010,
+        "year_max": 2010,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 45,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2010,
+        "year_max": 2011,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 46,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2011,
+        "year_max": 2011,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 47,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2011,
+        "year_max": 2012,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 48,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2012,
+        "year_max": 2012,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 49,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2012,
+        "year_max": 2013,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 50,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2013,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 51,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 52,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 53,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 54,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 55,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 56,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 57,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 58,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 59,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 60,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 61,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 62,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 63,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 64,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 65,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 66,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 67,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 68,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 69,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 70,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 71,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 72,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 73,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 74,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2015,
+        "year_max": 2016,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 75,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 76,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 77,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 78,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2017,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 79,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2017,
+        "year_max": 2018,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 80,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2018,
+        "year_max": 2019,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 81,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2019,
+        "year_max": 2022,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 82,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2022,
+        "year_max": 2022,
+        "unit": "USA",
+        "split": "train"
+      },
+      {
+        "group": 83,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1993,
+        "year_max": 1996,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 84,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1996,
+        "year_max": 1996,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 85,
+        "prefix": "hivgeotrain",
+        "n_leaves": 278,
+        "year_min": 1996,
+        "year_max": 2002,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 86,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2003,
+        "year_max": 2004,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 87,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2004,
+        "year_max": 2005,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 88,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2007,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 89,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2008,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 90,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2008,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 91,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2008,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 92,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2009,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 93,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 94,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 95,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 96,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2009,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 97,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2010,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 98,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2010,
+        "year_max": 2010,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 99,
+        "prefix": "hivgeotrain",
+        "n_leaves": 290,
+        "year_min": 2010,
+        "year_max": 2014,
+        "unit": "Malawi",
+        "split": "train"
+      },
+      {
+        "group": 100,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1999,
+        "year_max": 2005,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 101,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2005,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 102,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2006,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 103,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 104,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2007,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 105,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2007,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 106,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2007,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 107,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2008,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 108,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2009,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 109,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2013,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 110,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2013,
+        "year_max": 2014,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 111,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2014,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 112,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2014,
+        "year_max": 2016,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 113,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2017,
+        "unit": "South Africa",
+        "split": "train"
+      },
+      {
+        "group": 114,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1997,
+        "year_max": 1999,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 115,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 1999,
+        "year_max": 2000,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 116,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2000,
+        "year_max": 2000,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 117,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2000,
+        "year_max": 2006,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 118,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2006,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 119,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2007,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 120,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2008,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 121,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2009,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 122,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2009,
+        "year_max": 2010,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 123,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2010,
+        "year_max": 2011,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 124,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2011,
+        "year_max": 2012,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 125,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2012,
+        "year_max": 2013,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 126,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2013,
+        "year_max": 2014,
+        "unit": "Thailand",
+        "split": "train"
+      },
+      {
+        "group": 127,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "Germany",
+        "split": "train"
+      },
+      {
+        "group": 128,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "Germany",
+        "split": "train"
+      },
+      {
+        "group": 129,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "Germany",
+        "split": "train"
+      },
+      {
+        "group": 130,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "Germany",
+        "split": "train"
+      },
+      {
+        "group": 131,
+        "prefix": "hivgeotrain",
+        "n_leaves": 291,
+        "year_min": 2016,
+        "year_max": 2017,
+        "unit": "Germany",
+        "split": "train"
+      },
+      {
+        "group": 132,
+        "prefix": "hivgeotrain",
+        "n_leaves": 258,
+        "year_min": 2000,
+        "year_max": 2006,
+        "unit": "Tanzania",
+        "split": "train"
+      },
+      {
+        "group": 133,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2011,
+        "unit": "Tanzania",
+        "split": "train"
+      },
+      {
+        "group": 134,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2011,
+        "year_max": 2013,
+        "unit": "Tanzania",
+        "split": "train"
+      },
+      {
+        "group": 135,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2006,
+        "year_max": 2011,
+        "unit": "Russia",
+        "split": "train"
+      },
+      {
+        "group": 136,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2011,
+        "year_max": 2011,
+        "unit": "Russia",
+        "split": "train"
+      },
+      {
+        "group": 137,
+        "prefix": "hivgeotrain",
+        "n_leaves": 247,
+        "year_min": 2006,
+        "year_max": 2012,
+        "unit": "France",
+        "split": "train"
+      },
+      {
+        "group": 138,
+        "prefix": "hivgeotrain",
+        "n_leaves": 299,
+        "year_min": 2013,
+        "year_max": 2019,
+        "unit": "France",
+        "split": "train"
+      },
+      {
+        "group": 139,
+        "prefix": "hivgeotrain",
+        "n_leaves": 290,
+        "year_min": 2009,
+        "year_max": 2014,
+        "unit": "Kenya",
+        "split": "train"
+      },
+      {
+        "group": 140,
+        "prefix": "hivgeotrain",
+        "n_leaves": 300,
+        "year_min": 2002,
+        "year_max": 2007,
+        "unit": "Switzerland",
+        "split": "train"
+      }
+    ],
+    "val": [
+      {
+        "group": 1,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2003,
+        "year_max": 2005,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 2,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2005,
+        "year_max": 2007,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 3,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2007,
+        "year_max": 2008,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 4,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2008,
+        "year_max": 2010,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 5,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2010,
+        "year_max": 2011,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 6,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2011,
+        "year_max": 2012,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 7,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2012,
+        "year_max": 2012,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 8,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2012,
+        "year_max": 2012,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 9,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 2012,
+        "year_max": 2012,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 10,
+        "prefix": "hivgeoval",
+        "n_leaves": 275,
+        "year_min": 2012,
+        "year_max": 2018,
+        "unit": "China",
+        "split": "val"
+      },
+      {
+        "group": 11,
+        "prefix": "hivgeoval",
+        "n_leaves": 300,
+        "year_min": 1985,
+        "year_max": 1991,
+        "unit": "Netherlands",
+        "split": "val"
+      },
+      {
+        "group": 12,
+        "prefix": "hivgeoval",
+        "n_leaves": 227,
+        "year_min": 1991,
+        "year_max": 1997,
+        "unit": "South Korea",
+        "split": "val"
+      },
+      {
+        "group": 13,
+        "prefix": "hivgeoval",
+        "n_leaves": 296,
+        "year_min": 2001,
+        "year_max": 2007,
+        "unit": "Rwanda",
+        "split": "val"
+      },
+      {
+        "group": 14,
+        "prefix": "hivgeoval",
+        "n_leaves": 275,
+        "year_min": 2015,
+        "year_max": 2015,
+        "unit": "Nigeria",
+        "split": "val"
+      }
+    ],
+    "test": [
+      {
+        "group": 1,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2001,
+        "year_max": 2002,
+        "unit": "Zambia",
+        "split": "test"
+      },
+      {
+        "group": 2,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2002,
+        "year_max": 2002,
+        "unit": "Zambia",
+        "split": "test"
+      },
+      {
+        "group": 3,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2002,
+        "year_max": 2003,
+        "unit": "Zambia",
+        "split": "test"
+      },
+      {
+        "group": 4,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2003,
+        "year_max": 2004,
+        "unit": "Zambia",
+        "split": "test"
+      },
+      {
+        "group": 5,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2004,
+        "year_max": 2007,
+        "unit": "Zambia",
+        "split": "test"
+      },
+      {
+        "group": 6,
+        "prefix": "hivgeotest",
+        "n_leaves": 211,
+        "year_min": 2007,
+        "year_max": 2011,
+        "unit": "Zambia",
+        "split": "test"
+      },
+      {
+        "group": 7,
+        "prefix": "hivgeotest",
+        "n_leaves": 201,
+        "year_min": 1992,
+        "year_max": 1998,
+        "unit": "Uganda",
+        "split": "test"
+      },
+      {
+        "group": 8,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2016,
+        "year_max": 2016,
+        "unit": "Uganda",
+        "split": "test"
+      },
+      {
+        "group": 9,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 1993,
+        "year_max": 1996,
+        "unit": "Trinidad and Tobago",
+        "split": "test"
+      },
+      {
+        "group": 10,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 1996,
+        "year_max": 1999,
+        "unit": "Trinidad and Tobago",
+        "split": "test"
+      },
+      {
+        "group": 11,
+        "prefix": "hivgeotest",
+        "n_leaves": 300,
+        "year_min": 2002,
+        "year_max": 2007,
+        "unit": "Russia: St. Petersburg",
+        "split": "test"
+      },
+      {
+        "group": 12,
+        "prefix": "hivgeotest",
+        "n_leaves": 221,
+        "year_min": 2007,
+        "year_max": 2008,
+        "unit": "Russia: St. Petersburg",
+        "split": "test"
+      },
+      {
+        "group": 13,
+        "prefix": "hivgeotest",
+        "n_leaves": 228,
+        "year_min": 2017,
+        "year_max": 2023,
+        "unit": "Denmark",
+        "split": "test"
+      },
+      {
+        "group": 14,
+        "prefix": "hivgeotest",
+        "n_leaves": 210,
+        "year_min": 2024,
+        "year_max": 2024,
+        "unit": "Denmark",
+        "split": "test"
+      },
+      {
+        "group": 15,
+        "prefix": "hivgeotest",
+        "n_leaves": 245,
+        "year_min": 2014,
+        "year_max": 2019,
+        "unit": "India",
+        "split": "test"
+      },
+      {
+        "group": 16,
+        "prefix": "hivgeotest",
+        "n_leaves": 206,
+        "year_min": 2008,
+        "year_max": 2012,
+        "unit": "Zambia: Copperbelt",
+        "split": "test"
+      }
+    ]
+  },
+  "frame_orf_policy": "Env ATG + signal-like N-term; HXB2-length window; empty/range dates dropped"
+}

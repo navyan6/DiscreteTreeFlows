@@ -1,0 +1,53 @@
+{
+  "data/filo_l": {
+    "data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/filo_l",
+    "protocol": {
+      "dataset": "filo_l",
+      "split_type": "outbreak",
+      "track": "A",
+      "group_size": 80,
+      "min_group": 5,
+      "val_outbreak": null,
+      "test_outbreaks": [
+        "bdbv_2026"
+      ],
+      "tree_semantics": "one FastTree per outbreak_id (single species); large outbreaks split by date within outbreak",
+      "counts": {
+        "train": 0,
+        "val": 0,
+        "test": 24
+      },
+      "n_outbreaks": 1,
+      "outbreaks": {
+        "bdbv_2026": {
+          "split": "test",
+          "n_seqs": 24,
+          "n_groups": 1,
+          "species": "bdbv"
+        }
+      }
+    },
+    "bands": {
+      "train": {
+        "dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/filo_l/train",
+        "n_groups": 0,
+        "n_seqs": 0
+      },
+      "val": {
+        "dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/filo_l/val",
+        "n_groups": 0,
+        "n_seqs": 0
+      },
+      "test": {
+        "dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/filo_l/test",
+        "n_groups": 1,
+        "n_seqs": 24
+      }
+    },
+    "blockers": [
+      "train has <2 groups",
+      "val empty"
+    ],
+    "ready_to_train": false
+  }
+}
