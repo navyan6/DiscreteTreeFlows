@@ -1,8 +1,22 @@
-# Data — sequences stay off git; split metadata (SPLIT_PROTOCOL.json + group CSVs) is tracked
+# Data — sequences stay off git; split metadata + formed trees (NCBI-safe) + examples tracked
 data/**
 !data/**/
 !data/**/SPLIT_PROTOCOL.json
 !data/**/*_group_*.csv
+!data/**/group_*_rooted.nwk
+!data/**/group_*_bl.json
+# AA FASTA for formed trees (prefer NCBI/INSDC splits; avoid committing GISAID EPI_ISL dumps)
+!data/**/group_*_anc_aa.fasta
+# Small Newick+FASTA demos (generated / observed examples)
+!data/examples/
+!data/examples/**
+# Regenerable caches / intermediates stay ignored even under un-ignored dirs
+data/**/*_plm.pt
+data/**/*_ref_rates.pt
+data/**/group_*_aligned.fasta
+data/**/group_*_clean.fasta
+data/**/group_*_anc_nt.fasta
+data/**/group_*_embeddings.pt
 
 # Python
 __pycache__/
