@@ -1,0 +1,52 @@
+{
+  "alignment": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid_epidemic/train/group_125_aligned.fasta",
+  "clock": {
+    "cov": [
+      [
+        1.8608314817460199,
+        -3759.3879793921365
+      ],
+      [
+        -3759.3879793921365,
+        7594990.797524314
+      ]
+    ],
+    "intercept": -580.6676428919533,
+    "rate": 0.2874205472630731,
+    "rate_std": 1.3641229716363623,
+    "rtt_Tmrca": 2020.2718574621392
+  },
+  "generated_by": {
+    "program": "augur",
+    "version": "33.4.1"
+  },
+  "input_tree": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid_epidemic/train/group_125_tree.nwk",
+  "nodes": {
+    "NODE_0000000": {
+      "branch_length": 0.001,
+      "clock_length": 0.001,
+      "date": "2020-04-09",
+      "date_inferred": true,
+      "mutation_length": 0.001,
+      "numdate": 2020.2718579234972
+    },
+    "ON275901.1": {
+      "branch_length": 0.0,
+      "clock_length": 0.0,
+      "date": "2020-04-09",
+      "date_inferred": false,
+      "mutation_length": 1.3524641277029489e-21,
+      "numdate": 2020.2718579234972,
+      "raw_date": "2020-04-09"
+    },
+    "ON283285.1": {
+      "branch_length": 0.0007853020416930256,
+      "clock_length": 0.0007853020416930256,
+      "date": "2020-04-10",
+      "date_inferred": false,
+      "mutation_length": 0.0007855712344385434,
+      "numdate": 2020.2745901639344,
+      "raw_date": "2020-04-10"
+    }
+  }
+}

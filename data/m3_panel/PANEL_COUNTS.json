@@ -19,8 +19,8 @@
       "query": "\"Influenza A virus\"[Organism] AND H3N2[All Fields] AND HA[Gene Name] AND \"Homo sapiens\"[Host] AND 1924:2026[PDAT]",
       "status": "have_local",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 74345,
+      "queried_at": "2026-09-04T14:17:10.582392+00:00"
     },
     {
       "gene_id": "h1n1_ha",
@@ -31,8 +31,8 @@
       "query": "\"Influenza A virus\"[Organism] AND H1N1[All Fields] AND HA[Gene Name] AND \"Homo sapiens\"[Host] AND 1924:2026[PDAT]",
       "status": "have_local",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 52554,
+      "queried_at": "2026-09-04T14:17:11.355818+00:00"
     },
     {
       "gene_id": "flub_ha",
@@ -43,8 +43,8 @@
       "query": "\"Influenza B virus\"[Organism] AND HA[Title] AND 1400:2000[SLEN] AND 2009:2026[PDAT]",
       "status": "ingested_betty",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 0,
+      "queried_at": "2026-09-04T14:17:12.150834+00:00"
     },
     {
       "gene_id": "sarscov2_spike",
@@ -55,8 +55,8 @@
       "query": "txid2697049[Organism:exp] AND spike[Protein Name] AND \"Homo sapiens\"[Host]",
       "status": "have_local",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 0,
+      "queried_at": "2026-09-04T14:17:12.705223+00:00"
     },
     {
       "gene_id": "hiv1_env",
@@ -67,8 +67,8 @@
       "query": "txid11676[Organism:exp] AND env[Gene Name] AND \"Homo sapiens\"[Host]",
       "status": "have_local",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 265712,
+      "queried_at": "2026-09-04T14:17:13.250677+00:00"
     },
     {
       "gene_id": "h3n2_pb2",
@@ -79,8 +79,8 @@
       "query": "\"Influenza A virus\"[Organism] AND H3N2[All Fields] AND PB2[Gene Name] AND \"Homo sapiens\"[Host] AND 1924:2026[PDAT]",
       "status": "to_ingest",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 55849,
+      "queried_at": "2026-09-04T14:17:14.001319+00:00"
     },
     {
       "gene_id": "h1n1_pb2",
@@ -91,8 +91,8 @@
       "query": "\"Influenza A virus\"[Organism] AND H1N1[All Fields] AND PB2[Gene Name] AND \"Homo sapiens\"[Host] AND 1924:2026[PDAT]",
       "status": "to_ingest",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 35520,
+      "queried_at": "2026-09-04T14:17:14.738887+00:00"
     },
     {
       "gene_id": "sarscov2_nsp12",
@@ -104,8 +104,8 @@
       "status": "to_ingest",
       "note": "Prefer mature nsp12 / RdRp; else slice ORF1ab at Wuhan Hu-1 coords",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 4125747,
+      "queried_at": "2026-09-04T14:17:15.361686+00:00"
     },
     {
       "gene_id": "hiv1_rt",
@@ -117,8 +117,8 @@
       "status": "to_ingest",
       "note": "Extract RT window (HXB2 p51) from Pol polyprotein",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 499105,
+      "queried_at": "2026-09-04T14:17:15.976011+00:00"
     },
     {
       "gene_id": "filo_l",
@@ -130,8 +130,8 @@
       "status": "paused_ingest",
       "note": "900-aa conserved window; Pathoplexus 2026 test-only",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 3456,
+      "queried_at": "2026-09-04T14:17:16.699840+00:00"
     },
     {
       "gene_id": "h3n2_np",
@@ -142,8 +142,8 @@
       "query": "\"Influenza A virus\"[Organism] AND H3N2[All Fields] AND NP[Gene Name] AND \"Homo sapiens\"[Host] AND 1924:2026[PDAT]",
       "status": "to_ingest",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 57491,
+      "queried_at": "2026-09-04T14:17:17.450032+00:00"
     },
     {
       "gene_id": "sarscov2_n",
@@ -154,8 +154,8 @@
       "query": "txid2697049[Organism:exp] AND (nucleocapsid[Protein Name] OR \"N protein\"[Protein Name]) AND \"Homo sapiens\"[Host]",
       "status": "to_ingest",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 5,
+      "queried_at": "2026-09-04T14:17:18.066544+00:00"
     },
     {
       "gene_id": "sarscov2_mpro",
@@ -167,9 +167,9 @@
       "status": "to_ingest",
       "note": "Core panel; slice nsp5 from ORF1ab if needed. HIV PR (~99 AA) excluded.",
       "esearch_db": "protein",
-      "n_hits": null,
-      "queried_at": null
+      "n_hits": 8265923,
+      "queried_at": "2026-09-04T14:17:18.620303+00:00"
     }
   ],
-  "written_at": "2026-09-04T02:32:19.671473+00:00"
+  "written_at": "2026-09-04T14:17:19.020393+00:00"
 }

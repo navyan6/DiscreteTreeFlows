@@ -1,0 +1,45 @@
+{
+  "dataset": "h3n2",
+  "split_type": "epidemic",
+  "out_base": "data/h3n2_epidemic",
+  "train_end_year": 2022,
+  "val_year": 2023,
+  "test_start_year": 2024,
+  "test_end_year": 2024,
+  "min_year": 2014,
+  "group_size": 400,
+  "tree_semantics": "one tree per NH flu season (Oct(Y-1)\u2013Sep(Y)); large seasons split by date within season",
+  "season_hist": {
+    "train": {
+      "2014-2015": 8677,
+      "2013-2014": 2583,
+      "2015-2016": 4945,
+      "2016-2017": 15976,
+      "2017-2018": 10587,
+      "2018-2019": 15788,
+      "2019-2020": 6025,
+      "2021-2022": 30074,
+      "2020-2021": 1225,
+      "2022-2023": 3306
+    },
+    "val": {
+      "2022-2023": 8253,
+      "2023-2024": 3703
+    },
+    "test": {
+      "2023-2024": 20200,
+      "2024-2025": 3451
+    }
+  },
+  "counts": {
+    "train": 99136,
+    "val": 11956,
+    "test": 23651
+  },
+  "n_groups": {
+    "train": 252,
+    "val": 31,
+    "test": 60
+  },
+  "checkpoint_target": "checkpoints/h3n2_v4_epidemic_mutrec"
+}

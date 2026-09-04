@@ -148,18 +148,44 @@ PANEL = [
 
 
 def esearch_count(query: str, db: str = "protein") -> int | None:
+    """Hit NCBI E-utilities via urllib (no Biopython required).
+
+    On macOS Python.org installs, SSL often fails with CERTIFICATE_VERIFY_FAILED
+    until `Install Certificates.command` is run (or certifi is used). Prefer
+    running this on Betty / a machine with a working system CA store.
+    """
+    import ssl
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    import xml.etree.ElementTree as ET
+
+    params = urllib.parse.urlencode(
+        {
+            "db": db,
+            "term": query,
+            "retmax": 0,
+            "retmode": "xml",
+            "email": "nnori@upenn.edu",
+            "tool": "DiscreteTreeFlows_m3_audit",
+        }
+    )
+    url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?{params}"
+    ctx = ssl.create_default_context()
     try:
-        from Bio import Entrez
+        import certifi
+
+        ctx = ssl.create_default_context(cafile=certifi.where())
     except ImportError:
-        return None
-    Entrez.email = "nnori@upenn.edu"
+        pass
     try:
-        handle = Entrez.esearch(db=db, term=query, retmax=0)
-        rec = Entrez.read(handle)
-        handle.close()
-        return int(rec["Count"])
+        with urllib.request.urlopen(url, context=ctx, timeout=60) as resp:
+            xml_text = resp.read()
+        root = ET.fromstring(xml_text)
+        count = root.findtext("Count")
+        return int(count) if count is not None else None
     except Exception as e:  # noqa: BLE001
-        print(f"  esearch failed: {e}")
+        print(f"  esearch failed: {type(e).__name__}: {e}")
         return None
 
 
