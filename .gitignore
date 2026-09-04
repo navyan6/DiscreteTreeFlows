@@ -1,20 +1,16 @@
-# Data — sequences stay off git; split metadata + formed trees (NCBI-safe) + examples tracked
+# Data — sequences stay off git; split metadata + formed/generated trees tracked
 data/**
 !data/**/
 !data/README.md
-!data/**/README.md
 !data/**/SPLIT_PROTOCOL.json
 !data/**/*_group_*.csv
 !data/**/group_*_rooted.nwk
 !data/**/group_*_bl.json
-# AA FASTA for formed trees (prefer NCBI/INSDC splits; avoid committing GISAID EPI_ISL dumps)
+# AA FASTA for formed trees (prefer NCBI/INSDC; avoid GISAID EPI_ISL dumps)
 !data/**/group_*_anc_aa.fasta
-# TreeSBM-generated Newick+FASTA (model outputs; not train splits)
+# TreeSBM-generated Newick+FASTA
 !data/generated/
 !data/generated/**
-# Small Newick+FASTA demos (subset / observed examples)
-!data/examples/
-!data/examples/**
 # Regenerable caches / intermediates stay ignored even under un-ignored dirs
 data/**/*_plm.pt
 data/**/*_ref_rates.pt
