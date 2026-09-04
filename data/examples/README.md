@@ -1,4 +1,5 @@
-# Examples
+# Examples (pointer)
 
-- **`generated/`** — TreeSBM **model outputs** (`*_generated.{nwk,fasta}`). Not train/val/test.
-- Formed train/val/test trees live under `data/<dataset>/{train,val,test}/` (see `../README.md`).
+TreeSBM **generated** trees now live in **`../generated/`** (full set: covid / h3n2 / h1n1).
+
+This `examples/generated/` folder keeps a small subset for quick demos; prefer `data/generated/` for all outputs.

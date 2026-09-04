@@ -5,7 +5,7 @@ Two different kinds of trees live under `data/`. Do not mix them.
 | Role | Where | Filenames | Use for |
 |------|--------|-----------|---------|
 | **Formed / observed** | `data/<dataset>/{train,val,test}/` | `group_*_rooted.nwk` + `group_*_anc_aa.fasta` (+ `group_*_bl.json`) | **Training & eval** (ASR phylogenies) |
-| **TreeSBM-generated** | `data/examples/generated/` | `group_*_generated.{nwk,fasta}` | Demos / viz only — **not** train splits |
+| **TreeSBM-generated** | `data/generated/{covid,h3n2,h1n1}/` | `group_*_generated*.{nwk,fasta}` | Model outputs — **not** train splits |
 
 ## Formed splits (train / val / test)
 
@@ -31,12 +31,15 @@ Per group (same stem):
 ## TreeSBM-generated (not a train/val/test split)
 
 ```
-data/examples/generated/
-  covid/group_XXX_generated.{nwk,fasta}
-  h3n2/group_XXX_generated.{nwk,fasta}
+data/generated/
+  covid/   # matched + screen + seed variants
+  h3n2/
+  h1n1/
 ```
 
-These are **model samples** from TreeSBM rollouts. Same Newick↔FASTA ID join rule as formed trees, but the sequences are generated, not ASR. See `examples/generated/README.md`.
+These are **model samples** from TreeSBM rollouts (`*_generated*.{nwk,fasta}`).
+Same Newick↔FASTA ID join rule as formed trees, but sequences are generated, not ASR.
+See `generated/README.md`. (A tiny demo subset remains under `examples/generated/`.)
 
 ## Do not use for modern training
 
@@ -51,6 +54,6 @@ These are **model samples** from TreeSBM rollouts. Same Newick↔FASTA ID join r
 # Formed training trees for one split
 ls data/h1n1/train/group_*_rooted.nwk | head
 
-# Generated demos only
-ls data/examples/generated/*/*_generated.nwk
+# All TreeSBM-generated outputs
+ls data/generated/*/*_generated*.nwk | wc -l
 ```

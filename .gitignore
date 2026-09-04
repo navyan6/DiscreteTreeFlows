@@ -9,7 +9,10 @@ data/**
 !data/**/group_*_bl.json
 # AA FASTA for formed trees (prefer NCBI/INSDC splits; avoid committing GISAID EPI_ISL dumps)
 !data/**/group_*_anc_aa.fasta
-# Small Newick+FASTA demos (generated / observed examples)
+# TreeSBM-generated Newick+FASTA (model outputs; not train splits)
+!data/generated/
+!data/generated/**
+# Small Newick+FASTA demos (subset / observed examples)
 !data/examples/
 !data/examples/**
 # Regenerable caches / intermediates stay ignored even under un-ignored dirs
