@@ -37,6 +37,7 @@ from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
 from src.networks import TreeEncoder, RateHeads
+from src.bridge.shm_site_prior import apply_shm_site_prior
 from src.bridge.fitness_tilt import (
     TILT_FULL_ESM,
     TILT_SITE_LOCAL,
@@ -168,6 +169,12 @@ def forward_bridge_step(
     fitness_cache: dict | None = None,
     fitness_esm_batch_size: int = 8,
     fitness_esm_top_k: int | None = None,
+    shm_site_boost: float = 0.0,
+    shm_fwr_stay: float = 0.0,
+    shm_use_aid: bool = False,
+    shm_cdr_mask: torch.Tensor | None = None,
+    ablate_terminal_only: bool = False,
+    ablate_doob: bool = False,
 ) -> tuple[dict | None, int]:
     """
     One forward pass of Algorithm 1.
@@ -275,7 +282,7 @@ def forward_bridge_step(
                 site_entropy = (site_entropy / math.log(20.0)).clamp(min=0.0, max=1.0)
 
     # §4.2: tilt R0 before RateHeads / bridge losses.
-    # Entropy (above) uses untiled R0 so β does not change the entropy signal.
+    # Entropy (above) uses untilted R0 so β does not change the entropy signal.
     # site_local = Option A; full_esm = Option B (needs fitness_scorer + sequences).
     active_seqs_for_tilt = [seqs_t[nid] for nid in active_leaves_t]
     log_R0_mut = tilt_log_R0_by_fitness(
@@ -289,10 +296,20 @@ def forward_bridge_step(
         batch_size=fitness_esm_batch_size,
         top_k_aas=fitness_esm_top_k,
     )
+    # Ab Recipe A: SHM stay prior after fitness tilt (β should be 0 for Abs).
+    if shm_site_boost != 0.0 or shm_fwr_stay != 0.0 or shm_use_aid:
+        log_R0_mut = apply_shm_site_prior(
+            log_R0_mut,
+            active_seqs_for_tilt,
+            cdr_mask=shm_cdr_mask if shm_cdr_mask is not None else mut_hotspot_mask,
+            boost=shm_site_boost,
+            fwr_stay=shm_fwr_stay,
+            use_aid=shm_use_aid,
+        )
 
     active_seqs_t = active_seqs_for_tilt
     aa_indices = None
-    if getattr(rate_heads, "use_mut_aa_emb", False):
+    if getattr(rate_heads, "needs_aa_indices", False):
         aa_indices = _build_seq_indices(active_seqs_t, max_seq_len, device)
 
     pssm_t = None
@@ -342,6 +359,8 @@ def forward_bridge_step(
         mut_hotspot_mask=mut_hotspot_mask,
         mut_hotspot_weight=mut_hotspot_weight,
         mut_hotspot_force=mut_hotspot_force,
+        ablate_terminal_only=ablate_terminal_only,
+        ablate_doob=ablate_doob,
     )
 
     # ── L_semi: rate-composition consistency from an earlier bridge state T_s
@@ -391,23 +410,30 @@ def forward_bridge_step(
                     if entropy_is_normalized:
                         site_ent_s = (site_ent_s / math.log(20.0)).clamp(min=0.0, max=1.0)
 
+            seqs_s = [T_s["seqs_t"][nid] for nid in active_s]
             log_R0_s = tilt_log_R0_by_fitness(
                 log_R0_s,
                 beta=fitness_beta,
                 score=fitness_score,
                 mode=fitness_tilt_mode,
-                sequences=(
-                    [T_s["seqs_t"][nid] for nid in active_s]
-                    if fitness_tilt_mode == TILT_FULL_ESM else None
-                ),
+                sequences=seqs_s if fitness_tilt_mode == TILT_FULL_ESM else None,
                 fitness_scorer=fitness_scorer,
                 cache=fitness_cache,
                 batch_size=fitness_esm_batch_size,
                 top_k_aas=fitness_esm_top_k,
             )
+            if shm_site_boost != 0.0 or shm_fwr_stay != 0.0 or shm_use_aid:
+                log_R0_s = apply_shm_site_prior(
+                    log_R0_s,
+                    seqs_s,
+                    cdr_mask=shm_cdr_mask if shm_cdr_mask is not None else mut_hotspot_mask,
+                    boost=shm_site_boost,
+                    fwr_stay=shm_fwr_stay,
+                    use_aid=shm_use_aid,
+                )
 
             aa_idx_s = None
-            if getattr(rate_heads, "use_mut_aa_emb", False):
+            if getattr(rate_heads, "needs_aa_indices", False):
                 aa_idx_s = _build_seq_indices(
                     [T_s["seqs_t"][nid] for nid in active_s], max_seq_len, device
                 )
@@ -473,6 +499,38 @@ def main():
                         help="Reference resampling rate c in the conditional bridge target "
                              "(kappa = exp(-c(1-t))); larger = sharper terminal pull earlier")
     parser.add_argument(
+        "--ablate-terminal-only",
+        action="store_true",
+        help="Appendix E.1: train with pure terminal CE target (force t→1 in "
+             "conditional_bridge_kl; no bridge mixture at t<1). Needs a fresh ckpt.",
+    )
+    parser.add_argument(
+        "--ablate-doob",
+        action="store_true",
+        help="Appendix E.1: match R0 without Doob h-transform "
+             "(KL(softmax(R0)||R_θ); ignore x1). Mutually exclusive with "
+             "--ablate-terminal-only. Needs a fresh ckpt.",
+    )
+    parser.add_argument(
+        "--ablate-terminal-consistency",
+        action="store_true",
+        help="Appendix E.1: drop L_cons (sets --lambda-cons 0). "
+             "Needs a fresh ckpt when comparing to full TreeSBM.",
+    )
+    parser.add_argument(
+        "--ablate-mut-head",
+        action="store_true",
+        help="Appendix E.2: disable the mutation head (log R_θ = log R0; "
+             "sets --lambda-mut 0). Branching / BL / stop heads still train. "
+             "Needs a fresh ckpt.",
+    )
+    parser.add_argument(
+        "--ablate-stop-head",
+        action="store_true",
+        help="Appendix E.2: disable the stop/termination head (constant "
+             "p_stop=0.5; sets --lambda-stop 0). Needs a fresh ckpt.",
+    )
+    parser.add_argument(
         "--fitness-beta", "--ref-tilt-beta",
         type=float, default=0.0, dest="fitness_beta",
         help="§4.2 exponential tilt β on R0. "
@@ -511,18 +569,46 @@ def main():
              "(big speedup). Remaining AAs keep untilted mass.",
     )
     parser.add_argument(
+        "--shm-site-boost",
+        type=float,
+        default=0.0,
+        help="Ab Recipe A: subtract this from stay logit on CDR∪AID hot sites "
+             "(encourage SHM-like mutation). 0 = off.",
+    )
+    parser.add_argument(
+        "--shm-fwr-stay",
+        type=float,
+        default=0.0,
+        help="Ab Recipe A: add this to stay logit on framework (non-hot) sites.",
+    )
+    parser.add_argument(
+        "--shm-use-aid",
+        action="store_true",
+        help="Ab Recipe A: OR CDR hotspot mask with reverse-translated AID "
+             "WRCH/DGYW motif columns.",
+    )
+    parser.add_argument(
         "--r0-backend",
         default="esm2",
         help="Which frozen R0 mutation prior cache to load (paper Table 7 / D.1). "
              "Must match precompute --r0-backend. "
-             "One of: esm2, esm2_650m, esmc, jtt, wag, lg, neutral "
-             "(progen2/evo2 stubbed). Default esm2 → legacy group_*_ref_rates.pt.",
+             "Default esm2 → legacy group_*_ref_rates.pt (viral + OAS v1/v2). "
+             "thrifty_aa is antibody Recipe B only (group_*_ref_rates_thrifty.pt). "
+             "Also: esm2_650m, esmc, jtt, wag, lg, neutral.",
     )
     parser.add_argument(
         "--ref-rates-tag",
         default=None,
         help="Override R0 cache filename tag (default derived from --r0-backend). "
              "Pass '' to force legacy group_*_ref_rates.pt.",
+    )
+    parser.add_argument(
+        "--mut-head",
+        default="residual",
+        choices=["residual", "cosine"],
+        help="Mutation RateHead. residual = log R0 + c_θ (viral / OAS v1–v3). "
+             "cosine = CoSiNE-style site CNN (antibody Recipe C). "
+             "cosine auto-enables --ablate-terminal-only (PCP CE) and ignores PSSM/SHM Q0.",
     )
     parser.add_argument("--per-site-pos-emb", action="store_true",
                         help="Add a learned positional embedding to the mutation head so "
@@ -620,7 +706,71 @@ def main():
                         help="Resume from {ckpt-dir}/best.pt (weights, optimizer, scheduler, "
                              "epoch, best_val, patience_counter) instead of starting fresh. "
                              "Needed for long runs that may hit the SLURM time limit.")
+    parser.add_argument(
+        "--init-checkpoint",
+        default="",
+        help="Load model weights only from this checkpoint (transfer learning). "
+             "Does not restore optimizer/scheduler; incompatible layers are skipped.",
+    )
+    parser.add_argument(
+        "--freeze-encoder",
+        action="store_true",
+        help="Freeze NodeEncoder + TreeEncoder (M3 adaptation). Only RateHeads "
+             "(and PSSM gate inside RateHeads) receive gradients. Use with "
+             "--init-checkpoint for low-data virus finetuning.",
+    )
     args = parser.parse_args()
+
+    if args.mut_head == "cosine":
+        if args.ablate_doob:
+            raise SystemExit("ERROR: --mut-head cosine is incompatible with --ablate-doob")
+        if args.ablate_mut_head:
+            raise SystemExit("ERROR: --mut-head cosine is incompatible with --ablate-mut-head")
+        if not args.ablate_terminal_only:
+            print("cosine mut-head: enabling --ablate-terminal-only (parent→child CE)")
+            args.ablate_terminal_only = True
+        if float(args.fitness_beta) != 0.0:
+            raise SystemExit("REFUSING fitness β>0 with --mut-head cosine")
+        if args.shm_site_boost or args.shm_fwr_stay or args.shm_use_aid:
+            raise SystemExit("REFUSING Recipe A SHM Q0 prior with --mut-head cosine")
+        if args.pssm_gate:
+            print("NOTE: --pssm-gate ignored for --mut-head cosine")
+            args.pssm_gate = False
+        print("Antibody Recipe C: CoSiNE-style site CNN mut-head (no residual ESM Q0)")
+
+    if args.ablate_terminal_only and args.ablate_doob:
+        raise SystemExit(
+            "ERROR: --ablate-terminal-only and --ablate-doob are mutually exclusive"
+        )
+    if args.ablate_terminal_consistency:
+        if args.lambda_cons != 0.0:
+            print(
+                f"--ablate-terminal-consistency: overriding lambda_cons "
+                f"{args.lambda_cons} → 0.0"
+            )
+        args.lambda_cons = 0.0
+    if args.ablate_mut_head:
+        if args.lambda_mut != 0.0:
+            print(f"--ablate-mut-head: overriding lambda_mut {args.lambda_mut} → 0.0")
+        args.lambda_mut = 0.0
+    if args.ablate_stop_head:
+        if args.lambda_stop != 0.0:
+            print(f"--ablate-stop-head: overriding lambda_stop {args.lambda_stop} → 0.0")
+        args.lambda_stop = 0.0
+    if args.ablate_terminal_only or args.ablate_doob or args.ablate_terminal_consistency:
+        print(
+            "Appendix E.1 train ablation: "
+            f"terminal_only={args.ablate_terminal_only}  "
+            f"no_doob={args.ablate_doob}  "
+            f"lambda_cons={args.lambda_cons}"
+        )
+    if args.ablate_mut_head or args.ablate_stop_head:
+        print(
+            "Appendix E.2 train ablation: "
+            f"no_mut_head={args.ablate_mut_head}  "
+            f"no_stop_head={args.ablate_stop_head}  "
+            f"lambda_mut={args.lambda_mut}  lambda_stop={args.lambda_stop}"
+        )
 
     torch.manual_seed(args.seed)
     random.seed(args.seed)
@@ -637,6 +787,11 @@ def main():
                 "(batched). Prefer --fitness-esm-top-k 5 for trainable cost; "
                 "site_local remains the default for existing recipes."
             )
+    if args.shm_site_boost != 0.0 or args.shm_fwr_stay != 0.0 or args.shm_use_aid:
+        print(
+            f"Ab SHM Q0 prior: boost={args.shm_site_boost}  fwr_stay={args.shm_fwr_stay}  "
+            f"use_aid={args.shm_use_aid}  (β fitness should be 0)"
+        )
 
     from src.r0_backends import cache_tag_for_backend, normalize_backend_name, build_r0_backend
 
@@ -744,7 +899,10 @@ def main():
         d_aa=args.mut_aa_emb_dim,
         use_pssm_gate=args.pssm_gate,
         pssm_gate_fixed_w=args.pssm_gate_fixed_w,
+        mut_head_type=args.mut_head,
     ).to(device)
+    rate_heads.ablate_mut_head = bool(args.ablate_mut_head)
+    rate_heads.ablate_stop_head = bool(args.ablate_stop_head)
 
     # Hard hotspots: MSA-select (entropy / mut_freq / precomputed mask) → tree-apply.
     if args.no_lit_hotspot_mask:
@@ -886,7 +1044,50 @@ def main():
         start_epoch = ckpt["epoch"] + 1
         print(f"Resumed from {resume_path}: epoch {ckpt['epoch']}, "
               f"best_val={best_val:.4f}, patience_counter={patience_counter}")
+    elif args.init_checkpoint:
+        init_path = Path(args.init_checkpoint)
+        if not init_path.is_file():
+            raise SystemExit(f"ERROR: --init-checkpoint not found: {init_path}")
+        ckpt = torch.load(init_path, map_location=device, weights_only=False)
 
+        def _load_tl(module, key: str) -> None:
+            state = ckpt.get(key)
+            if state is None:
+                print(f"  init-checkpoint missing key {key!r} — skip")
+                return
+            missing, unexpected = module.load_state_dict(state, strict=False)
+            if missing:
+                print(f"  {key}: missing {len(missing)} keys (expected for seq-len / arch diffs)")
+            if unexpected:
+                print(f"  {key}: unexpected {len(unexpected)} keys")
+
+        print(f"Transfer init from {init_path} (weights only, fresh optimizer)")
+        _load_tl(node_enc, "node_enc")
+        _load_tl(tree_enc, "tree_enc")
+        _load_tl(rate_heads, "rate_heads")
+
+    if args.freeze_encoder:
+        if args.resume:
+            raise SystemExit(
+                "ERROR: --freeze-encoder is incompatible with --resume "
+                "(optimizer would hold frozen params). Use --init-checkpoint instead."
+            )
+        n_frozen = 0
+        for p in list(node_enc.parameters()) + list(tree_enc.parameters()):
+            p.requires_grad = False
+            n_frozen += p.numel()
+        params = [p for p in rate_heads.parameters() if p.requires_grad]
+        if not params:
+            raise SystemExit("ERROR: --freeze-encoder left no trainable RateHeads params")
+        optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=1e-4)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=args.epochs, eta_min=1e-6
+        )
+        n_train = sum(p.numel() for p in params)
+        print(
+            f"--freeze-encoder: froze {n_frozen:,} encoder params; "
+            f"training {n_train:,} RateHeads params"
+        )
     # ── training loop
     for epoch in range(start_epoch, args.epochs + 1):
         node_enc.train(); tree_enc.train(); rate_heads.train()
@@ -934,6 +1135,12 @@ def main():
                     fitness_cache=fitness_cache,
                     fitness_esm_batch_size=args.fitness_esm_batch_size,
                     fitness_esm_top_k=args.fitness_esm_top_k,
+                    shm_site_boost=args.shm_site_boost,
+                    shm_fwr_stay=args.shm_fwr_stay,
+                    shm_use_aid=args.shm_use_aid,
+                    shm_cdr_mask=mut_hotspot_mask,
+                    ablate_terminal_only=args.ablate_terminal_only,
+                    ablate_doob=args.ablate_doob,
                 )
                 if losses is None or n_active == 0:
                     continue
@@ -961,6 +1168,7 @@ def main():
         node_enc.eval(); tree_enc.eval(); rate_heads.eval()
         val_loss = 0.0
         n_val_steps = 0
+        n_val_nan = 0
         with torch.no_grad():
             for batch in val_loader:
                 losses, n_active = forward_bridge_step(
@@ -993,14 +1201,33 @@ def main():
                     fitness_cache=fitness_cache,
                     fitness_esm_batch_size=args.fitness_esm_batch_size,
                     fitness_esm_top_k=args.fitness_esm_top_k,
+                    shm_site_boost=args.shm_site_boost,
+                    shm_fwr_stay=args.shm_fwr_stay,
+                    shm_use_aid=args.shm_use_aid,
+                    shm_cdr_mask=mut_hotspot_mask,
+                    ablate_terminal_only=args.ablate_terminal_only,
+                    ablate_doob=args.ablate_doob,
                 )
                 if losses is None or n_active == 0:
                     continue
-                val_loss += losses["total"].item()
+                total_v = losses["total"].item()
+                if not math.isfinite(total_v):
+                    n_val_nan += 1
+                    continue
+                val_loss += total_v
                 n_val_steps += 1
 
         if n_val_steps > 0:
             val_loss /= n_val_steps
+        else:
+            # Avoid val=nan (never improves → no best.pt). Treat as +inf.
+            val_loss = float("inf")
+            if epoch == 1:
+                print(
+                    f"WARNING: no finite val steps "
+                    f"(skipped_nan={n_val_nan}); check anc_aa / gap fill",
+                    flush=True,
+                )
 
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
@@ -1032,8 +1259,11 @@ def main():
                 "tree_enc": tree_enc.state_dict(),
                 "rate_heads": rate_heads.state_dict(),
                 "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(),
+                "patience_counter": patience_counter,
                 "val_loss": val_loss,
                 "config": {
+                    "mut_head_type": args.mut_head,
                     "use_pos_emb": args.per_site_pos_emb,
                     "use_site_entropy": args.use_site_entropy,
                     "deep_mut_head": args.deep_mut_head,
@@ -1062,8 +1292,17 @@ def main():
                     "fitness_tilt_mode": args.fitness_tilt_mode,
                     "fitness_esm_batch_size": args.fitness_esm_batch_size,
                     "fitness_esm_top_k": args.fitness_esm_top_k,
+                    "shm_site_boost": args.shm_site_boost,
+                    "shm_fwr_stay": args.shm_fwr_stay,
+                    "shm_use_aid": args.shm_use_aid,
                     "r0_backend": r0_backend,
                     "ref_rates_tag": ref_rates_tag,
+                    "freeze_encoder": bool(args.freeze_encoder),
+                    "ablate_terminal_only": args.ablate_terminal_only,
+                    "ablate_doob": args.ablate_doob,
+                    "ablate_terminal_consistency": args.ablate_terminal_consistency,
+                    "ablate_mut_head": args.ablate_mut_head,
+                    "ablate_stop_head": args.ablate_stop_head,
                 },
                 # empirical column-entropy vector [L] (None for esm_self), so
                 # generation reuses the exact same signal training saw.
@@ -1083,7 +1322,13 @@ def main():
     print(f"\nBest val loss: {best_val:.4f}  -> {ckpt_dir}/best.pt")
 
     # ── test evaluation on best checkpoint ──
-    ckpt = torch.load(ckpt_dir / "best.pt", map_location=device, weights_only=False)
+    best_path = ckpt_dir / "best.pt"
+    if not best_path.is_file():
+        raise SystemExit(
+            f"ERROR: {best_path} was never written (val never improved). "
+            "Usually val=nan/inf from all-gap internal seqs — see fill_missing_node_seqs."
+        )
+    ckpt = torch.load(best_path, map_location=device, weights_only=False)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     rate_heads.load_state_dict(ckpt["rate_heads"])
@@ -1122,6 +1367,8 @@ def main():
                 fitness_cache=fitness_cache,
                 fitness_esm_batch_size=args.fitness_esm_batch_size,
                 fitness_esm_top_k=args.fitness_esm_top_k,
+                ablate_terminal_only=args.ablate_terminal_only,
+                ablate_doob=args.ablate_doob,
             )
             if losses is None or n_active == 0:
                 continue
