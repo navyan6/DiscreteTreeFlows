@@ -1,6 +1,8 @@
 # Data — sequences stay off git; split metadata + formed trees (NCBI-safe) + examples tracked
 data/**
 !data/**/
+!data/README.md
+!data/**/README.md
 !data/**/SPLIT_PROTOCOL.json
 !data/**/*_group_*.csv
 !data/**/group_*_rooted.nwk
