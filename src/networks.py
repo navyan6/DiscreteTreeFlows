@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple, Optional
-from src.bridge.cosine_mut_head import CosineSiteMutHead
 from src.treeencoder.attention_mask import build_temporal_attention_mask
 
 
@@ -249,8 +248,7 @@ class RateHeads(nn.Module):
                  deep_mut_head: bool = False,
                  use_mut_aa_emb: bool = False, d_aa: int = 16,
                  use_pssm_gate: bool = False,
-                 pssm_gate_fixed_w: Optional[float] = None,
-                 mut_head_type: str = "residual"):
+                 pssm_gate_fixed_w: Optional[float] = None):
         super().__init__()
         self.d_model = d_model
         self.max_seq_len = max_seq_len
@@ -261,56 +259,44 @@ class RateHeads(nn.Module):
         self.d_aa = d_aa
         self.use_pssm_gate = use_pssm_gate
         self.pssm_gate_fixed_w = pssm_gate_fixed_w
-        kind = (mut_head_type or "residual").strip().lower()
-        if kind not in {"residual", "cosine"}:
-            raise ValueError(
-                f"mut_head_type must be 'residual' or 'cosine', got {mut_head_type!r}"
-            )
-        self.mut_head_type = kind
-        # Appendix E.2 train-time architecture ablations (off by default).
-        self.ablate_mut_head = False
-        self.ablate_stop_head = False
 
-        self.cosine_mut = None
-        if self.mut_head_type == "cosine":
-            self.cosine_mut = CosineSiteMutHead(
-                d_model=d_model, max_seq_len=max_seq_len,
+        # Per-position mutation-head input:
+        #   [h_node (d_model) ‖ (pos_emb) ‖ (aa_emb) ‖ log_R0 (20)].
+        # Optional learned positional / current-AA embeddings let c_θ act per-site.
+        # Identity otherwise never enters (h_node is broadcast); log_R_theta = log_R0 + c_θ.
+        if use_pos_emb:
+            self.pos_emb = nn.Embedding(max_seq_len, d_pos)
+        if use_mut_aa_emb:
+            # 20 AA + PAD(20); flag-gated so existing checkpoints keep mut_in unchanged.
+            self.aa_emb = nn.Embedding(21, d_aa)
+        mut_in = d_model + 20 + (d_pos if use_pos_emb else 0) + (d_aa if use_mut_aa_emb else 0)
+        # Default 64→20 head kept for checkpoint compatibility. deep_mut_head adds a
+        # 128-d bottleneck before the 64-d entropy injection point (new runs only).
+        if deep_mut_head:
+            self.mutation_pre = nn.Sequential(
+                nn.Linear(mut_in, 128),
+                nn.ReLU(),
+                nn.Linear(128, 64),
             )
-            self.use_pssm_gate = False
-            self.use_site_entropy = False
+            self.mutation_out = nn.Sequential(
+                nn.ReLU(),
+                nn.Linear(64, 20),
+            )
         else:
-            # Per-position mutation-head input:
-            #   [h_node (d_model) ‖ (pos_emb) ‖ (aa_emb) ‖ log_R0 (20)].
-            if use_pos_emb:
-                self.pos_emb = nn.Embedding(max_seq_len, d_pos)
-            if use_mut_aa_emb:
-                self.aa_emb = nn.Embedding(21, d_aa)
-            mut_in = d_model + 20 + (d_pos if use_pos_emb else 0) + (d_aa if use_mut_aa_emb else 0)
-            if deep_mut_head:
-                self.mutation_pre = nn.Sequential(
-                    nn.Linear(mut_in, 128),
-                    nn.ReLU(),
-                    nn.Linear(128, 64),
-                )
-                self.mutation_out = nn.Sequential(
-                    nn.ReLU(),
-                    nn.Linear(64, 20),
-                )
-            else:
-                self.mutation_head = nn.Sequential(
-                    nn.Linear(mut_in, 64),
-                    nn.ReLU(),
-                    nn.Linear(64, 20),
-                )
+            self.mutation_head = nn.Sequential(
+                nn.Linear(mut_in, 64),
+                nn.ReLU(),
+                nn.Linear(64, 20),
+            )
 
-        if use_site_entropy and self.mut_head_type != "cosine":
+        if use_site_entropy:
             self.site_entropy_proj = nn.Linear(1, 64, bias=False)
             nn.init.zeros_(self.site_entropy_proj.weight)
             self.register_load_state_dict_pre_hook(self._entropy_load_pre_hook)
 
         # Static train-PSSM gate: log R_eff = w·Z(log R_θ) + (1−w)·Z(log PSSM).
         # Learnable per-site w=σ(γ) by default; optional fixed w for ablations.
-        if self.use_pssm_gate:
+        if use_pssm_gate:
             if pssm_gate_fixed_w is None:
                 self.pssm_gate_logit = nn.Parameter(torch.zeros(max_seq_len))
             else:
@@ -346,10 +332,6 @@ class RateHeads(nn.Module):
             nn.Sigmoid(),
         )
 
-    @property
-    def needs_aa_indices(self) -> bool:
-        return self.mut_head_type == "cosine" or bool(self.use_mut_aa_emb)
-
     def _entropy_load_pre_hook(
         self, module, state_dict, prefix, local_metadata, strict,
         missing_keys, unexpected_keys, error_msgs
@@ -377,97 +359,88 @@ class RateHeads(nn.Module):
         h_active = H_T[active_leaf_indices]          # [n_active, d_model]
         L = log_R0_mut.shape[1]
 
-        if self.ablate_mut_head:
-            # E.2: no mutation head → pure R0 (branching / BL / stop still learned).
-            log_R_theta_mut = log_R0_mut
-        elif self.mut_head_type == "cosine":
-            log_R_theta_mut = self.cosine_mut(h_active, aa_indices, log_R0_mut)
+        # Broadcast tree context to per-position; optionally add a per-position
+        # positional embedding so c_θ can specialize by site; concat per-position R0.
+        h_expanded = h_active.unsqueeze(1).expand(-1, L, -1)  # [n_active, L, d_model]
+        parts = [h_expanded]
+        if self.use_pos_emb:
+            pos_ids = torch.arange(L, device=log_R0_mut.device)
+            pe = self.pos_emb(pos_ids).unsqueeze(0).expand(h_active.shape[0], -1, -1)
+            parts.append(pe)                                   # [n_active, L, d_pos]
+        if self.use_mut_aa_emb:
+            if aa_indices is None:
+                raise ValueError("aa_indices is required when use_mut_aa_emb=True")
+            aa = aa_indices.to(device=log_R0_mut.device, dtype=torch.long)
+            if aa.shape != (h_active.shape[0], L):
+                raise ValueError(
+                    f"aa_indices must have shape [n_active, L]=[{h_active.shape[0]}, {L}], "
+                    f"got {tuple(aa.shape)}"
+                )
+            parts.append(self.aa_emb(aa.clamp(0, 20)))         # [n_active, L, d_aa]
+        parts.append(log_R0_mut)
+        h_pos = torch.cat(parts, dim=-1)                       # [n_active, L, mut_in]
+
+        if self.deep_mut_head:
+            mut_hidden = self.mutation_pre(h_pos)              # [n_active, L, 64]
         else:
-            # Broadcast tree context to per-position; optionally add a per-position
-            # positional embedding so c_θ can specialize by site; concat per-position R0.
-            h_expanded = h_active.unsqueeze(1).expand(-1, L, -1)  # [n_active, L, d_model]
-            parts = [h_expanded]
-            if self.use_pos_emb:
-                pos_ids = torch.arange(L, device=log_R0_mut.device)
-                pe = self.pos_emb(pos_ids).unsqueeze(0).expand(h_active.shape[0], -1, -1)
-                parts.append(pe)                               # [n_active, L, d_pos]
-            if self.use_mut_aa_emb:
-                if aa_indices is None:
-                    raise ValueError("aa_indices is required when use_mut_aa_emb=True")
-                aa = aa_indices.to(device=log_R0_mut.device, dtype=torch.long)
-                if aa.shape != (h_active.shape[0], L):
-                    raise ValueError(
-                        f"aa_indices must have shape [n_active, L]=[{h_active.shape[0]}, {L}], "
-                        f"got {tuple(aa.shape)}"
-                    )
-                parts.append(self.aa_emb(aa.clamp(0, 20)))     # [n_active, L, d_aa]
-            parts.append(log_R0_mut)
-            h_pos = torch.cat(parts, dim=-1)                   # [n_active, L, mut_in]
-
-            if self.deep_mut_head:
-                mut_hidden = self.mutation_pre(h_pos)          # [n_active, L, 64]
+            mut_hidden = self.mutation_head[0](h_pos)          # [n_active, L, 64]
+        if self.use_site_entropy:
+            if site_entropy is None:
+                log_probs = F.log_softmax(log_R0_mut, dim=-1)
+                probs = log_probs.exp()
+                site_entropy = -(probs * log_probs).sum(dim=-1)
             else:
-                mut_hidden = self.mutation_head[0](h_pos)      # [n_active, L, 64]
-            if self.use_site_entropy:
-                if site_entropy is None:
-                    log_probs = F.log_softmax(log_R0_mut, dim=-1)
-                    probs = log_probs.exp()
-                    site_entropy = -(probs * log_probs).sum(dim=-1)
-                else:
-                    site_entropy = site_entropy.to(
-                        device=log_R0_mut.device, dtype=log_R0_mut.dtype
-                    )
-                    if site_entropy.ndim == 1:
-                        site_entropy = site_entropy.unsqueeze(0)
-                    if site_entropy.ndim != 2 or site_entropy.shape[1] != L:
-                        raise ValueError(
-                            "site_entropy must have shape [L], [1, L], or [n_active, L]"
-                        )
-                    if site_entropy.shape[0] == 1:
-                        site_entropy = site_entropy.expand(h_active.shape[0], -1)
-                    elif site_entropy.shape[0] != h_active.shape[0]:
-                        raise ValueError("site_entropy batch dimension must be 1 or n_active")
-
-                entropy_feature = site_entropy.unsqueeze(-1)
-                mut_hidden = mut_hidden + self.site_entropy_proj(entropy_feature)
-
-            if self.deep_mut_head:
-                c_theta = self.mutation_out(mut_hidden)        # [n_active, L, 20]
-            else:
-                mut_hidden = self.mutation_head[1](mut_hidden)
-                c_theta = self.mutation_head[2](mut_hidden)    # [n_active, L, 20]
-            log_R_theta_mut = log_R0_mut + c_theta             # [n_active, L, 20]
-
-            if self.use_pssm_gate:
-                if log_pssm is None:
-                    raise ValueError("log_pssm is required when use_pssm_gate=True")
-                pssm = log_pssm.to(device=log_R_theta_mut.device, dtype=log_R_theta_mut.dtype)
-                if pssm.ndim == 2:
-                    pssm = pssm.unsqueeze(0)
-                if pssm.ndim != 3 or pssm.shape[-2:] != (L, 20):
+                site_entropy = site_entropy.to(
+                    device=log_R0_mut.device, dtype=log_R0_mut.dtype
+                )
+                if site_entropy.ndim == 1:
+                    site_entropy = site_entropy.unsqueeze(0)
+                if site_entropy.ndim != 2 or site_entropy.shape[1] != L:
                     raise ValueError(
-                        f"log_pssm must have shape [L, 20] or [*, L, 20], got {tuple(pssm.shape)}"
+                        "site_entropy must have shape [L], [1, L], or [n_active, L]"
                     )
-                if pssm.shape[0] == 1:
-                    pssm = pssm.expand(h_active.shape[0], -1, -1)
-                elif pssm.shape[0] != h_active.shape[0]:
-                    raise ValueError("log_pssm batch dimension must be 1 or n_active")
+                if site_entropy.shape[0] == 1:
+                    site_entropy = site_entropy.expand(h_active.shape[0], -1)
+                elif site_entropy.shape[0] != h_active.shape[0]:
+                    raise ValueError("site_entropy batch dimension must be 1 or n_active")
 
-                if self.pssm_gate_fixed_w is not None:
-                    w = self.pssm_gate_fixed[:L].to(dtype=log_R_theta_mut.dtype)
-                else:
-                    w = torch.sigmoid(self.pssm_gate_logit[:L])
-                w = w.view(1, L, 1)
-                z_theta = F.log_softmax(log_R_theta_mut, dim=-1)
-                z_pssm = F.log_softmax(pssm, dim=-1)
-                log_R_theta_mut = w * z_theta + (1.0 - w) * z_pssm
+            entropy_feature = site_entropy.unsqueeze(-1)
+            mut_hidden = mut_hidden + self.site_entropy_proj(entropy_feature)
+
+        if self.deep_mut_head:
+            c_theta = self.mutation_out(mut_hidden)            # [n_active, L, 20]
+        else:
+            mut_hidden = self.mutation_head[1](mut_hidden)
+            c_theta = self.mutation_head[2](mut_hidden)        # [n_active, L, 20]
+        log_R_theta_mut = log_R0_mut + c_theta                 # [n_active, L, 20]
+
+        if self.use_pssm_gate:
+            if log_pssm is None:
+                raise ValueError("log_pssm is required when use_pssm_gate=True")
+            pssm = log_pssm.to(device=log_R_theta_mut.device, dtype=log_R_theta_mut.dtype)
+            if pssm.ndim == 2:
+                pssm = pssm.unsqueeze(0)
+            if pssm.ndim != 3 or pssm.shape[-2:] != (L, 20):
+                raise ValueError(
+                    f"log_pssm must have shape [L, 20] or [*, L, 20], got {tuple(pssm.shape)}"
+                )
+            if pssm.shape[0] == 1:
+                pssm = pssm.expand(h_active.shape[0], -1, -1)
+            elif pssm.shape[0] != h_active.shape[0]:
+                raise ValueError("log_pssm batch dimension must be 1 or n_active")
+
+            if self.pssm_gate_fixed_w is not None:
+                w = self.pssm_gate_fixed[:L].to(dtype=log_R_theta_mut.dtype)
+            else:
+                w = torch.sigmoid(self.pssm_gate_logit[:L])
+            w = w.view(1, L, 1)
+            z_theta = F.log_softmax(log_R_theta_mut, dim=-1)
+            z_pssm = F.log_softmax(pssm, dim=-1)
+            log_R_theta_mut = w * z_theta + (1.0 - w) * z_pssm
 
         branching_rate = self.branching_head(h_active).squeeze(-1)   # [n_active]
         branch_length  = self.branch_length_head(h_active).squeeze(-1)  # [n_active]
-        if self.ablate_stop_head:
-            stop_prob = h_active.new_full((h_active.shape[0],), 0.5)
-        else:
-            stop_prob = self.stop_head(h_active).squeeze(-1)         # [n_active]
+        stop_prob      = self.stop_head(h_active).squeeze(-1)         # [n_active]
 
         return {
             "log_R_theta_mut": log_R_theta_mut,
@@ -475,20 +448,3 @@ class RateHeads(nn.Module):
             "branch_length":   branch_length,
             "stop_prob":       stop_prob,
         }
-
-
-def rate_heads_from_config(cfg: dict, max_seq_len: int, d_model: int = 128) -> RateHeads:
-    """Rebuild RateHeads from a checkpoint config dict (eval / generate)."""
-    cfg = cfg or {}
-    return RateHeads(
-        d_model=d_model,
-        max_seq_len=max_seq_len,
-        use_pos_emb=cfg.get("use_pos_emb", False),
-        use_site_entropy=cfg.get("use_site_entropy", False),
-        deep_mut_head=cfg.get("deep_mut_head", False),
-        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
-        d_aa=cfg.get("mut_aa_emb_dim", 16),
-        use_pssm_gate=cfg.get("use_pssm_gate", False),
-        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
-        mut_head_type=cfg.get("mut_head_type", "residual"),
-    )

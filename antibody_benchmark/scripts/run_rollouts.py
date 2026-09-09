@@ -75,17 +75,6 @@ def main() -> None:
         default=None,
         help="Comma-separated model keys to enable (overrides YAML enabled flags)",
     )
-    ap.add_argument(
-        "--out-dir",
-        default=None,
-        help="Override samples output dir (default: <paths.results>/samples)",
-    )
-    ap.add_argument(
-        "--write-as",
-        default=None,
-        help="Rename the single enabled model key when writing samples "
-        "(e.g. treesbm_ab_oas). Does not change load_models.",
-    )
     args = ap.parse_args()
     cfg = yaml.safe_load(Path(args.config).read_text())
     if args.models:
@@ -114,12 +103,7 @@ def main() -> None:
     if not models:
         raise SystemExit("No models enabled in config")
 
-    out = Path(args.out_dir) if args.out_dir else ROOT / cfg["paths"]["results"] / "samples"
-    if args.write_as:
-        if len(models) != 1:
-            raise SystemExit("--write-as requires exactly one enabled model")
-        k = next(iter(models))
-        models = {args.write_as: models[k]}
+    out = ROOT / cfg["paths"]["results"] / "samples"
     n_rollouts = int(args.n_rollouts if args.n_rollouts is not None else cfg.get("n_rollouts", 20))
     records = sample_all(
         trees,
@@ -127,19 +111,7 @@ def main() -> None:
         out_dir=out,
         n_rollouts=n_rollouts,
         base_seed=int(cfg.get("seed", 42)),
-        use_aa_for=frozenset(
-            {
-                "cosine",
-                "treesbm",
-                "treesbm_ab",
-                "treesbm_ab_oas",
-                "treesbm_ab_oas_v2",
-                "identity_null",
-                "poisson_null",
-                "plm_prior",
-                "ar_tree_edit",
-            }
-        ),
+        use_aa_for=frozenset({"cosine", "treesbm", "identity_null", "poisson_null"}),
     )
     print(
         json.dumps(

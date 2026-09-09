@@ -36,30 +36,15 @@ def sample_bridge_state(
     retained = {nid for nid in node_ids if node_times_dict[nid] <= t_cut}
     retained.add(root_id)
 
-    # 3. Retain edges where both parent and child are retained, then keep only
-    # the root-connected component. Nodes with fallback numdate=0 (name mismatch)
-    # or negative branch lengths can otherwise sit below a dropped parent and
-    # make compute_depth raise "Some nodes are not reachable by root".
+    # 3. Retain edges where both parent and child are retained
     retained_edges = [(p, c) for p, c in edges if p in retained and c in retained]
-    children = {}
-    for p, c in retained_edges:
-        children.setdefault(p, []).append(c)
-    reachable = {root_id}
-    stack = [root_id]
-    while stack:
-        cur = stack.pop()
-        for ch in children.get(cur, []):
-            if ch not in reachable:
-                reachable.add(ch)
-                stack.append(ch)
-    retained_edges = [(p, c) for p, c in retained_edges if p in reachable and c in reachable]
 
     # 4. Branch lengths for retained edges are their full T1 values (branch is fully elapsed)
     branch_lengths_t = {(p, c): branch_lengths[(p, c)] for p, c in retained_edges}
 
     # 5. Partial sequences via Bernoulli-sampling mutations per branch
     parent_map = {c: p for p, c in retained_edges}
-    node_ids_t = [nid for nid in node_ids if nid in reachable]  # preserve BFS order
+    node_ids_t = [nid for nid in node_ids if nid in retained]  # preserve BFS order
 
     seqs_t = {root_id: seqs[root_id]}
     for nid in node_ids_t:
@@ -78,20 +63,12 @@ def sample_bridge_state(
         t_c = node_times_dict[nid]
         frac = min(1.0, max(0.0, (t_cut - t_p) / (t_c - t_p))) if t_c > t_p else 1.0
 
-        # Each differing position mutated independently with prob frac.
-        # Never copy gap/non-AA from child (tip-only anc_aa used to fill internals
-        # with '-' * L; mutating toward gaps yields all-PAD leaves and NaN L_pll).
-        _AA = "ACDEFGHIKLMNPQRSTVWY"
+        # Each differing position mutated independently with prob frac
         partial = list(p_seq)
         L = min(len(p_seq), len(c_seq))
         for pos in range(L):
-            c_aa = c_seq[pos]
-            if (
-                c_aa in _AA
-                and p_seq[pos] != c_aa
-                and random.random() < frac
-            ):
-                partial[pos] = c_aa
+            if p_seq[pos] != c_seq[pos] and random.random() < frac:
+                partial[pos] = c_seq[pos]
         seqs_t[nid] = "".join(partial)
 
     # 6. Active leaves of T_t 

@@ -30,10 +30,9 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.ab_t6_metrics import (  # noqa: E402
     cdr_mask_imgt_stub,
-    cdr_mut_recall,
-    coverage_at_k_abs,
-    shm_load_error,
-    terminal_diversity_error,
+    cdr_mut_recall_stub,
+    shm_load_error_stub,
+    terminal_diversity_error_stub,
 )
 
 
@@ -173,17 +172,10 @@ def main() -> None:
                     leaves = [gt.tree.node_seqs[l] for l in gt.tree.active_leaves]
                     gen_leaves.extend(leaves)
                     # topology RF needs newick — skip if TreeState only
-                rec["cdr_mut_recall"] = cdr_mut_recall(g["root"], gen_leaves, g["leaves"], mask)
-                rec["shm_load_error"] = shm_load_error(g["root"], gen_leaves, g["leaves"])
-                rec["terminal_diversity_error"] = terminal_diversity_error(gen_leaves, g["leaves"])
-                rec["coverage_at_100"] = coverage_at_k_abs(
-                    g["leaves"],
-                    gen_leaves,
-                    e=2,
-                    k=min(100, max(1, len(gen_leaves))),
-                )
-                # keep legacy fractional coverage too
-                rec["coverage_at_100_frac"] = coverage_at_100(
+                rec["cdr_mut_recall"] = cdr_mut_recall_stub(g["root"], gen_leaves, g["leaves"], mask)
+                rec["shm_load_error"] = shm_load_error_stub(g["root"], gen_leaves, g["leaves"])
+                rec["terminal_diversity_error"] = terminal_diversity_error_stub(gen_leaves, g["leaves"])
+                rec["coverage_at_100"] = coverage_at_100(
                     g["leaves"], gen_leaves[:100] if len(gen_leaves) >= 100 else gen_leaves
                 )
                 rec["lineage_rf"] = float("nan")  # needs gen Newick export — TODO

@@ -31,7 +31,6 @@ Tree-wide / fairer companions (do **not** replace the primary leaf metrics):
 
 from __future__ import annotations
 
-import hashlib
 import math
 from collections import Counter
 
@@ -43,77 +42,9 @@ __all__ = [
     "coverage_at_e", "frac_gen_within_e",
     "mutation_pr_f1", "unique_mutations_recovered",
     "sitewise_entropy", "mutation_spectrum", "pairwise_distance_distribution",
-    "align_index_map", "positional_recovery",
+    "positional_recovery",
     "any_descendant_mut_recovery", "path_union_mutation_recovery",
 ]
-
-
-# ── root-frame alignment ────────────────────────────────────────────────────
-#
-# Column-indexed metrics assume root[i], gt[i] and gen[i] are the same residue.
-# That holds for generated leaves, which inherit the root's length because the
-# models only substitute, but not for observed leaves, which carry their own
-# indels. Where an observed leaf has a deletion, every residue downstream sits at
-# a lower index than its homolog on the root and the comparison silently reads
-# the wrong residue. See results/voc_threat_panel/SPIKE_FRAME_BUG.md.
-#
-# Exposure measured by scripts/audit_frame_all_datasets.py: 1.8% of HIV Env
-# leaves share their root's frame, 47% for SARS-CoV-2 Spike, 74% for H1N1,
-# 94% for H3N2.
-
-_ALIGN_CACHE: dict[tuple[str, str], tuple[int, ...]] = {}
-_ALIGN_CACHE_MAX = 20_000
-
-
-def _digest(s: str) -> str:
-    return hashlib.blake2b(s.encode(), digest_size=16).hexdigest()
-
-
-def align_index_map(seq: str, root: str) -> tuple[int, ...]:
-    """Map each index of ``root`` to the homologous index of ``seq``, or -1.
-
-    Equal length means no indel relative to the root, so the identity map is
-    exact and alignment is skipped — the common case, and what keeps this cheap
-    on datasets like H3N2 where almost nothing has an indel.
-    """
-    if len(seq) == len(root):
-        return tuple(range(len(root)))
-
-    key = (_digest(root), _digest(seq))
-    cached = _ALIGN_CACHE.get(key)
-    if cached is not None:
-        return cached
-
-    mapping = [-1] * len(root)
-    try:
-        from Bio import Align
-
-        aligner = Align.PairwiseAligner()
-        aligner.mode = "global"
-        aligner.match_score = 1.0
-        aligner.mismatch_score = -1.0
-        aligner.open_gap_score = -10.0
-        aligner.extend_gap_score = -0.5
-        aligner.target_end_gap_score = 0.0
-        aligner.query_end_gap_score = 0.0
-        aln = aligner.align(root, seq)[0]
-        for (rs, re_), (qs, _qe) in zip(*aln.aligned):
-            for k in range(re_ - rs):
-                mapping[rs + k] = qs + k
-    except Exception:  # noqa: BLE001 - no Bio, or degenerate seq; truncate
-        for i in range(min(len(root), len(seq))):
-            mapping[i] = i
-
-    out = tuple(mapping)
-    if len(_ALIGN_CACHE) < _ALIGN_CACHE_MAX:
-        _ALIGN_CACHE[key] = out
-    return out
-
-
-def _truncating_map(seq: str, root: str) -> tuple[int, ...]:
-    """Legacy behaviour: index-for-index, truncated to the shorter sequence."""
-    n = min(len(root), len(seq))
-    return tuple(i if i < n else -1 for i in range(len(root)))
 
 
 def hamming(a: str, b: str) -> int:
@@ -270,7 +201,7 @@ def pairwise_distance_distribution(seqs: list[str], max_pairs: int = 2000,
     return out
 
 
-def positional_recovery(root: str, gt: str, gen: str, align: bool = True) -> dict:
+def positional_recovery(root: str, gt: str, gen: str) -> dict:
     """
     **Primary leaf metric.** Split positions by root-vs-GT leaf and score one
     generated leaf:
@@ -287,31 +218,14 @@ def positional_recovery(root: str, gt: str, gen: str, align: bool = True) -> dic
     Optional site_precision = P(root!=GT | gen!=root): among sites the model
     mutated away from root, fraction that were true mutating sites.
 
-    Positions are scored in the **root's** coordinate frame. With ``align=True``
-    (default) the GT and generated leaves are mapped onto that frame by pairwise
-    alignment, so an indel-carrying leaf is read at its homologous residue rather
-    than a shifted one; positions deleted on either leaf are dropped from both
-    numerator and denominator and counted in ``n_skipped_indel``. Sequences of
-    equal length skip alignment, so the fast path is unchanged and free.
-
-    ``align=False`` restores the previous index-for-index behaviour, truncated to
-    the shortest of the three. Kept only for reproducing pre-fix numbers.
-
     Does **not** look at internal nodes — see module docstring.
     """
-    ix = align_index_map if align else _truncating_map
-    gt_ix, gen_ix = ix(gt, root), ix(gen, root)
-
+    L = min(len(root), len(gt), len(gen))
     mut_correct = mut_total = cons_correct = cons_total = 0
     site_hits = site_hit_correct = 0  # true mut sites where gen!=root; among those gen==GT
     gen_mut_total = gen_mut_true = 0  # gen!=root; among those root!=GT
-    skipped = 0
-    for i in range(len(root)):
-        j, k = gt_ix[i], gen_ix[i]
-        if j < 0 or k < 0:
-            skipped += 1
-            continue
-        r, g, m = root[i], gt[j], gen[k]
+    for i in range(L):
+        r, g, m = root[i], gt[i], gen[i]
         if r == g:
             cons_total += 1
             cons_correct += (m == r)
@@ -338,8 +252,6 @@ def positional_recovery(root: str, gt: str, gen: str, align: bool = True) -> dic
         "cons_total": cons_total,
         "site_hits": site_hits,
         "gen_mut_total": gen_mut_total,
-        "n_scored": mut_total + cons_total,
-        "n_skipped_indel": skipped,
     }
 
 
@@ -347,7 +259,6 @@ def any_descendant_mut_recovery(
     root: str,
     gt: str,
     gen_seqs: list[str],
-    align: bool = True,
 ) -> dict:
     """
     Tree-wide companion to leaf ``positional_recovery`` for one GT leaf.
@@ -355,9 +266,6 @@ def any_descendant_mut_recovery(
     For each site where root≠GT, credit recovery if **any** generated leaf has
     gen==GT at that site; site hit if any gen≠root. Conserved retention requires
     **all** gen leaves to keep root (strict) — also report soft mean retention.
-
-    Scored in the root's frame with the same alignment handling as
-    ``positional_recovery``; see that docstring for ``align``.
 
     Primary leaf ``mut_recovery`` is unchanged; this is an additional KPI.
     """
@@ -368,22 +276,13 @@ def any_descendant_mut_recovery(
             "cons_retention_all_gen": float("nan"),
             "mut_total": 0,
             "cons_total": 0,
-            "n_skipped_indel": 0,
         }
-    ix = align_index_map if align else _truncating_map
-    gt_ix = ix(gt, root)
-    gen_ix = [ix(s, root) for s in gen_seqs]
-
+    L = min(len(root), len(gt), *(len(g) for g in gen_seqs))
     mut_correct = mut_total = site_hits = 0
     cons_correct = cons_total = 0
-    skipped = 0
-    for i in range(len(root)):
-        j = gt_ix[i]
-        if j < 0 or any(m[i] < 0 for m in gen_ix):
-            skipped += 1
-            continue
-        r, g = root[i], gt[j]
-        gens = [s[m[i]] for s, m in zip(gen_seqs, gen_ix)]
+    for i in range(L):
+        r, g = root[i], gt[i]
+        gens = [s[i] for s in gen_seqs]
         if r == g:
             cons_total += 1
             cons_correct += int(all(m == r for m in gens))
@@ -403,7 +302,6 @@ def any_descendant_mut_recovery(
         ),
         "mut_total": mut_total,
         "cons_total": cons_total,
-        "n_skipped_indel": skipped,
     }
 
 

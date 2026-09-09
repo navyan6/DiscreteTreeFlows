@@ -36,7 +36,7 @@ from src.treeencoder.plm_embeddings import ESM2Embedder
 from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
-from src.networks import TreeEncoder, RateHeads, rate_heads_from_config
+from src.networks import TreeEncoder, RateHeads
 from src.bridge.losses import _build_seq_indices
 from src.bridge.fitness_tilt import (
     TILT_FULL_ESM,
@@ -60,7 +60,16 @@ def load_checkpoint(path, device, max_seq_len=566):
     cfg = ckpt.get("config", {})
     node_enc  = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc  = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads   = rate_heads_from_config(cfg, max_seq_len).to(device)
+    r_heads   = RateHeads(
+        d_model=128, max_seq_len=max_seq_len,
+        use_pos_emb=cfg.get("use_pos_emb", False),
+        use_site_entropy=cfg.get("use_site_entropy", False),
+        deep_mut_head=cfg.get("deep_mut_head", False),
+        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
+        d_aa=cfg.get("mut_aa_emb_dim", 16),
+        use_pssm_gate=cfg.get("use_pssm_gate", False),
+        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
+    ).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])
@@ -86,13 +95,6 @@ def load_checkpoint(path, device, max_seq_len=566):
     r_heads._fitness_tilt_mode = cfg.get("fitness_tilt_mode", TILT_SITE_LOCAL)
     r_heads._fitness_esm_batch_size = int(cfg.get("fitness_esm_batch_size", 8))
     r_heads._fitness_esm_top_k = cfg.get("fitness_esm_top_k")
-    r_heads._shm_site_boost = float(cfg.get("shm_site_boost", 0.0) or 0.0)
-    r_heads._shm_fwr_stay = float(cfg.get("shm_fwr_stay", 0.0) or 0.0)
-    r_heads._shm_use_aid = bool(cfg.get("shm_use_aid", False))
-    hot = ckpt.get("mut_hotspot_mask", None)
-    if hot is not None:
-        hot = hot.to(device).bool()
-    r_heads._mut_hotspot_mask = hot
     r_heads._ckpt_config = cfg
     return node_enc, tree_enc, r_heads
 
@@ -229,31 +231,9 @@ def generate_tree(args):
             batch_size=int(batch_sz),
             top_k_aas=top_k,
         )
-        shm_boost = getattr(args, "shm_site_boost", None)
-        if shm_boost is None:
-            shm_boost = float(ckpt_cfg.get("shm_site_boost", 0.0) or 0.0)
-        shm_fwr = getattr(args, "shm_fwr_stay", None)
-        if shm_fwr is None:
-            shm_fwr = float(ckpt_cfg.get("shm_fwr_stay", 0.0) or 0.0)
-        shm_aid = getattr(args, "shm_use_aid", None)
-        if shm_aid is None:
-            shm_aid = bool(ckpt_cfg.get("shm_use_aid", False))
-        if float(shm_boost) != 0.0 or float(shm_fwr) != 0.0 or shm_aid:
-            from src.bridge.shm_site_prior import apply_shm_site_prior
-            cdr = getattr(rate_heads, "_mut_hotspot_mask", None)
-            if cdr is None:
-                cdr = ckpt_cfg.get("mut_hotspot_mask")
-            log_R0_mut = apply_shm_site_prior(
-                log_R0_mut,
-                active_seqs,
-                cdr_mask=cdr,
-                boost=float(shm_boost),
-                fwr_stay=float(shm_fwr),
-                use_aid=bool(shm_aid),
-            )
 
         aa_indices = None
-        if getattr(rate_heads, "needs_aa_indices", False):
+        if getattr(rate_heads, "use_mut_aa_emb", False):
             aa_indices = _build_seq_indices(active_seqs, args.max_seq_len, device)
         col_entropy = getattr(rate_heads, "_col_entropy", None)
         log_pssm = getattr(rate_heads, "_train_log_pssm", None)

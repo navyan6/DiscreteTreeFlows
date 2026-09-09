@@ -1,12 +1,12 @@
 """
-Table 5 antibody baselines — Neutral SHM / pLM / AR for Rod.82 Track C.
+Table 5 antibody baselines — wire existing generators; stub true Ab-specific ones.
 
 Paper rows (affinity maturation):
-  1. Neutral SHM model          → JC69 NT CTMC on observed topo+BL (not Thrifty)
-  2. pLM mutation prior only    → ESM-2 on observed topo+BL
-  3. Autoregressive tree edit   → ARTreeFormer N16 pool pruned + JTT (adapted)
+  1. Neutral SHM model          → NOT S5F yet; stub (optional NeutralBD fallback)
+  2. pLM mutation prior only    → reuse PLMPrior (ESM-2 + BD topology)
+  3. Autoregressive tree edit   → NOT native; stub (ARTreeFormer adapted pools only)
 
-Legacy NeutralBD / stub paths kept for older eval_ab_maturation harness only.
+Do not invent S5F / Ab-AR implementations here.
 """
 
 from __future__ import annotations
@@ -18,9 +18,10 @@ from benchmarks.methods.plm_prior import PLMPrior
 
 class NeutralSHMStub(Method):
     """
-    Legacy stub for free-gen NeutralBD fallback.
+    Placeholder for Neutral SHM (S5F / hotspot SHM).
 
-    Prefer antibody_benchmark.models.neutral_shm.NeutralSHMModel for Rod.82.
+    If allow_neutral_bd_fallback=True, delegates to NeutralBD (AA CTMC) so the
+    eval harness can run end-to-end — label results TEMP / not paper-final.
     """
 
     name = "neutral_shm_stub"
@@ -34,9 +35,8 @@ class NeutralSHMStub(Method):
     def generate(self, root_seq: str, N: int, H: float, seed: int) -> GeneratedTree:
         if self._fallback is None:
             raise NotImplementedError(
-                "Use antibody_benchmark NeutralSHMModel (JC69 on observed topo) "
-                "via run_rollouts.py --models neutral_shm. "
-                "Or pass allow_neutral_bd_fallback=True for TEMP NeutralBD proxy."
+                "Neutral SHM (S5F) not implemented. Install/wire S5F or pass "
+                "allow_neutral_bd_fallback=True for TEMP NeutralBD proxy."
             )
         out = self._fallback.generate(root_seq, N, H, seed)
         out.meta = {**out.meta, "baseline": "neutral_shm_TEMP_neutral_bd_proxy", "paper_ok": False}
@@ -44,20 +44,25 @@ class NeutralSHMStub(Method):
 
 
 class PLMMutationPriorAb(PLMPrior):
-    """Same as Table 2 PLMPrior; renamed for Table 5 row clarity (free BD topo)."""
+    """Same as Table 2 PLMPrior; renamed for Table 5 row clarity."""
 
     name = "plm_prior_ab"
 
 
 class AutoregressiveTreeEditStub(Method):
-    """Legacy stub — prefer antibody_benchmark.models.ar_tree_edit.ARTreeEditModel."""
+    """
+    Autoregressive tree-edit model stub.
+
+    Native forward Ab AR not in repo. ARTreeFormer adapted pools (viral) are
+    not valid Ab baselines — do not silently reuse.
+    """
 
     name = "ar_tree_edit_stub"
 
     def generate(self, root_seq: str, N: int, H: float, seed: int) -> GeneratedTree:
         raise NotImplementedError(
-            "Use antibody_benchmark ARTreeEditModel via run_rollouts.py "
-            "--models ar_tree_edit (ARTreeFormer pool + JTT on Rod.82)."
+            "Autoregressive tree-edit baseline for Abs not wired. "
+            "Need Ab-trained ARTreeFormer / tree-edit model — see TABLE5_AB_BASELINE_PLAN.md."
         )
 
 

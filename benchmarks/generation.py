@@ -37,24 +37,12 @@ class TreeSBMGenerator:
         r0_backend=None,
         fitness_beta: float | None = None,
         ablate_bridge: bool = False,
-        ablate_tree_context: bool = False,
-        ablate_branch_length_head: bool = False,
-        ablate_internal_node_seqs: bool = False,
-        ablate_site_entropy: bool = False,
-        branching_mode: str = "learned",
-        ref_lambda: float = 1.0,
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.max_seq_len = max_seq_len
         self.r0_backend = r0_backend
         self.fitness_beta = fitness_beta
         self.ablate_bridge = ablate_bridge
-        self.ablate_tree_context = ablate_tree_context
-        self.ablate_branch_length_head = ablate_branch_length_head
-        self.ablate_internal_node_seqs = ablate_internal_node_seqs
-        self.ablate_site_entropy = ablate_site_entropy
-        self.branching_mode = branching_mode
-        self.ref_lambda = ref_lambda
         self.node_enc, self.tree_enc, self.rate_heads, self.col_entropy = load_models(
             checkpoint, self.device, max_seq_len
         )
@@ -77,7 +65,6 @@ class TreeSBMGenerator:
         mutation_rate_scale: float = 0.04,
         base_seed: int = 0,
         cache_esm: bool = True,
-        site_temperature: float = 1.0,
     ) -> list[TreeState]:
         trees: list[TreeState] = []
         for k in range(K):
@@ -89,15 +76,8 @@ class TreeSBMGenerator:
                 self.embedder, self.tokenizer, self.esm_model, self.aa_token_ids, self.device,
                 col_entropy=self.col_entropy,
                 cache_esm=cache_esm,
-                site_temperature=site_temperature,
                 fitness_beta=self.fitness_beta,
                 ablate_bridge=self.ablate_bridge,
-                ablate_tree_context=self.ablate_tree_context,
-                ablate_branch_length_head=self.ablate_branch_length_head,
-                ablate_internal_node_seqs=self.ablate_internal_node_seqs,
-                ablate_site_entropy=self.ablate_site_entropy,
-                branching_mode=self.branching_mode,
-                ref_lambda=self.ref_lambda,
                 r0_backend=self.r0_backend,
             ))
         return trees

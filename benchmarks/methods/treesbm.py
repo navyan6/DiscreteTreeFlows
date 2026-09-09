@@ -28,45 +28,28 @@ class TreeSBMMethod(Method):
     def __init__(self, checkpoint: str, n_steps: int = 50, branch_rate_scale: float = 6.0,
                  rate_per_H: float = 1.2, max_seq_len: int = 566, cushion: float = 1.6,
                  max_retries: int = 4, r0_backend=None, fitness_beta: float | None = None,
-                 ablate_bridge: bool = False,
-                 ablate_tree_context: bool = False,
-                 ablate_branch_length_head: bool = False,
-                 ablate_internal_node_seqs: bool = False,
-                 ablate_site_entropy: bool = False,
-                 branching_mode: str = "learned",
-                 ref_lambda: float = 1.0,
-                 site_temperature: float = 1.0,
-                 max_leaves: int | None = None):
+                 ablate_bridge: bool = False):
         self.gen = TreeSBMGenerator(
             checkpoint, max_seq_len=max_seq_len,
             r0_backend=r0_backend, fitness_beta=fitness_beta,
             ablate_bridge=ablate_bridge,
-            ablate_tree_context=ablate_tree_context,
-            ablate_branch_length_head=ablate_branch_length_head,
-            ablate_internal_node_seqs=ablate_internal_node_seqs,
-            ablate_site_entropy=ablate_site_entropy,
-            branching_mode=branching_mode,
-            ref_lambda=ref_lambda,
         )
         self.n_steps = n_steps
         self.branch_rate_scale = branch_rate_scale
         self.rate_per_H = rate_per_H
         self.cushion = cushion
         self.max_retries = max_retries
-        self.site_temperature = site_temperature
-        self.max_leaves = max_leaves  # E.3 override; None → N*cushion+2
 
     def generate(self, root_seq: str, N: int, H: float, seed: int) -> GeneratedTree:
         t0 = time.time()
         mut_scale = max(1e-4, H * self.rate_per_H)      # horizon -> divergence
-        cap = int(self.max_leaves) if self.max_leaves is not None else int(N * self.cushion) + 2
+        cap = int(N * self.cushion) + 2
         tree = None
         for r in range(self.max_retries):
             g = self.gen.generate_k(
                 root_seq, K=1, n_steps=self.n_steps + 10 * r, max_leaves=cap,
                 branch_rate_scale=self.branch_rate_scale * (1 + 0.3 * r),
                 mutation_rate_scale=mut_scale, base_seed=seed + 100 * r,
-                site_temperature=self.site_temperature,
             )[0]
             if len(T.leaf_labels(g)) >= N:
                 tree = g

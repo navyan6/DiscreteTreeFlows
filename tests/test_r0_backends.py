@@ -53,14 +53,14 @@ def test_normalize_and_cache_tags():
     assert "esm2" in list_backends()
 
 
-def test_progen2_not_stubbed():
-    """ProGen2 is a real backend; missing checkout raises RuntimeError, not stub."""
-    assert BACKEND_PROGEN2 not in STUB_BACKENDS
+def test_progen2_stub_raises():
+    backend = build_r0_backend(BACKEND_PROGEN2)
+    assert BACKEND_PROGEN2 in STUB_BACKENDS
     try:
-        build_r0_backend(BACKEND_PROGEN2, model_id="/nonexistent/progen2-small")
-        assert False, "expected RuntimeError for missing checkpoint"
-    except RuntimeError as e:
-        assert "ProGen2" in str(e) or "checkpoint" in str(e).lower()
+        backend.log_mutation_rates(["ACDE"], max_seq_len=4)
+        assert False, "expected NotImplementedError"
+    except NotImplementedError as e:
+        assert "stubbed" in str(e).lower() or "ProGen2" in str(e)
 
 
 def test_neutral_substitution_shape_and_normalized():

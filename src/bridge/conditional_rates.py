@@ -65,44 +65,18 @@ def conditional_bridge_log_target(
     return log_target
 
 
-def reference_kl(
-    log_R_theta_mut: torch.Tensor,
-    log_R0_mut: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Per-position KL( softmax(R0) || p_theta ) — bridge matching *without* the
-    Doob h-transform toward x1 (Appendix E.1 ``Bridge w/o Doob form``).
-    """
-    log_target = F.log_softmax(log_R0_mut, dim=-1)
-    log_p_theta = F.log_softmax(log_R_theta_mut, dim=-1)
-    target = log_target.exp()
-    return (target * (log_target - log_p_theta)).sum(-1)
-
-
 def conditional_bridge_kl(
     log_R_theta_mut: torch.Tensor,
     log_R0_mut: torch.Tensor,
     x1_idx: torch.Tensor,
     t: float,
     c: float = 1.0,
-    *,
-    terminal_only: bool = False,
-    no_doob: bool = False,
 ) -> torch.Tensor:
     """
     Per-position KL( pi_cond || p_theta ), shape [...].  D_KL(R^{0|T1} || R_theta)
     localized to the site's destination distribution.
-
-    Ablation modes (Appendix E.1; train-time only):
-      terminal_only: force t→1 pure CE on x1 (no bridge mixture at t<1).
-      no_doob: match R0 directly (skip Doob h-transform / ignore x1).
     """
-    if terminal_only and no_doob:
-        raise ValueError("terminal_only and no_doob are mutually exclusive")
-    if no_doob:
-        return reference_kl(log_R_theta_mut, log_R0_mut)
-    t_eff = 1.0 if terminal_only else t
-    log_target = conditional_bridge_log_target(log_R0_mut, x1_idx, t_eff, c)
+    log_target = conditional_bridge_log_target(log_R0_mut, x1_idx, t, c)
     log_p_theta = F.log_softmax(log_R_theta_mut, dim=-1)
     target = log_target.exp()
     return (target * (log_target - log_p_theta)).sum(-1)
@@ -158,19 +132,6 @@ if __name__ == "__main__":
     lt0 = conditional_bridge_log_target(base, x1_t, t=0.5, c=1.0)
     ref = base.clone(); ref[0, 0, 9] += 2.0  # reference favors AA 9 (an off-target site)
     lt1 = conditional_bridge_log_target(ref, x1_t, t=0.5, c=1.0)
-    assert lt1.exp()[0, 0, 9] > lt0.exp()[0, 0, 9], "reference should raise off-target mass"
-
-    # 5. E.1 ablations: terminal_only ≡ t=1; no_doob ≡ KL(R0||θ)
-    kl_term = conditional_bridge_kl(log_theta, log_R0, x1, t=0.3, c=1.0, terminal_only=True)
-    kl_t1 = conditional_bridge_kl(log_theta, log_R0, x1, t=1.0, c=1.0)
-    assert torch.allclose(kl_term, kl_t1, atol=1e-5), "terminal_only must match t=1 CE"
-    kl_nd = conditional_bridge_kl(log_theta, log_R0, x1, t=0.5, c=1.0, no_doob=True)
-    kl_ref = reference_kl(log_theta, log_R0)
-    assert torch.allclose(kl_nd, kl_ref, atol=1e-5), "no_doob must match reference_kl"
-    try:
-        conditional_bridge_kl(log_theta, log_R0, x1, t=0.5, terminal_only=True, no_doob=True)
-        raise AssertionError("expected mutual-exclusion error")
-    except ValueError:
-        pass
+    assert lt1.exp()[0, 0, 9] > lt0.exp()[0, 0, 9], "reference should raise off-target target mass"
 
     print("conditional_rates self-tests passed")

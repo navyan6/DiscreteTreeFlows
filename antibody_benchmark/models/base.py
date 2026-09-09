@@ -61,28 +61,6 @@ def load_models(cfg: Mapping[str, Any]) -> dict[str, EvolutionModel]:
         models["identity_null"] = IdentityNullModel()
         models["poisson_null"] = PoissonSiteMutationNullModel()
 
-    if mcfg.get("neutral_shm", {}).get("enabled", False):
-        from antibody_benchmark.models.neutral_shm import NeutralSHMModel
-
-        models["neutral_shm"] = NeutralSHMModel()
-
-    if mcfg.get("plm_prior", {}).get("enabled", False):
-        from antibody_benchmark.models.plm_prior_ab import PLMPriorAbModel
-
-        models["plm_prior"] = PLMPriorAbModel(
-            device=mcfg["plm_prior"].get("device"),
-            esm_id=mcfg["plm_prior"].get("esm_id", "facebook/esm2_t6_8M_UR50D"),
-            subs_per_site_scale=float(mcfg["plm_prior"].get("subs_per_site_scale", 1.0)),
-        )
-
-    if mcfg.get("ar_tree_edit", {}).get("enabled", False):
-        from antibody_benchmark.models.ar_tree_edit import ARTreeEditModel
-
-        models["ar_tree_edit"] = ARTreeEditModel(
-            pool_path=mcfg["ar_tree_edit"].get("pool_path"),
-            seq_model=mcfg["ar_tree_edit"].get("seq_model", "JTT"),
-        )
-
     if mcfg.get("thrifty", {}).get("enabled", False):
         from antibody_benchmark.models.thrifty import ThriftyModel
 

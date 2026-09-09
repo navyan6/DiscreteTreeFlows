@@ -13,9 +13,6 @@
 #
 # Prereq (run locally, then rsync the split dirs up):
 #   python scripts/prepare_h3n2_temporal.py
-#   # cutoffs: --train-end-year 2022 --val-year 2023 --test-start-year 2024
-#   # alternate forecast dir: --out-base data/h3n2_temporal_forecast + 
-#   #   slurm_h3n2_temporal_forecast_pipeline.sh
 #   rsync -av data/h3n2/  <cluster>:~/DiscreteTreeFlows/data/h3n2/
 #
 # Resumable: run_all_groups skips completed stages, so re-submit if it times out.

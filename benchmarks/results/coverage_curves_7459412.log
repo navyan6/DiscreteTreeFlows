@@ -1,59 +1,0 @@
-Start: Sun Aug  9 10:59:19 AM EDT 2026
-test=data/h3n2/test train=data/h3n2/train N=(16) K_max=100 step=10
-max_roots=5 methods=(neutral_bd plm_prior artreeformer_adapted treesbm) eps=0.02 e_list=0,1,2,3,5,8,10
-checkpoint=checkpoints/h3n2_v3_lit_hotspot/best.pt out=benchmarks/results/coverage_curves_h3n2_N16_eabs.csv
-cache_dir=benchmarks/results/coverage_cache_h3n2_N16 rescore_from=none
-Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 29599.69it/s]
-artreeformer pools: Ns=[16] sizes=[300]
-Checkpoint: epoch 57  val_loss=5.1519
-Loading weights:   0%|          | 0/102 [00:00<?, ?it/s]Loading weights: 100%|██████████| 102/102 [00:00<00:00, 12122.61it/s]
-[transformers] [1mEsmModel LOAD REPORT[0m from: facebook/esm2_t6_8M_UR50D
-Key                       | Status     | 
---------------------------+------------+-
-lm_head.dense.weight      | UNEXPECTED | 
-lm_head.layer_norm.weight | UNEXPECTED | 
-lm_head.bias              | UNEXPECTED | 
-lm_head.layer_norm.bias   | UNEXPECTED | 
-lm_head.dense.bias        | UNEXPECTED | 
-pooler.dense.weight       | MISSING    | 
-pooler.dense.bias         | MISSING    | 
-
-Notes:
-- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
-- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
-Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 12077.25it/s]
-treesbm checkpoint: /vast/home/n/nnori/DiscreteTreeFlows/checkpoints/h3n2_v3_lit_hotspot/best.pt (ESM cache on via generate_k)
-methods=['neutral_bd', 'plm_prior', 'artreeformer_adapted', 'treesbm'] Ks=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100] e_list=[0, 1, 2, 3, 5, 8, 10] max_roots=5
-
-=== N=16: 5 held-out roots ===
-  [neutral_bd] root=NODE_0000000 trees=100 cov@ε=1.000 cov@e2=0.000 edit=8.2 clade_r=0.000 site_r=1.000
-  [neutral_bd] root=NODE_0000235 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.7 clade_r=0.000 site_r=0.778
-  [neutral_bd] root=NODE_0000200 trees=100 cov@ε=1.000 cov@e2=0.438 edit=2.9 clade_r=0.000 site_r=0.700
-  [neutral_bd] root=NODE_0000223 trees=100 cov@ε=1.000 cov@e2=0.875 edit=0.9 clade_r=0.000 site_r=0.778
-  [neutral_bd] root=NODE_0000239 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.6 clade_r=0.000 site_r=0.429
-  flushed neutral_bd rows (n_roots=5)
-  [plm_prior] root=NODE_0000000 trees=100 cov@ε=1.000 cov@e2=0.000 edit=8.2 clade_r=0.000 site_r=1.000
-  [plm_prior] root=NODE_0000235 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.8 clade_r=0.000 site_r=0.444
-  [plm_prior] root=NODE_0000200 trees=100 cov@ε=1.000 cov@e2=0.500 edit=2.8 clade_r=0.000 site_r=0.550
-  [plm_prior] root=NODE_0000223 trees=100 cov@ε=1.000 cov@e2=0.875 edit=0.9 clade_r=0.000 site_r=0.333
-  [plm_prior] root=NODE_0000239 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.6 clade_r=0.000 site_r=0.429
-  flushed plm_prior rows (n_roots=5)
-  [artreeformer_adapted] root=NODE_0000000 trees=100 cov@ε=1.000 cov@e2=0.000 edit=7.3 clade_r=0.000 site_r=1.000
-  [artreeformer_adapted] root=NODE_0000235 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.6 clade_r=0.000 site_r=0.778
-  [artreeformer_adapted] root=NODE_0000200 trees=100 cov@ε=1.000 cov@e2=0.500 edit=2.7 clade_r=0.000 site_r=0.850
-  [artreeformer_adapted] root=NODE_0000223 trees=100 cov@ε=1.000 cov@e2=0.875 edit=0.8 clade_r=0.500 site_r=0.556
-  [artreeformer_adapted] root=NODE_0000239 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.6 clade_r=1.000 site_r=0.714
-  flushed artreeformer_adapted rows (n_roots=5)
-  [treesbm] root=NODE_0000000 trees=100 cov@ε=1.000 cov@e2=0.000 edit=7.2 clade_r=0.000 site_r=1.000
-  [treesbm] root=NODE_0000235 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.7 clade_r=0.000 site_r=0.556
-  [treesbm] root=NODE_0000200 trees=100 cov@ε=1.000 cov@e2=0.625 edit=2.1 clade_r=0.000 site_r=0.600
-  [treesbm] root=NODE_0000223 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.6 clade_r=0.500 site_r=1.000
-  [treesbm] root=NODE_0000239 trees=100 cov@ε=1.000 cov@e2=1.000 edit=0.5 clade_r=0.000 site_r=0.429
-  flushed treesbm rows (n_roots=5)
-
-wrote /vast/home/n/nnori/DiscreteTreeFlows/benchmarks/results/coverage_curves_h3n2_N16_eabs.csv
-Plot with: Rscript benchmarks/plot_coverage_curves.R /vast/home/n/nnori/DiscreteTreeFlows/benchmarks/results/coverage_curves_h3n2_N16_eabs.csv
-Rscript not found — CSV ready for offline plot
-Done: Sun Aug  9 03:34:45 PM EDT 2026
-CSV: benchmarks/results/coverage_curves_h3n2_N16_eabs.csv

@@ -3,10 +3,9 @@
 Precompute reference mutation log-rates [N, L, 20] for all groups.
 
 Supports multi-pLM / substitution R0 backends (paper Table 7 / D.1):
-  --r0-backend esm2|esm2_650m|esmc|jtt|wag|lg|neutral|progen2|evo2|thrifty_aa
+  --r0-backend esm2|esm2_650m|esmc|jtt|wag|lg|neutral|progen2|evo2
 
-Default ``esm2`` writes legacy ``group_XXX_ref_rates.pt`` (viral + OAS v1/v2).
-``thrifty_aa`` is antibody Recipe B only → ``group_XXX_ref_rates_thrifty.pt``.
+Default ``esm2`` writes legacy ``group_XXX_ref_rates.pt``.
 Other backends write ``group_XXX_ref_rates_<tag>.pt`` (see src/r0_backends.py).
 """
 
@@ -20,7 +19,7 @@ sys.path.insert(0, str(ROOT))
 import torch
 from Bio import SeqIO
 
-from src.dataset import fill_missing_node_seqs, parse_newick
+from src.dataset import parse_newick
 from src.r0_backends import (
     STUB_BACKENDS,
     build_r0_backend,
@@ -89,14 +88,18 @@ def main():
             print(f"[{g:03d}] already cached ({out_path.name}), skipping")
             continue
 
-        root_id, node_ids, edges, _ = parse_newick(
+        root_id, node_ids, _, _ = parse_newick(
             str(data_dir / f"group_{g:03d}_rooted.nwk")
         )
+        del root_id
         seqs = {
             rec.id: str(rec.seq)
             for rec in SeqIO.parse(data_dir / f"group_{g:03d}_anc_aa.fasta", "fasta")
         }
-        seqs = fill_missing_node_seqs(root_id, edges, seqs)
+        ref_len = len(next(iter(seqs.values())))
+        for nid in node_ids:
+            if nid not in seqs:
+                seqs[nid] = "-" * ref_len
         sequences = [seqs[nid] for nid in node_ids]
         N, L = len(sequences), args.max_seq_len
 

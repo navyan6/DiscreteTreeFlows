@@ -2,19 +2,13 @@
 
 Fills "Evolutionary tree generation on held-out roots" (8 methods × 6 metrics),
 two tracks (simulated + empirical). Native rows run in the treesbm env; adapted
-rows need the external repos (see `EXTERNAL.md`); PhyloGFN is excluded
-(see `BLOCKERS.md`). PhylaFlow Table-2 target is native `phylaflow` (official
-sampler topo+BL + shared JTT); still not root-conditioned forward gen.
+rows need the external repos (see `EXTERNAL.md`); PhyloGFN/BHV-flow are excluded
+(see `BLOCKERS.md`).
 
 ## 0. deps (treesbm env, on the cluster)
 ```bash
 pip install dendropy pyvolve tqdist
-# or: pip install -r requirements.txt   (lists tqdist>=1.0.0)
 ```
-`tqdist` is required for the **Quartet** column (`benchmarks/metrics/matched.py`).
-Without it the column is recorded as NaN — never fabricate quartet distances.
-`scripts/slurm_baselines.sh` checks/imports `tqdist` in the job preamble and
-will `pip install tqdist` if missing.
 
 ## 1. fit BD/substitution params on TRAIN only
 ```bash
@@ -46,9 +40,9 @@ python benchmarks/run_table.py --test-data data/h3n2/test \
 python benchmarks/make_table.py --results benchmarks/results/results.csv --ci boot
 ```
 
-## 5. adapted rows (ARTreeFormer, PhyloVAE, PhylaFlow)
-Produce topology pools per `EXTERNAL.md`, then re-run `run_table.py` — adapted
-rows are added automatically via `TopologyPriorMethod` when pools exist.
+## 5. adapted rows (ARTreeFormer, PhyloVAE)
+Produce topology pools per `EXTERNAL.md`, then extend `build_methods` in
+`run_table.py` with two `TopologyPriorMethod` instances (pool + shared adapters).
 
 ## unit tests (pure-Python; run anywhere)
 ```bash

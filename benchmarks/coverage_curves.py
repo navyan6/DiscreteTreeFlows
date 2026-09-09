@@ -303,7 +303,6 @@ def build_baseline_methods(args, params, esm) -> list:
                 r0_name = normalize_backend_name(args.r0_backend)
                 print(f"treesbm R0 backend override: {r0_name}")
                 r0_live = build_r0_backend(r0_name, model_id=args.r0_model)
-            max_leaves = getattr(args, "max_leaves", None)
             methods.append(TreeSBMMethod(
                 str(ckpt),
                 n_steps=args.n_steps,
@@ -311,18 +310,8 @@ def build_baseline_methods(args, params, esm) -> list:
                 r0_backend=r0_live,
                 fitness_beta=getattr(args, "fitness_beta", None),
                 ablate_bridge=bool(getattr(args, "ablate_bridge", False)),
-                ablate_tree_context=bool(getattr(args, "ablate_tree_context", False)),
-                ablate_branch_length_head=bool(getattr(args, "ablate_branch_length_head", False)),
-                ablate_internal_node_seqs=bool(getattr(args, "ablate_internal_node_seqs", False)),
-                ablate_site_entropy=bool(getattr(args, "ablate_site_entropy", False)),
-                branching_mode=str(getattr(args, "branching_mode", "learned")),
-                ref_lambda=float(getattr(args, "ref_lambda", 1.0)),
-                site_temperature=float(getattr(args, "site_temperature", 1.0)),
-                max_leaves=int(max_leaves) if max_leaves is not None else None,
             ))
-            print(f"treesbm checkpoint: {ckpt} (ESM cache on via generate_k; "
-                  f"site_temperature={getattr(args, 'site_temperature', 1.0)} "
-                  f"max_leaves={max_leaves})")
+            print(f"treesbm checkpoint: {ckpt} (ESM cache on via generate_k)")
 
     return methods
 
@@ -575,19 +564,6 @@ def main():
     ap.add_argument("--fitness-beta", type=float, default=None)
     ap.add_argument("--ablate-bridge", action="store_true",
                     help="Table 7 rows 1–6: force log R_θ = log R0 (pure reference process).")
-    ap.add_argument("--ablate-tree-context", action="store_true")
-    ap.add_argument("--ablate-branch-length-head", action="store_true")
-    ap.add_argument("--ablate-internal-node-seqs", action="store_true")
-    ap.add_argument("--ablate-site-entropy", action="store_true",
-                    help="Table 8: disable RateHeads site-entropy injection.")
-    ap.add_argument("--branching-mode", choices=["learned", "poisson_ref"],
-                    default="learned")
-    ap.add_argument("--ref-lambda", type=float, default=1.0)
-    ap.add_argument("--site-temperature", type=float, default=1.0,
-                    help="E.3: softmax temperature on TreeSBM site scores (default 1.0)")
-    ap.add_argument("--max-leaves", type=int, default=None,
-                    help="E.3: hard max_leaves override for TreeSBM generate "
-                         "(default: N*cushion+2 adapter cap)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="benchmarks/results/coverage_curves_h3n2.csv")
     args = ap.parse_args()
