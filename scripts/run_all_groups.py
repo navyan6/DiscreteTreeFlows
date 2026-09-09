@@ -172,11 +172,33 @@ def stage_translate(g: int, anc_nt: Path) -> Path:
         return out
     sys.path.insert(0, str(ROOT))
     from src.treeencoder.seq_utils import nt_to_aa
+    mode = os.environ.get("TREESBM_TRANSLATE_MODE", "aligned")
+    cds_env = os.environ.get("TREESBM_CDS_START")
+    cds_start = int(cds_env) if cds_env not in (None, "") else None
+
+    seqs = list(SeqIO.parse(anc_nt, "fasta"))
     records = [
-        SeqRecord(Seq(nt_to_aa(str(rec.seq))), id=rec.id, description="")
-        for rec in SeqIO.parse(anc_nt, "fasta")
+        SeqRecord(Seq(nt_to_aa(str(rec.seq), cds_start=cds_start, mode=mode)),
+                  id=rec.id, description="")
+        for rec in seqs
     ]
     SeqIO.write(records, out, "fasta")
+
+    # Translation can fail silently and stay hidden for a long time: an
+    # alignment window that does not open on a start codon sends the ATG search
+    # out of frame, which killed every Bundibugyo protein at 17 residues against
+    # a 900-codon gene without raising anything. The alignment width is a hard
+    # upper bound on the protein, so compare against it and complain here rather
+    # than let a downstream metric quietly average over nonsense.
+    if records:
+        width = len(seqs[0].seq)
+        lens = sorted(len(r.seq) for r in records)
+        median = lens[len(lens) // 2]
+        if median < 0.8 * (width // 3):
+            log(g, f"WARNING translation looks wrong: median protein {median} aa "
+                   f"vs {width // 3} codons of alignment (mode={mode}, "
+                   f"cds_start={cds_start}). Check the reading frame with "
+                   f"scripts/panviral/probe_cds_start.py before using this data.")
     log(g, f"translated {len(records)} seqs")
     return out
 

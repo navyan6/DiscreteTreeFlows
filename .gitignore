@@ -2,6 +2,8 @@
 data/**
 !data/**/
 !data/README.md
+!data/TRANSLATION_MODES.md
+!data/panviral/PIPELINE.md
 !data/**/SPLIT_PROTOCOL.json
 !data/**/*_group_*.csv
 !data/**/group_*_rooted.nwk
@@ -46,3 +48,4 @@ proteins.txt
 
 # External vendored at eval time (optional clone)
 external/
+.certs/
