@@ -279,7 +279,14 @@ def stage_embed(g: int, rooted: Path, anc_aa: Path, bl_json: Path) -> Path:
 STAGES = ["clean", "align", "fasttree", "refine", "anc", "translate", "embed"]
 
 
-def run_group(g: int, stop_after: str | None) -> str:
+def run_group(g: int, stop_after: str | None, data_dir: str,
+              prefix: str, group_offset: int) -> str:
+    # ProcessPoolExecutor re-imports this module in each worker, so the globals
+    # main() set are lost. Pass the path/prefix in and rebind them here.
+    global DATA, INPUT_PREFIX, GROUP_OFFSET
+    DATA = Path(data_dir)
+    INPUT_PREFIX = prefix
+    GROUP_OFFSET = group_offset
     try:
         def stop(stage):
             return stop_after is not None and stage == stop_after
@@ -327,7 +334,9 @@ def main():
 
     INPUT_PREFIX = args.prefix
     GROUP_OFFSET = args.group_offset
-    DATA = ROOT / args.data_dir
+    DATA = Path(args.data_dir)
+    if not DATA.is_absolute():
+        DATA = ROOT / DATA
 
     if args.groups:
         groups = args.groups
@@ -349,7 +358,10 @@ def main():
     print(f"Stop after: {stop_after or 'all stages'}\n")
 
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(run_group, g, stop_after): g for g in groups}
+        futures = {
+            pool.submit(run_group, g, stop_after, str(DATA), INPUT_PREFIX, GROUP_OFFSET): g
+            for g in groups
+        }
         for fut in as_completed(futures):
             print(fut.result(), flush=True)
 
