@@ -64,6 +64,24 @@ def test_tree_and_split_js():
     assert D.split_js([REF] * 4, [other] * 4) > 0.0
 
 
+def test_empirical_kl_sequence_matched():
+    """Empirical Tree-JS/Split-JS must match leaves by sequence before clade keys."""
+    from benchmarks.run_table import score_empirical_kl
+    # isomorphic gen with different leaf IDs -> KL/JS ~ 0 after matching
+    gen_same = _quartet("g1", "g2", "g3", "g4", ["MMMM", "WWWW", "YYYY", "FFFF"],
+                        ids=("r", "a", "b"))
+    z = score_empirical_kl([gen_same] * 4, REF)
+    assert z["tree_kl"] == z["tree_kl"] and z["split_kl"] == z["split_kl"]
+    assert z["tree_kl"] < 1e-9
+    assert z["split_kl"] < 1e-6
+    # different topology after matching -> positive Split-JS
+    gen_diff = _quartet("g1", "g3", "g2", "g4", ["MMMM", "YYYY", "WWWW", "FFFF"],
+                        ids=("r", "a", "b"))
+    d = score_empirical_kl([gen_diff] * 4, REF)
+    assert d["split_kl"] > 0.0
+    assert d["tree_kl"] > 0.0
+
+
 def test_quartet_guarded():
     # tqdist may not be installed locally; either a float or a clean ImportError
     gen = _quartet("g1", "g2", "g3", "g4", ["MMMM", "WWWW", "YYYY", "FFFF"],

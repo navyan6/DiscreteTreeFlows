@@ -1,0 +1,77 @@
+{
+  "synthetic_pass": true,
+  "gamma": {
+    "root_len": 1273,
+    "n_gt": 150,
+    "n_gen": 150,
+    "frac_gt_same_len_as_root": 0.98,
+    "n_inframe_pairs": 147,
+    "inframe_mismatches": 0,
+    "mean_skipped_indel": 0.05,
+    "mut_recovery": {
+      "old": 0.014729,
+      "new": 0.015
+    },
+    "mut_recovery_n": {
+      "old": 150,
+      "new": 150
+    },
+    "cons_retention": {
+      "old": 0.778779,
+      "new": 0.776772
+    },
+    "cons_retention_n": {
+      "old": 150,
+      "new": 150
+    },
+    "aa_acc_given_hit": {
+      "old": 0.076812,
+      "new": 0.075446
+    },
+    "aa_acc_given_hit_n": {
+      "old": 113,
+      "new": 112
+    }
+  },
+  "root_length_anomalies": [
+    {
+      "group": "009",
+      "root_len": 160,
+      "modal_leaf_len": 1273
+    }
+  ],
+  "contrast": {
+    "group": "040",
+    "root_len": 1269,
+    "n_gt": 150,
+    "n_gen": 150,
+    "frac_gt_same_len_as_root": 0.02,
+    "n_inframe_pairs": 3,
+    "inframe_mismatches": 0,
+    "mean_skipped_indel": 2.83,
+    "mut_recovery": {
+      "old": 0.076024,
+      "new": 0.015702
+    },
+    "mut_recovery_n": {
+      "old": 150,
+      "new": 150
+    },
+    "cons_retention": {
+      "old": 0.846755,
+      "new": 0.711117
+    },
+    "cons_retention_n": {
+      "old": 150,
+      "new": 150
+    },
+    "aa_acc_given_hit": {
+      "old": 0.252382,
+      "new": 0.041055
+    },
+    "aa_acc_given_hit_n": {
+      "old": 150,
+      "new": 150
+    }
+  }
+}

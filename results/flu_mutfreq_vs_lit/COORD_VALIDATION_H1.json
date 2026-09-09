@@ -1,0 +1,455 @@
+{
+  "pathogen": "flu_h1n1_ha",
+  "indexing": {
+    "scheme": "H1 dual: mature_h1 + orf_met vs full-ORF columns",
+    "signal_len": 17,
+    "mature_to_col_0based": "col = mature_h1 + 17 - 1",
+    "orf_met_to_col_0based": "col = orf_met - 1",
+    "max_seq_len": 566,
+    "canonical_ha_len": 566,
+    "do_not_reuse_h3_signal_16": true,
+    "do_not_use_covid_pmc_mask": true
+  },
+  "msa": {
+    "data": "data/h1n1/train",
+    "n_full_len": 69818,
+    "consensus_start": "MKAILVVLLYTFTTANADTLCIGYHANNSTDTVDTVLEKN",
+    "signal_ok": true,
+    "mature_ok": true
+  },
+  "landmarks": [
+    {
+      "mutation": "K153E",
+      "scheme": "mature_h1",
+      "pos_1based": 153,
+      "orf_1based": 170,
+      "col_0based": 169,
+      "expect_aa": "K",
+      "consensus_aa": "K",
+      "top_counts": [
+        [
+          "K",
+          69788
+        ],
+        [
+          "E",
+          18
+        ],
+        [
+          "R",
+          3
+        ],
+        [
+          "Q",
+          2
+        ]
+      ],
+      "ok": true,
+      "site": "Sa",
+      "note": "4\u201316\u00d7 HI drop; field antigenic variants"
+    },
+    {
+      "mutation": "K154E",
+      "scheme": "mature_h1",
+      "pos_1based": 154,
+      "orf_1based": 171,
+      "col_0based": 170,
+      "expect_aa": "K",
+      "consensus_aa": "K",
+      "top_counts": [
+        [
+          "K",
+          69782
+        ],
+        [
+          "R",
+          19
+        ],
+        [
+          "E",
+          8
+        ],
+        [
+          "T",
+          6
+        ]
+      ],
+      "ok": true,
+      "site": "Sa",
+      "note": "critical Sa tetramer with 153\u2013156"
+    },
+    {
+      "mutation": "G155E",
+      "scheme": "mature_h1",
+      "pos_1based": 155,
+      "orf_1based": 172,
+      "col_0based": 171,
+      "expect_aa": "G",
+      "consensus_aa": "G",
+      "top_counts": [
+        [
+          "G",
+          69448
+        ],
+        [
+          "E",
+          239
+        ],
+        [
+          "N",
+          95
+        ],
+        [
+          "R",
+          32
+        ]
+      ],
+      "ok": true,
+      "site": "Sa",
+      "note": "field antigenic change"
+    },
+    {
+      "mutation": "N156D",
+      "scheme": "mature_h1",
+      "pos_1based": 156,
+      "orf_1based": 173,
+      "col_0based": 172,
+      "expect_aa": "N",
+      "consensus_aa": "N",
+      "top_counts": [
+        [
+          "N",
+          37771
+        ],
+        [
+          "K",
+          31825
+        ],
+        [
+          "G",
+          94
+        ],
+        [
+          "D",
+          77
+        ]
+      ],
+      "ok": true,
+      "site": "Sa",
+      "note": "high-frequency escape (e.g. N156G)"
+    },
+    {
+      "mutation": "K147N",
+      "scheme": "orf_met",
+      "pos_1based": 147,
+      "col_0based": 146,
+      "expect_aa": "K",
+      "alt_aa": "N",
+      "consensus_aa": "K",
+      "top_counts": [
+        [
+          "K",
+          36784
+        ],
+        [
+          "N",
+          32969
+        ],
+        [
+          "R",
+          32
+        ],
+        [
+          "S",
+          25
+        ]
+      ],
+      "ok": true,
+      "note": "Pa/Ca2-adj; Matsuzaki + Mountain West 2015\u201319"
+    },
+    {
+      "mutation": "P154S",
+      "scheme": "orf_met",
+      "pos_1based": 154,
+      "col_0based": 153,
+      "expect_aa": "P",
+      "alt_aa": "S",
+      "consensus_aa": "P",
+      "top_counts": [
+        [
+          "P",
+          46261
+        ],
+        [
+          "S",
+          23412
+        ],
+        [
+          "L",
+          117
+        ],
+        [
+          "Y",
+          10
+        ]
+      ],
+      "ok": true,
+      "note": "Ca2; Mountain West; MSA P/S poly"
+    },
+    {
+      "mutation": "K166Q",
+      "scheme": "mature_h1",
+      "pos_1based": 163,
+      "col_0based": 179,
+      "expect_aa": "K",
+      "alt_aa": "Q",
+      "consensus_aa": "Q",
+      "top_counts": [
+        [
+          "Q",
+          51370
+        ],
+        [
+          "K",
+          18078
+        ],
+        [
+          "I",
+          141
+        ],
+        [
+          "T",
+          100
+        ]
+      ],
+      "ok": true,
+      "note": "Sa; Sci Rep H3#166\u2261H1#163; clade 6B marker; MSA K/Q"
+    },
+    {
+      "mutation": "S185I",
+      "scheme": "mature_h1",
+      "pos_1based": 185,
+      "col_0based": 201,
+      "expect_aa": "S",
+      "alt_aa": "I",
+      "consensus_aa": "I",
+      "top_counts": [
+        [
+          "I",
+          35347
+        ],
+        [
+          "T",
+          20422
+        ],
+        [
+          "S",
+          13915
+        ],
+        [
+          "N",
+          57
+        ]
+      ],
+      "ok": true,
+      "note": "Sb; MSA I/T/S at col 201"
+    },
+    {
+      "mutation": "S200P",
+      "scheme": "orf_met",
+      "pos_1based": 200,
+      "col_0based": 199,
+      "expect_aa": "S",
+      "alt_aa": "P",
+      "consensus_aa": "P",
+      "top_counts": [
+        [
+          "P",
+          41873
+        ],
+        [
+          "S",
+          27929
+        ],
+        [
+          "A",
+          8
+        ],
+        [
+          "F",
+          2
+        ]
+      ],
+      "ok": true,
+      "note": "Ca2; Mountain West; MSA S/P poly"
+    },
+    {
+      "mutation": "RBS_115Y",
+      "scheme": "orf_met",
+      "pos_1based": 115,
+      "col_0based": 114,
+      "expect_aa": "Y",
+      "consensus_aa": "Y",
+      "top_counts": [
+        [
+          "Y",
+          69813
+        ],
+        [
+          "H",
+          3
+        ],
+        [
+          "N",
+          1
+        ]
+      ],
+      "ok": true,
+      "note": "Y98-like (mature\u224898); INYEE"
+    },
+    {
+      "mutation": "RBS_167W",
+      "scheme": "orf_met",
+      "pos_1based": 167,
+      "col_0based": 166,
+      "expect_aa": "W",
+      "consensus_aa": "W",
+      "top_counts": [
+        [
+          "W",
+          69816
+        ],
+        [
+          "C",
+          1
+        ],
+        [
+          "L",
+          1
+        ]
+      ],
+      "ok": true,
+      "note": "RBS Trp (LIWLV)"
+    },
+    {
+      "mutation": "RBS_197H",
+      "scheme": "orf_met",
+      "pos_1based": 197,
+      "col_0based": 196,
+      "expect_aa": "H",
+      "consensus_aa": "H",
+      "top_counts": [
+        [
+          "H",
+          69815
+        ],
+        [
+          "Q",
+          1
+        ],
+        [
+          "P",
+          1
+        ]
+      ],
+      "ok": true,
+      "note": "near RBS (GIHHP)"
+    },
+    {
+      "mutation": "RBS_209Y",
+      "scheme": "orf_met",
+      "pos_1based": 209,
+      "col_0based": 208,
+      "expect_aa": "Y",
+      "consensus_aa": "Y",
+      "top_counts": [
+        [
+          "Y",
+          69814
+        ],
+        [
+          "F",
+          1
+        ],
+        [
+          "N",
+          1
+        ]
+      ],
+      "ok": true,
+      "note": "Sb/RBS-adjacent Y (SLYQN)"
+    }
+  ],
+  "nmicrobiol_mature_153_156": "KKGN",
+  "antigenic_site_consensus_orf_met": {
+    "Cb": "LSTARS",
+    "Ca2": "CPHAGAVR",
+    "Sa": "PNVKKGNYPKLNQ",
+    "Sb": "PTIADQQSLYQN",
+    "Ca1": "YINDKGTSVEP"
+  },
+  "files": {
+    "lit_mask": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_h1_nmicrobiol_lit.pt",
+    "globular_head_mask": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_h1_globular_head.pt",
+    "lit_or_head_mask": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_h1_lit_or_head.pt"
+  },
+  "n_lit_sites": 55,
+  "lit_cols_0based": [
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    114,
+    140,
+    141,
+    143,
+    146,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    166,
+    168,
+    169,
+    170,
+    171,
+    172,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    181,
+    182,
+    183,
+    184,
+    185,
+    196,
+    199,
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    218,
+    219,
+    220,
+    236,
+    237,
+    250,
+    251,
+    252
+  ],
+  "verdict": "PASS"
+}

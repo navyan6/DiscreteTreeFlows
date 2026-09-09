@@ -23,6 +23,56 @@ AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
 PAD_IDX = len(AA_VOCAB)  # 20
 
 
+def _seq_has_aa(seq: str | None) -> bool:
+    """True if seq contains at least one standard amino acid (not empty/all-gap)."""
+    if not seq:
+        return False
+    return any(c in AA_TO_IDX for c in seq)
+
+
+def fill_missing_node_seqs(
+    root_id: str,
+    edges: list[tuple[str, str]],
+    seqs: dict[str, str],
+) -> dict[str, str]:
+    """
+    Fill nodes missing from ``seqs`` (or all-gap) by copying the parent sequence
+    in BFS order from the root.
+
+    Ab/OAS ``anc_aa.fasta`` often has root + tips only. Filling internals with
+    ``"-" * L`` poisons bridge sampling (Bernoulli mutates toward gaps) and can
+    make ``L_pll`` NaN via an empty valid mask — which zeros val loss every epoch.
+    Parent copy is a tip-only stand-in until true ancestral reconstruction exists.
+    """
+    out = dict(seqs)
+    for alias in ("NODE_ROOT", "ROOT"):
+        if alias in out and not _seq_has_aa(out.get(root_id)):
+            out[root_id] = out[alias]
+    if not _seq_has_aa(out.get(root_id)) and "NODE_0000000" in out and _seq_has_aa(out["NODE_0000000"]):
+        out[root_id] = out["NODE_0000000"]
+    if not _seq_has_aa(out.get(root_id)):
+        for parent, child in edges:
+            if parent == root_id and _seq_has_aa(out.get(child)):
+                out[root_id] = out[child]
+                break
+    if not _seq_has_aa(out.get(root_id)):
+        raise ValueError(f"root {root_id!r} has no usable AA sequence")
+
+    children: dict[str, list[str]] = {}
+    for p, c in edges:
+        children.setdefault(p, []).append(c)
+
+    queue = [root_id]
+    while queue:
+        parent = queue.pop(0)
+        p_seq = out[parent]
+        for child in children.get(parent, []):
+            if not _seq_has_aa(out.get(child)):
+                out[child] = p_seq
+            queue.append(child)
+    return out
+
+
 def aa_seq_to_tensor(seq: str, length: int) -> torch.Tensor:
     """Convert AA string to [length] int tensor. Unknown AAs to PAD_IDX."""
     t = torch.full((length,), PAD_IDX, dtype=torch.long)
@@ -55,6 +105,13 @@ def parse_newick(nwk_path: str):
 
     walk(tree.root)
     root_id = name(tree.root)
+    # Augur timetree often wraps the real MRCA (NODE_0000000) in a zero-length parent.
+    if (
+        tree.root.name
+        and len(tree.root.clades) == 1
+        and tree.root.clades[0].name == "NODE_0000000"
+    ):
+        root_id = "NODE_0000000"
     node_ids = [root_id]
     visited = {root_id}
     children = {}
@@ -70,6 +127,26 @@ def parse_newick(nwk_path: str):
                 queue.append(ch)
 
     return root_id, node_ids, edges, branch_lengths
+
+
+def _cumulative_numdates(
+    root_id: str,
+    edges: list[tuple[str, str]],
+    branch_lengths: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    """numdate = clamped cumulative path length from root (genetic distance)."""
+    children: dict[str, list[str]] = {}
+    for p, c in edges:
+        children.setdefault(p, []).append(c)
+    times = {root_id: 0.0}
+    stack = [root_id]
+    while stack:
+        parent = stack.pop()
+        for child in children.get(parent, []):
+            bl = max(0.0, float(branch_lengths.get((parent, child), 0.0)))
+            times[child] = times[parent] + bl
+            stack.append(child)
+    return times
 
 
 class TreeDataset(Dataset):
@@ -111,16 +188,21 @@ class TreeDataset(Dataset):
             rec.id: str(rec.seq)
             for rec in SeqIO.parse(d / f"group_{g:03d}_anc_aa.fasta", "fasta")
         }
-        ref_len = len(next(iter(seqs.values())))
-        for nid in node_ids:
-            if nid not in seqs:
-                seqs[nid] = "-" * ref_len
+        seqs = fill_missing_node_seqs(root_id, edges, seqs)
+        seqs = {nid: seqs[nid] for nid in node_ids}
 
         with open(d / f"group_{g:03d}_bl.json") as f:
             node_data = json.load(f)["nodes"]
-        node_times = {
-            nid: node_data.get(nid, {}).get("numdate", 0.0) for nid in node_ids
-        }
+        path_times = _cumulative_numdates(root_id, edges, branch_lengths)
+        node_times = {}
+        for nid in node_ids:
+            rec = node_data.get(nid) or {}
+            if "numdate" in rec:
+                node_times[nid] = float(rec["numdate"])
+            else:
+                # Name mismatch after Newick roundtrip: do not default to 0
+                # (that retains descendants without parents in the bridge).
+                node_times[nid] = float(path_times.get(nid, 0.0))
 
         has_children = {p for p, _ in edges}
         active_leaves = [nid for nid in node_ids if nid not in has_children]

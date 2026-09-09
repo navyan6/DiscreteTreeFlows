@@ -25,6 +25,17 @@ dataset:
   max_families: null
 
 models:
+  # Paper Table 5 Neutral SHM = JC69 NT (not Thrifty). Enable via --models neutral_shm.
+  neutral_shm:
+    enabled: false
+  plm_prior:
+    esm_id: facebook/esm2_t6_8M_UR50D
+    subs_per_site_scale: 1.0
+    enabled: false
+  ar_tree_edit:
+    pool_path: benchmarks/external_pools/sampled/artreeformer_N16.nwk
+    seq_model: JTT
+    enabled: false
   thrifty:
     name: ThriftyHumV0.2-59
     enabled: true
@@ -55,7 +66,7 @@ fairness:
 optional_neutral_shm:
   enabled: false
   dryad_dir: antibody_benchmark/data/raw/thrifty/extracted
-  note: "DEFERRED — optional secondary benchmark (Dryad 401; not required for primary)."
+  note: "Dryad OOF/synonymous secondary. Primary Neutral SHM = models.neutral_shm (JC69)."
 
 tree_generation_experiment:
   enabled: false

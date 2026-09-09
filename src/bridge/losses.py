@@ -19,7 +19,7 @@ import math
 import torch
 import torch.nn.functional as F
 
-from src.bridge.conditional_rates import conditional_bridge_kl
+from src.bridge.conditional_rates import conditional_bridge_kl, reference_kl
 
 AA_VOCAB = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_VOCAB)}
@@ -207,6 +207,8 @@ def bridge_losses(
     mut_hotspot_mask: torch.Tensor | None = None,
     mut_hotspot_weight: float = 1.0,
     mut_hotspot_force: bool = False,
+    ablate_terminal_only: bool = False,
+    ablate_doob: bool = False,
 ) -> dict:
     """
     Bridge matching losses.
@@ -219,6 +221,11 @@ def bridge_losses(
       (mut_mask | hotspot) & valid, and those hotspot∩cons sites are removed from
       cons_mask so high-entropy columns train as mutation sites even when this
       sample is already at the T1 AA.
+
+    Appendix E.1 train-time ablations:
+      ablate_terminal_only: KL target is pure CE on x1 (t→1; no bridge mixture).
+      ablate_doob: KL target is softmax(R0) (no Doob h-transform toward x1).
+      Drop terminal consistency via ``lambda_cons=0`` (L_cons off).
     """
     n = len(active_leaves)
     eps_rate = 1e-6
@@ -237,6 +244,8 @@ def bridge_losses(
         raise ValueError("mut_hotspot_weight must be greater than zero")
     if mut_hotspot_force and mut_hotspot_mask is None:
         raise ValueError("mut_hotspot_force requires mut_hotspot_mask")
+    if ablate_terminal_only and ablate_doob:
+        raise ValueError("ablate_terminal_only and ablate_doob are mutually exclusive")
 
     alpha_cons = (
         entropy_weight_alpha
@@ -265,13 +274,18 @@ def bridge_losses(
 
     # ── L_rate: Algorithm-1 bridge matching, KL( R^{0|T1}_t || R_theta )
     # Target = reference P^0 Doob h-transformed to the terminal AA x1 (conditional_rates).
+    # E.1: terminal_only → pure CE; no_doob → KL(R0 || R_theta) via reference_kl.
     targets  = _build_aa_targets(active_leaves, T1_mut_targets, max_seq_len, device)  # [n, L] x1 (sampled T1 leaf AAs)
     aa_t     = _build_seq_indices(seqs_t, max_seq_len, device)                  # [n, L] a  (T_t AAs)
 
     ref_logits = log_R0_mut if log_R0_mut is not None else torch.zeros_like(log_R_theta_mut)
-    kl_per_pos = conditional_bridge_kl(
-        log_R_theta_mut, ref_logits, targets, t=t, c=bridge_c
-    )                                                                           # [n, L]
+    if ablate_doob:
+        kl_per_pos = reference_kl(log_R_theta_mut, ref_logits)
+    else:
+        kl_per_pos = conditional_bridge_kl(
+            log_R_theta_mut, ref_logits, targets, t=t, c=bridge_c,
+            terminal_only=ablate_terminal_only,
+        )                                                                       # [n, L]
 
     valid_mask = (targets != PAD_IDX) & (aa_t != PAD_IDX)
     mut_mask   = (aa_t != targets) & valid_mask   # positions that mutate T_t→T1
@@ -414,7 +428,11 @@ def bridge_losses(
         # clamp before gather so PAD_IDX=20 doesn't go out-of-bounds on dim size 20
         aa_safe    = aa_indices.clamp(0, 19)
         pll_scores = log_R0_mut.gather(-1, aa_safe.unsqueeze(-1)).squeeze(-1)
-        L_pll = -pll_scores[pll_mask].mean()
+        # Empty mask → mean() is NaN; all-gap active leaves used to poison val.
+        if pll_mask.any():
+            L_pll = -pll_scores[pll_mask].mean()
+        else:
+            L_pll = torch.zeros((), device=device)
     else:
         L_pll = torch.zeros((), device=device)
 

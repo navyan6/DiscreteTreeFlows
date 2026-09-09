@@ -1,0 +1,27 @@
+{
+  "updated": "2026-08-15",
+  "c2_cov500": {
+    "covid": "7628571",
+    "h1n1": "7628572",
+    "h3n2": "7628573",
+    "hiv_geo": "7628574",
+    "hiv_temporal": "7628575",
+    "time_limit": "48:00:00",
+    "K_max": 500,
+    "K_step": 50,
+    "note": "First dedicated Cov@500 wave; prior coverage stopped at K=100"
+  },
+  "d2_w1_esm2_nofit": "7628576",
+  "d2_w1_esm2_fit": "7628577",
+  "c3_antigenic_score": "7628578",
+  "c3_antigenic_status": "COMPLETED",
+  "e1_bridge_ablations": {
+    "reference_only": "mapped T8 no_bridge (7597319/7585972)",
+    "full": "mapped T8 full (7585970/7585971)",
+    "terminal_only": "BLOCKER — no gen-time flag; needs loss-surgery retrain",
+    "bridge_wo_doob": "BLOCKER — no gen-time flag; needs loss-surgery retrain",
+    "wo_terminal_consistency": "BLOCKER — no gen-time flag; needs loss-surgery retrain",
+    "new_jobs_this_session": []
+  },
+  "avoided": "antibody_benchmark Rod.82 Neutral/AR (do not conflict)"
+}

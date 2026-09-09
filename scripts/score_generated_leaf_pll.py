@@ -209,7 +209,11 @@ def main() -> None:
             continue
         nwk = fa.with_suffix(".nwk")
         L = args.max_seq_len or default_max_len(fa)
-        print(f"Score {fa.relative_to(ROOT)}  L={L}")
+        try:
+            disp = fa.resolve().relative_to(ROOT)
+        except ValueError:
+            disp = fa
+        print(f"Score {disp}  L={L}")
         payload = score_tree(fa, nwk if nwk.exists() else None, r0, L, args.batch_size)
         out.write_text(json.dumps(payload, indent=2) + "\n")
         s = payload["summary"]

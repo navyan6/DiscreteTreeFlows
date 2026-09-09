@@ -1,0 +1,176 @@
+{
+  "design": "MSA-select (msa_mut_freq = frac \u2260 consensus) \u2192 tree-apply (mut_hotspot_mask)",
+  "data": "data/covid/train",
+  "n_trees": 335,
+  "max_seq_len": 1280,
+  "active_cols": 1273,
+  "hotspot": "frac=0.15",
+  "n_hotspots": 192,
+  "msa_mut_freq_mean": 0.5824341773986816,
+  "msa_mut_freq_max": 0.706717848777771,
+  "indexing": {
+    "spike_coords": "1-based UniProt P0DTC2 / Wuhan-Hu-1",
+    "msa_columns": "0-based; spike_pos = col + 1 when AA MSA is ungapped Wuhan-frame",
+    "wt_len": 0,
+    "note": "COVID TreeSBM uses max_seq_len=1280 (pads past spike 1273)"
+  },
+  "literature": {
+    "source": "Kumar et al. Viruses 2023; PMC10142771",
+    "n_primary_mutations": 16,
+    "n_primary_unique_positions": 16,
+    "n_primary_in_hotspot": 2,
+    "primary_in_hotspot": [
+      "L212I",
+      "Y369C"
+    ],
+    "n_secondary_in_hotspot": 0,
+    "secondary_in_hotspot": [],
+    "hotspot_precision_vs_lit": 0.010416666666666666,
+    "hotspot_recall_vs_lit": 0.125,
+    "recommend_mask": "pmc_lit_mask",
+    "precision_recall_at_k": [
+      {
+        "k": 16,
+        "tp": 0,
+        "n_lit": 16,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "hit_positions": [],
+        "missed_positions": [
+          212,
+          222,
+          369,
+          417,
+          439,
+          452,
+          453,
+          477,
+          478,
+          484,
+          496,
+          501,
+          547,
+          614,
+          856,
+          981
+        ]
+      },
+      {
+        "k": 32,
+        "tp": 0,
+        "n_lit": 16,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "hit_positions": [],
+        "missed_positions": [
+          212,
+          222,
+          369,
+          417,
+          439,
+          452,
+          453,
+          477,
+          478,
+          484,
+          496,
+          501,
+          547,
+          614,
+          856,
+          981
+        ]
+      },
+      {
+        "k": 64,
+        "tp": 1,
+        "n_lit": 16,
+        "precision": 0.015625,
+        "recall": 0.0625,
+        "f1": 0.025,
+        "hit_positions": [
+          369
+        ],
+        "missed_positions": [
+          212,
+          222,
+          417,
+          439,
+          452,
+          453,
+          477,
+          478,
+          484,
+          496,
+          501,
+          547,
+          614,
+          856,
+          981
+        ]
+      },
+      {
+        "k": 96,
+        "tp": 2,
+        "n_lit": 16,
+        "precision": 0.020833333333333332,
+        "recall": 0.125,
+        "f1": 0.03571428571428571,
+        "hit_positions": [
+          212,
+          369
+        ],
+        "missed_positions": [
+          222,
+          417,
+          439,
+          452,
+          453,
+          477,
+          478,
+          484,
+          496,
+          501,
+          547,
+          614,
+          856,
+          981
+        ]
+      },
+      {
+        "k": 192,
+        "tp": 2,
+        "n_lit": 16,
+        "precision": 0.010416666666666666,
+        "recall": 0.125,
+        "f1": 0.019230769230769232,
+        "hit_positions": [
+          212,
+          369
+        ],
+        "missed_positions": [
+          222,
+          417,
+          439,
+          452,
+          453,
+          477,
+          478,
+          484,
+          496,
+          501,
+          547,
+          614,
+          856,
+          981
+        ]
+      }
+    ]
+  },
+  "files": {
+    "by_site": "results/covid_mutfreq_vs_lit/msa_mut_freq_by_site.csv",
+    "top_sites": "results/covid_mutfreq_vs_lit/top_msa_mut_freq_sites.csv"
+  }
+}

@@ -5,9 +5,13 @@ every sample, score both tracks, and write the long-format results.csv that
 make_table.py aggregates.
 
 Empirical track  -> per generated sample: RF / quartet / branch-W / terminal-edit
-                    vs the single real target subtree (averaged over K, over roots).
+                    vs the single real target subtree (averaged over K, over roots);
+                    plus Tree-JS / Split-JS of the K gens vs the Dirac on that
+                    target (sequence-matched leaf labels — see score_empirical_kl).
 Simulated track  -> Tree-JS / Split-JS between the K generated trees and the M
                     reference trees (per regime), plus mean gen-vs-ref distances.
+                    (CSV columns are named tree_kl/split_kl for historical reasons;
+                    values are the stabilized JS estimators.)
 
 Needs dendropy + pyvolve (baselines), torch/ESM (pLM-prior, TreeSBM); runs on the
 cluster. Native methods only unless --checkpoint / ESM available.
@@ -38,7 +42,10 @@ from benchmarks.methods.phylaflow_native import NativePhylaFlowMethod
 from benchmarks.adapters.branch_length import BranchLengthAdapter
 from benchmarks.adapters.sequence import evolve_pyvolve
 from benchmarks import validity as V
-from benchmarks.metrics.matched import sequence_matched_rf, quartet_distance, terminal_edit_distance
+from benchmarks.metrics.matched import (
+    sequence_matched_rf, quartet_distance, terminal_edit_distance,
+    match_leaves, relabel_leaves,
+)
 from benchmarks.metrics.branch_lengths import branch_length_wasserstein
 from benchmarks.metrics.distributions import tree_js, split_js
 from benchmarks.sim.reference import simulate_reference, REGIMES
@@ -67,10 +74,37 @@ def _qd(a, b):
 
 
 def score_empirical(gen: TreeState, target: TreeState) -> dict:
+    """Pairwise empirical metrics (Tree-KL/Split-KL are set-level — see
+    score_empirical_kl)."""
     return {"tree_kl": float("nan"), "split_kl": float("nan"),
             "rf": sequence_matched_rf(gen, target), "quartet": _qd(gen, target),
             "branch_w_all": branch_length_wasserstein(gen, target)["all"],
             "terminal_edit": terminal_edit_distance(gen, target)["mean"]}
+
+
+def score_empirical_kl(gens: list[TreeState], target: TreeState) -> dict:
+    """
+    Tree-JS / Split-JS of K generated trees vs the Dirac on the single GT
+    target subtree.
+
+    Generated leaves have no shared IDs with the real tree, so each gen is
+    sequence-matched + relabeled onto the target leaf set before clade keys
+    are computed (same matching as RF/quartet). Without that matching,
+    clade sets are always disjoint and both metrics are vacuous.
+
+    Previously hardcoded to NaN in score_empirical — distributional distances
+    need the full gen set, not a per-sample mean.
+    """
+    matched = []
+    for g in gens:
+        try:
+            matched.append(relabel_leaves(g, match_leaves(g, target)))
+        except ValueError:
+            continue
+    if not matched:
+        return {"tree_kl": float("nan"), "split_kl": float("nan")}
+    return {"tree_kl": tree_js(matched, [target]),
+            "split_kl": split_js(matched, [target])}
 
 
 def score_simulated(gens: list[TreeState], refs: list[TreeState], seed: int) -> dict:
@@ -106,12 +140,20 @@ def load_external_pools(pool_dir: Path, prefix: str, Ns: list[int]) -> dict[int,
 
 
 def build_methods(args, params, esm, train_trees: list[TreeState] | None = None):
-    methods = [NeutralBD(params["birth"], params["death"]),
-               EmpiricalBD(params["birth"], params["death"], model=args.empirical_model)]
-    if esm is not None:
+    want = {m.lower() for m in (getattr(args, "methods", None) or [])} or None
+
+    def _want(name: str) -> bool:
+        return want is None or name.lower() in want
+
+    methods = []
+    if _want("neutral_bd"):
+        methods.append(NeutralBD(params["birth"], params["death"]))
+    if _want("empirical_bd"):
+        methods.append(EmpiricalBD(params["birth"], params["death"], model=args.empirical_model))
+    if esm is not None and _want("plm_prior"):
         methods.append(PLMPrior(esm.lm_logits, params["birth"], params["death"],
                                 params.get("subst_scale", 1.0)))
-    if args.checkpoint:
+    if args.checkpoint and _want("treesbm"):
         from benchmarks.methods.treesbm import TreeSBMMethod
         r0_live = None
         if getattr(args, "r0_backend", None):
@@ -125,6 +167,12 @@ def build_methods(args, params, esm, train_trees: list[TreeState] | None = None)
             r0_backend=r0_live,
             fitness_beta=getattr(args, "fitness_beta", None),
             ablate_bridge=bool(getattr(args, "ablate_bridge", False)),
+            ablate_tree_context=bool(getattr(args, "ablate_tree_context", False)),
+            ablate_branch_length_head=bool(getattr(args, "ablate_branch_length_head", False)),
+            ablate_internal_node_seqs=bool(getattr(args, "ablate_internal_node_seqs", False)),
+            ablate_site_entropy=bool(getattr(args, "ablate_site_entropy", False)),
+            branching_mode=str(getattr(args, "branching_mode", "learned")),
+            ref_lambda=float(getattr(args, "ref_lambda", 1.0)),
         ))
 
     # External topology models (ARTreeFormer / PhyloVAE / PhylaFlow). Pools under
@@ -137,7 +185,7 @@ def build_methods(args, params, esm, train_trees: list[TreeState] | None = None)
         topo, root_seq, model=args.empirical_model, seed=seed)
 
     phyla_pool = load_external_pools(pool_dir, "phylaflow", args.N)
-    if phyla_pool:
+    if phyla_pool and _want("phylaflow"):
         methods.append(NativePhylaFlowMethod(phyla_pool, seq_fn))
 
     if train_trees:
@@ -145,6 +193,8 @@ def build_methods(args, params, esm, train_trees: list[TreeState] | None = None)
         for tag, prefix in [("artreeformer_adapted", "artreeformer"),
                             ("phylovae_adapted", "phylovae"),
                             ("phylaflow_adapted", "phylaflow")]:
+            if not _want(tag):
+                continue
             pool_by_N = load_external_pools(pool_dir, prefix, args.N)
             if pool_by_N:
                 methods.append(TopologyPriorMethod(tag, pool_by_N, bl_adapter, seq_fn))
@@ -184,7 +234,9 @@ def main():
     ap.add_argument("--K", type=int, default=100)
     ap.add_argument("--M", type=int, default=50)
     ap.add_argument("--max-roots", type=int, default=100)
-    ap.add_argument("--regimes", nargs="+", default=REGIMES)
+    ap.add_argument("--regimes", nargs="*", default=REGIMES,
+                    help="Simulated-track regimes (default: all). Pass empty "
+                         "(--regimes with no values) to skip sim track / refs.")
     ap.add_argument("--no-esm", action="store_true")
     ap.add_argument("--max-seq-len", type=int, default=566,
                     help="ESM logits + TreeSBM RateHeads length "
@@ -194,12 +246,28 @@ def main():
     ap.add_argument("--r0-model", default=None)
     ap.add_argument("--fitness-beta", type=float, default=None)
     ap.add_argument("--ablate-bridge", action="store_true")
+    ap.add_argument("--ablate-tree-context", action="store_true")
+    ap.add_argument("--ablate-branch-length-head", action="store_true")
+    ap.add_argument("--ablate-internal-node-seqs", action="store_true")
+    ap.add_argument("--ablate-site-entropy", action="store_true",
+                    help="Table 8: disable RateHeads site-entropy injection.")
+    ap.add_argument("--branching-mode", choices=["learned", "poisson_ref"],
+                    default="learned")
+    ap.add_argument("--ref-lambda", type=float, default=1.0)
+    ap.add_argument(
+        "--methods", nargs="+", default=None,
+        help="Optional method filter (e.g. treesbm plm_prior). Default: all.",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="benchmarks/results/results.csv")
     args = ap.parse_args()
 
     params = json.loads((ROOT / args.params).read_text())
-    esm = None if args.no_esm else ESM(
+    # TreeSBM loads its own ESM; only construct shared ESM for plm_prior.
+    need_shared_esm = (not args.no_esm) and (
+        args.methods is None or any(m.lower() == "plm_prior" for m in args.methods)
+    )
+    esm = None if not need_shared_esm else ESM(
         "cuda" if _cuda() else "cpu", max_len=args.max_seq_len)
     pool_dir = ROOT / "benchmarks/external_pools/sampled"
     have_pools = pool_dir.exists() and any(pool_dir.glob("*.nwk"))
@@ -238,16 +306,16 @@ def main():
                     base = dict(method=method.name, root_id=ex["root_id"], N=N, H=H,
                                 valid=len(valid_trees), sample_seed=args.seed,
                                 runtime=sum(g.meta.get("runtime", 0.0) for g in gens))
-                    # empirical track (mean over valid samples vs the one true subtree)
+                    # empirical track (mean pairwise vs true subtree + set-level KL)
                     if valid_trees:
                         es = [score_empirical(t, target) for t in valid_trees]
                         row = {**base, "track": "empirical", "sim_regime": ""}
-                        for m in ("rf", "quartet", "branch_w_all", "terminal_edit",
-                                  "tree_kl", "split_kl"):
+                        for m in ("rf", "quartet", "branch_w_all", "terminal_edit"):
                             vals = [e[m] for e in es if e[m] == e[m]]
                             row[m] = mean(vals) if vals else float("nan")
+                        row.update(score_empirical_kl(valid_trees, target))
                         w.writerow(row)
-                    # simulated track (per regime)
+                    # simulated track (per regime); skipped when --regimes is empty
                     for regime, refs in regime_refs.items():
                         if valid_trees:
                             ss = score_simulated(valid_trees, refs, seed=args.seed)

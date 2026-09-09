@@ -1,0 +1,518 @@
+{
+  "cosine": {
+    "A": {
+      "metric": "A_root_to_leaf",
+      "wasserstein1": {
+        "point": 4.685879979639573,
+        "lo": 4.189185205765163,
+        "hi": 5.201923390803785
+      },
+      "mean_distance_error": {
+        "point": 4.528059668989548,
+        "lo": 4.0361899317653895,
+        "hi": 5.067430150261325
+      },
+      "mean_distance_correlation": 0.9217248397383572,
+      "n_families": 82,
+      "status": "ok"
+    },
+    "B": {
+      "metric": "B_site_frequency",
+      "spearman": {
+        "point": 0.41949827594222466,
+        "lo": 0.39673038712994185,
+        "hi": 0.4429910183464752
+      },
+      "js_divergence": {
+        "point": 0.27520797963958066,
+        "lo": 0.2566775478756098,
+        "hi": 0.29489947640025405
+      },
+      "n_families": 82,
+      "cdr_framework_note": "Pass IMGT/ANARCI region_masks for stratified CDR/FR enrichment.",
+      "status": "ok"
+    },
+    "C": {
+      "metric": "C_substitution_spectrum",
+      "js_divergence": {
+        "point": 0.27740483528314624,
+        "lo": 0.26023721410474854,
+        "hi": 0.2940738752231892
+      },
+      "offdiag_spearman": {
+        "point": 0.30407993928462074,
+        "lo": 0.2575228984824809,
+        "hi": 0.34872966525118526
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "D": {
+      "metric": "D_comutation",
+      "spearman": {
+        "point": 0.0063605081990899875,
+        "lo": -0.009317117125190906,
+        "hi": 0.02487508291672173
+      },
+      "normalized_frobenius": {
+        "point": 1.064223523065861,
+        "lo": 1.0341351644338654,
+        "hi": 1.0948976534017378
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "E": {
+      "metric": "E_leaf_diversity",
+      "wasserstein1": {
+        "point": 5.523478736631902,
+        "lo": 4.987044720530065,
+        "hi": 6.127462633860776
+      },
+      "mean_pairwise_error": {
+        "point": 5.1694764280435015,
+        "lo": 4.606680792023018,
+        "hi": 5.741400023756731
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "exact": {
+      "metric": "secondary_exact_descendant_distance",
+      "mean_frac_hamming": 0.14820738137057587,
+      "n": 17640,
+      "status": "ok",
+      "note": "Stochastic evolution \u2014 do not treat as primary quality metric."
+    }
+  },
+  "dasm_thrifty": {
+    "A": {
+      "metric": "A_root_to_leaf",
+      "wasserstein1": {
+        "point": 3.799269371356713,
+        "lo": 3.4098469963710443,
+        "hi": 4.224805202083823
+      },
+      "mean_distance_error": {
+        "point": 3.360243176538908,
+        "lo": 2.8991911657955867,
+        "hi": 3.820245354239256
+      },
+      "mean_distance_correlation": 0.9149334465232203,
+      "n_families": 82,
+      "status": "ok"
+    },
+    "B": {
+      "metric": "B_site_frequency",
+      "spearman": {
+        "point": 0.44440545748679006,
+        "lo": 0.4197528359866225,
+        "hi": 0.46943875301184873
+      },
+      "js_divergence": {
+        "point": 0.27169077881246967,
+        "lo": 0.2529540946654893,
+        "hi": 0.29057558602407424
+      },
+      "n_families": 82,
+      "cdr_framework_note": "Pass IMGT/ANARCI region_masks for stratified CDR/FR enrichment.",
+      "status": "ok"
+    },
+    "C": {
+      "metric": "C_substitution_spectrum",
+      "js_divergence": {
+        "point": 0.2773210540014069,
+        "lo": 0.25953827725057804,
+        "hi": 0.2939157141678004
+      },
+      "offdiag_spearman": {
+        "point": 0.29479816128860103,
+        "lo": 0.2539146303192265,
+        "hi": 0.3331605965866881
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "D": {
+      "metric": "D_comutation",
+      "spearman": {
+        "point": 0.011407001154619699,
+        "lo": -0.003785357922118119,
+        "hi": 0.026199034532219712
+      },
+      "normalized_frobenius": {
+        "point": 1.0599908984788255,
+        "lo": 1.020809102820622,
+        "hi": 1.0980444718187703
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "E": {
+      "metric": "E_leaf_diversity",
+      "wasserstein1": {
+        "point": 4.4194184142227195,
+        "lo": 3.9768311298343804,
+        "hi": 4.952437747214918
+      },
+      "mean_pairwise_error": {
+        "point": 3.9262463045084997,
+        "lo": 3.4228876636574808,
+        "hi": 4.397178587926301
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "exact": {
+      "metric": "secondary_exact_descendant_distance",
+      "mean_frac_hamming": 0.15390788043671685,
+      "n": 17640,
+      "status": "ok",
+      "note": "Stochastic evolution \u2014 do not treat as primary quality metric."
+    }
+  },
+  "identity_null": {
+    "A": {
+      "metric": "A_root_to_leaf",
+      "wasserstein1": {
+        "point": 12.475836734693877,
+        "lo": 8.31112244897959,
+        "hi": 17.143836734693878
+      },
+      "mean_distance_error": {
+        "point": 12.3,
+        "lo": 8.192499999999999,
+        "hi": 16.307499999999994
+      },
+      "mean_distance_correlation": 0.5,
+      "n_families": 5,
+      "status": "ok"
+    },
+    "B": {
+      "metric": "B_site_frequency",
+      "spearman": {
+        "point": 0.5751878539752381,
+        "lo": 0.45841569388533454,
+        "hi": 0.6836433341460367
+      },
+      "js_divergence": {
+        "point": 0.346573590264535,
+        "lo": 0.34657359025754936,
+        "hi": 0.346573590270027
+      },
+      "n_families": 5,
+      "cdr_framework_note": "Pass IMGT/ANARCI region_masks for stratified CDR/FR enrichment.",
+      "status": "ok"
+    },
+    "C": {
+      "metric": "C_substitution_spectrum",
+      "js_divergence": {
+        "point": 0.3465735902599622,
+        "lo": 0.34657359024966794,
+        "hi": 0.3465735902683561
+      },
+      "offdiag_spearman": {
+        "point": -0.24599632378267672,
+        "lo": -0.292542090064044,
+        "hi": -0.1983298087426616
+      },
+      "n_families": 5,
+      "status": "ok"
+    },
+    "D": {
+      "metric": "D_comutation",
+      "spearman": {
+        "point": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "normalized_frobenius": {
+        "point": NaN,
+        "lo": NaN,
+        "hi": NaN
+      },
+      "n_families": 0,
+      "status": "empty"
+    },
+    "E": {
+      "metric": "E_leaf_diversity",
+      "wasserstein1": {
+        "point": 16.933175149577902,
+        "lo": 11.648673469387756,
+        "hi": 22.79013769363167
+      },
+      "mean_pairwise_error": {
+        "point": 16.857142857142858,
+        "lo": 11.495833333333334,
+        "hi": 21.947857142857146
+      },
+      "n_families": 5,
+      "status": "ok"
+    },
+    "exact": {
+      "metric": "secondary_exact_descendant_distance",
+      "mean_frac_hamming": 0.09468402624817224,
+      "n": 156,
+      "status": "ok",
+      "note": "Stochastic evolution \u2014 do not treat as primary quality metric."
+    }
+  },
+  "poisson_null": {
+    "A": {
+      "metric": "A_root_to_leaf",
+      "wasserstein1": {
+        "point": 4.118367346938776,
+        "lo": 2.2368979591836737,
+        "hi": 5.9998367346938775
+      },
+      "mean_distance_error": {
+        "point": 3.925,
+        "lo": 2.1166666666666663,
+        "hi": 5.7333333333333325
+      },
+      "mean_distance_correlation": 0.7,
+      "n_families": 5,
+      "status": "ok"
+    },
+    "B": {
+      "metric": "B_site_frequency",
+      "spearman": {
+        "point": 0.22647994630695875,
+        "lo": 0.10591134117920302,
+        "hi": 0.40589616994226685
+      },
+      "js_divergence": {
+        "point": 0.4601576477801984,
+        "lo": 0.367256908000894,
+        "hi": 0.5352790550510775
+      },
+      "n_families": 5,
+      "cdr_framework_note": "Pass IMGT/ANARCI region_masks for stratified CDR/FR enrichment.",
+      "status": "ok"
+    },
+    "C": {
+      "metric": "C_substitution_spectrum",
+      "js_divergence": {
+        "point": 0.5628751967577136,
+        "lo": 0.4916209089550425,
+        "hi": 0.6361835420738784
+      },
+      "offdiag_spearman": {
+        "point": 0.3639097369459841,
+        "lo": 0.082703736467048,
+        "hi": 0.6451157374249202
+      },
+      "n_families": 5,
+      "status": "ok"
+    },
+    "D": {
+      "metric": "D_comutation",
+      "spearman": {
+        "point": -0.017997339798908097,
+        "lo": -0.048699510986475125,
+        "hi": 0.015113584474371333
+      },
+      "normalized_frobenius": {
+        "point": 1.8546140590105633,
+        "lo": 1.4793855564623448,
+        "hi": 2.2737321177026586
+      },
+      "n_families": 5,
+      "status": "ok"
+    },
+    "E": {
+      "metric": "E_leaf_diversity",
+      "wasserstein1": {
+        "point": 3.449217769035325,
+        "lo": 2.027510204081633,
+        "hi": 5.133959183673469
+      },
+      "mean_pairwise_error": {
+        "point": 3.141269841269841,
+        "lo": 1.4968253968253968,
+        "hi": 4.996825396825396
+      },
+      "n_families": 5,
+      "status": "ok"
+    },
+    "exact": {
+      "metric": "secondary_exact_descendant_distance",
+      "mean_frac_hamming": 0.14701085899175562,
+      "n": 156,
+      "status": "ok",
+      "note": "Stochastic evolution \u2014 do not treat as primary quality metric."
+    }
+  },
+  "thrifty": {
+    "A": {
+      "metric": "A_root_to_leaf",
+      "wasserstein1": {
+        "point": 4.968503237883008,
+        "lo": 4.408616304406582,
+        "hi": 5.5860209518996085
+      },
+      "mean_distance_error": {
+        "point": 4.481111353077816,
+        "lo": 3.886811084494773,
+        "hi": 5.142290450783973
+      },
+      "mean_distance_correlation": 0.9246851906270067,
+      "n_families": 82,
+      "status": "ok"
+    },
+    "B": {
+      "metric": "B_site_frequency",
+      "spearman": {
+        "point": 0.2835206903023506,
+        "lo": 0.25716646843797974,
+        "hi": 0.3085335765823267
+      },
+      "js_divergence": {
+        "point": 0.32851877510279304,
+        "lo": 0.31235116759014203,
+        "hi": 0.3457614914086494
+      },
+      "n_families": 82,
+      "cdr_framework_note": "Pass IMGT/ANARCI region_masks for stratified CDR/FR enrichment.",
+      "status": "ok"
+    },
+    "C": {
+      "metric": "C_substitution_spectrum",
+      "js_divergence": {
+        "point": 0.31879701642998265,
+        "lo": 0.3029165315435567,
+        "hi": 0.3337149062067287
+      },
+      "offdiag_spearman": {
+        "point": 0.206708900592008,
+        "lo": 0.1814730378281381,
+        "hi": 0.2326434942765429
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "D": {
+      "metric": "D_comutation",
+      "spearman": {
+        "point": 0.015809759575119438,
+        "lo": -0.0005716835065528879,
+        "hi": 0.03190780194495429
+      },
+      "normalized_frobenius": {
+        "point": 0.9954677005024484,
+        "lo": 0.9638877357032932,
+        "hi": 1.0285260301706012
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "E": {
+      "metric": "E_leaf_diversity",
+      "wasserstein1": {
+        "point": 8.165224075013414,
+        "lo": 7.266261842296809,
+        "hi": 9.134649989602062
+      },
+      "mean_pairwise_error": {
+        "point": 7.9415799545982475,
+        "lo": 7.046748977140745,
+        "hi": 8.935893840407559
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "exact": {
+      "metric": "secondary_exact_descendant_distance",
+      "mean_frac_hamming": 0.20550065246568955,
+      "n": 17640,
+      "status": "ok",
+      "note": "Stochastic evolution \u2014 do not treat as primary quality metric."
+    }
+  },
+  "treesbm": {
+    "A": {
+      "metric": "A_root_to_leaf",
+      "wasserstein1": {
+        "point": 6.745738462376628,
+        "lo": 6.106591451611239,
+        "hi": 7.431587154160141
+      },
+      "mean_distance_error": {
+        "point": 6.6777627758420435,
+        "lo": 6.039931837979094,
+        "hi": 7.35468350754936
+      },
+      "mean_distance_correlation": 0.9185903505621401,
+      "n_families": 82,
+      "status": "ok"
+    },
+    "B": {
+      "metric": "B_site_frequency",
+      "spearman": {
+        "point": 0.10022911338852472,
+        "lo": 0.0824459332713454,
+        "hi": 0.11707853464923411
+      },
+      "js_divergence": {
+        "point": 0.382536463956978,
+        "lo": 0.3664096396210118,
+        "hi": 0.3994712743837464
+      },
+      "n_families": 82,
+      "cdr_framework_note": "Pass IMGT/ANARCI region_masks for stratified CDR/FR enrichment.",
+      "status": "ok"
+    },
+    "C": {
+      "metric": "C_substitution_spectrum",
+      "js_divergence": {
+        "point": 0.4309070802528402,
+        "lo": 0.4174124610094366,
+        "hi": 0.4441151139734215
+      },
+      "offdiag_spearman": {
+        "point": 0.1970008139886894,
+        "lo": 0.15400738625194146,
+        "hi": 0.24103827529715674
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "D": {
+      "metric": "D_comutation",
+      "spearman": {
+        "point": 0.040067596595061566,
+        "lo": 0.018202434825305897,
+        "hi": 0.06141330745037454
+      },
+      "normalized_frobenius": {
+        "point": 1.257409709137721,
+        "lo": 1.2056050900434865,
+        "hi": 1.3128110053768052
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "E": {
+      "metric": "E_leaf_diversity",
+      "wasserstein1": {
+        "point": 7.75197439178136,
+        "lo": 7.089983831235906,
+        "hi": 8.478653994488651
+      },
+      "mean_pairwise_error": {
+        "point": 7.47755662020906,
+        "lo": 6.794023845818815,
+        "hi": 8.16185587253194
+      },
+      "n_families": 82,
+      "status": "ok"
+    },
+    "exact": {
+      "metric": "secondary_exact_descendant_distance",
+      "mean_frac_hamming": 0.1460477457830587,
+      "n": 17640,
+      "status": "ok",
+      "note": "Stochastic evolution \u2014 do not treat as primary quality metric."
+    }
+  }
+}

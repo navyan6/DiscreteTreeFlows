@@ -1,0 +1,26 @@
+{
+  "ckpt": "checkpoints/covid_v5_mutrec/best.pt",
+  "epoch": 14,
+  "val_loss": 0.9931303190773931,
+  "config": {
+    "use_pos_emb": true,
+    "use_site_entropy": true,
+    "deep_mut_head": false,
+    "use_mut_aa_emb": true,
+    "mut_aa_emb_dim": 16,
+    "use_pssm_gate": true,
+    "pssm_gate_fixed_w": null,
+    "use_entropy_loss_weighting": true,
+    "use_entropy_cons_weighting": true,
+    "entropy_weight_alpha": 3.0,
+    "entropy_weight_alpha_cons": 1.0,
+    "entropy_weight_floor": 1.0,
+    "entropy_is_normalized": false,
+    "entropy_source": "empirical",
+    "lambda_mut": 12.0,
+    "lambda_cons": 0.5,
+    "mut_normalize": "count"
+  },
+  "has_mut_hotspot_mask": false,
+  "mut_hotspot_n": null
+}

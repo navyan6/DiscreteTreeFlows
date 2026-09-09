@@ -1,0 +1,37 @@
+{
+  "data": "data/train",
+  "n_trees": 31,
+  "max_seq_len": 566,
+  "active_cols": 566,
+  "label_mode": "root_descendant",
+  "margin": 0.0,
+  "passed": true,
+  "splits": [
+    {
+      "label": "root\u2260descendant anywhere (mutating) vs always conserved",
+      "n_mutating": 565,
+      "n_conserved": 1,
+      "mean_entropy_mutating": 0.029709771275520325,
+      "std_entropy_mutating": 0.04626679793000221,
+      "median_entropy_mutating": 0.014882496558129787,
+      "mean_entropy_conserved": 0.0,
+      "std_entropy_conserved": 0.0,
+      "median_entropy_conserved": 0.0,
+      "diff_mut_minus_cons": 0.029709771275520325,
+      "passed": true
+    },
+    {
+      "label": "secondary: mut_freq > median (0.00123527) vs \u2264 median",
+      "n_mutating": 280,
+      "n_conserved": 286,
+      "mean_entropy_mutating": 0.04630177840590477,
+      "std_entropy_mutating": 0.06128394976258278,
+      "median_entropy_mutating": 0.018957847729325294,
+      "mean_entropy_conserved": 0.013361966237425804,
+      "std_entropy_conserved": 0.00426913145929575,
+      "median_entropy_conserved": 0.0140343913808465,
+      "diff_mut_minus_cons": 0.032939812168478966,
+      "passed": true
+    }
+  ]
+}

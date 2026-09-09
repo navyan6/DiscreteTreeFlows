@@ -78,7 +78,7 @@ from benchmarks.metrics.sequences import (
 )
 from scripts.eval_single_tree import (
     load_models, generate_tree, positional_recovery, get_leaves, seq_identity,
-    AA_VOCAB,
+    AA_VOCAB, get_lm_logits, esm_pll_seq,
 )
 
 AA_TO_IDX = {a: i for i, a in enumerate(AA_VOCAB)}
@@ -360,6 +360,9 @@ def main():
                     help="Table 8: use constant BL=dt instead of BL head.")
     ap.add_argument("--ablate-internal-node-seqs", action="store_true",
                     help="Table 8: zero PLM embeddings for non-leaf (internal) nodes.")
+    ap.add_argument("--ablate-site-entropy", action="store_true",
+                    help="Table 8: disable RateHeads site-entropy injection "
+                         "(turns off use_site_entropy / col_entropy feature).")
     ap.add_argument("--branching-mode", choices=["learned", "poisson_ref"],
                     default="learned",
                     help="Table 8: poisson_ref = no seq-dependent branching.")
@@ -367,6 +370,17 @@ def main():
                     help="Constant Poisson λ when --branching-mode poisson_ref.")
     ap.add_argument("--fitness-beta", type=float, default=None,
                     help="Override fitness tilt β (default: checkpoint / 0).")
+    ap.add_argument(
+        "--compute-plm-nll",
+        action="store_true",
+        default=True,
+        help="Score mean ESM-2 PLL NLL (= −PLL/pos) on generated leaves (default on).",
+    )
+    ap.add_argument(
+        "--no-compute-plm-nll",
+        action="store_true",
+        help="Skip pLM NLL scoring.",
+    )
     ap.add_argument(
         "--r0-backend",
         default=None,
@@ -536,6 +550,8 @@ def main():
     site_recs, aa_accs, site_precs = [], [], []
     any_desc_recs, any_desc_site, path_union_site_rec = [], [], []
     dist_to_roots, gt_dist_to_roots = [], []  # mean Hamming(root, best-match gen / GT)
+    plm_nlls = []  # mean −PLL/pos over generated leaves (ESM-2-8M)
+    do_plm_nll = bool(args.compute_plm_nll) and not bool(args.no_compute_plm_nll)
     # Per-mutation EVEscape scores pooled across leaves (simple mean later).
     # *_all = any scored site; *_ag = lit/antigenic mask sites only.
     model_ev, gt_ev = [], []
@@ -629,6 +645,7 @@ def main():
                 ref_lambda=args.ref_lambda,
                 ablate_branch_length_head=args.ablate_branch_length_head,
                 ablate_internal_node_seqs=args.ablate_internal_node_seqs,
+                ablate_site_entropy=args.ablate_site_entropy,
                 fitness_beta=args.fitness_beta,
                 r0_backend=r0_live,
             )
@@ -638,6 +655,22 @@ def main():
 
         gen_leaves = get_leaves(gen)
         gen_seqs = [gen.node_seqs[g] for g in gen_leaves]
+        if do_plm_nll and gen_seqs:
+            # Chunk to avoid OOM on large leaf sets / long Spike.
+            chunk = 8
+            leaf_nlls = []
+            for s0 in range(0, len(gen_seqs), chunk):
+                chunk_seqs = gen_seqs[s0 : s0 + chunk]
+                log_R0 = get_lm_logits(
+                    tokenizer, esm_model, aa_token_ids, chunk_seqs,
+                    args.max_seq_len, device,
+                )
+                for j, seq in enumerate(chunk_seqs):
+                    pll = esm_pll_seq(log_R0[j], seq, args.max_seq_len)
+                    if pll == pll and pll != float("-inf"):
+                        leaf_nlls.append(-pll)
+            if leaf_nlls:
+                plm_nlls.append(sum(leaf_nlls) / len(leaf_nlls))
         gt_leaves = gt_leaves_of(batch)
         gt_sample = rng.sample(gt_leaves, min(args.gt_leaves_sampled, len(gt_leaves)))
 
@@ -848,6 +881,8 @@ def main():
     print(f"  best-match identity: {_mean(idents):.4f}")
     print(f"  dist_to_root      : {_mean(dist_to_roots):.4f}  [mean Hamming(root, best-match gen)]")
     print(f"  gt_dist_to_root   : {_mean(gt_dist_to_roots):.4f}  [mean Hamming(root, GT leaf)]")
+    if do_plm_nll:
+        print(f"  pLM NLL (ESM-2)   : {_mean(plm_nlls):.4f}  [= −mean PLL/pos over gen leaves]")
     print(f"  mut_recovery_any_descendant : {_mean(any_desc_recs):.4f}  [extra: any gen leaf]")
     print(f"  site_recall_any_descendant  : {_mean(any_desc_site):.4f}")
     print(f"  mut_site_recall_path_union  : {_mean(path_union_site_rec):.4f}  [extra: leaf unions]")
@@ -856,6 +891,11 @@ def main():
                "fitness_beta": args.fitness_beta,
                "no_lit_hotspot_mask": bool(args.no_lit_hotspot_mask),
                "ablate_bridge": bool(args.ablate_bridge),
+               "ablate_tree_context": bool(args.ablate_tree_context),
+               "ablate_branch_length_head": bool(args.ablate_branch_length_head),
+               "ablate_internal_node_seqs": bool(args.ablate_internal_node_seqs),
+               "ablate_site_entropy": bool(args.ablate_site_entropy),
+               "branching_mode": args.branching_mode,
                "mut_recovery": _mean(recs), "cons_retention": _mean(rets),
                "site_recall": _mean(site_recs),
                "aa_acc_given_hit": _mean(aa_accs),
@@ -863,6 +903,7 @@ def main():
                "identity": _mean(idents),
                "dist_to_root": _mean(dist_to_roots),
                "gt_dist_to_root": _mean(gt_dist_to_roots),
+               "plm_nll": _mean(plm_nlls) if do_plm_nll else float("nan"),
                "mut_recovery_any_descendant": _mean(any_desc_recs),
                "site_recall_any_descendant": _mean(any_desc_site),
                "mut_site_recall_path_union": _mean(path_union_site_rec),
@@ -872,6 +913,7 @@ def main():
                    "Internal nodes are not scored. "
                    "dist_to_root = mean Hamming(root, best-match gen leaf); "
                    "gt_dist_to_root = mean Hamming(root, GT leaf). "
+                   "plm_nll = −mean ESM-2-8M PLL/pos over generated leaves. "
                    "mut_recovery_any_descendant / mut_site_recall_path_union are "
                    "additional tree-wide companions; they do not replace primary."
                )}

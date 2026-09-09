@@ -1,0 +1,16 @@
+{
+  "virus": "covid",
+  "N": 16,
+  "n_train_H": 335,
+  "H_min": 0.0,
+  "H_max": 0.007807252499999998,
+  "H_mean": 0.0005917280111940299,
+  "tercile_lo": 0.0001923427083333333,
+  "tercile_hi": 0.00042195437499999996,
+  "buckets": {
+    "short": "H <= 0.000192343",
+    "med": "0.000192343 < H <= 0.000421954",
+    "long": "H > 0.000421954"
+  },
+  "protocol": "generate(root, N, H=example_mean_RTT); stratify by train h_buckets terciles"
+}

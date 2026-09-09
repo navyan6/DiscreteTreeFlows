@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "reference": "Wuhan-Hu-1 / UniProt P0DTC2 Spike, 1-based AA positions",
+  "coord_note": "For full-length ungapped L=1273 Spike: spike_pos = col + 1. EVEscape scores RBD 331-531.",
+  "evescape_tensor": "data/covid/evescape_spike_rbd.pt",
+  "wt_fasta": "data/covid/wt.txt",
+  "vocs": [
+    {
+      "id": "Gamma",
+      "pango": "P.1",
+      "who_label": "Gamma",
+      "origin_country": "Brazil",
+      "emergence_window": ["2020-11-01", "2021-03-01"],
+      "holdout_role": "geo_test",
+      "claim_strength": "held_out_region",
+      "signature": [
+        "L18F", "T20N", "P26S", "D138Y", "R190S",
+        "K417T", "E484K", "N501Y",
+        "D614G", "H655Y", "T1027I", "V1176F"
+      ],
+      "defining_bundle": ["K417T", "E484K", "N501Y"],
+      "bundle_min_hits": 3,
+      "notes": "Brazil geo-test group 3 is the locked case study."
+    },
+    {
+      "id": "Zeta",
+      "pango": "P.2",
+      "who_label": "Zeta",
+      "origin_country": "Brazil",
+      "emergence_window": ["2020-04-01", "2021-03-01"],
+      "holdout_role": "geo_test",
+      "claim_strength": "held_out_region",
+      "signature": ["E484K", "D614G", "V1176F"],
+      "defining_bundle": ["E484K"],
+      "bundle_min_hits": 1,
+      "notes": "Brazil VOI; weaker than Gamma — useful hard-negative / partial."
+    },
+    {
+      "id": "Alpha",
+      "pango": "B.1.1.7",
+      "who_label": "Alpha",
+      "origin_country": "United Kingdom",
+      "emergence_window": ["2020-09-01", "2021-01-01"],
+      "holdout_role": "train_country_case_study",
+      "claim_strength": "origin_in_train",
+      "signature": [
+        "N501Y", "A570D", "D614G", "P681H", "T716I", "S982A", "D1118H"
+      ],
+      "defining_bundle": ["N501Y", "P681H"],
+      "bundle_min_hits": 2,
+      "indel_note": "Δ69/70 and Δ144 are nucleotide indels; AA-frame trees may not encode deletions — score substitutions only.",
+      "candidate_train_groups": [323, 392],
+      "notes": "UK in train. Prefer pre-Alpha root lacking N501Y+P681H."
+    },
+    {
+      "id": "Beta",
+      "pango": "B.1.351",
+      "who_label": "Beta",
+      "origin_country": "South Africa",
+      "emergence_window": ["2020-08-01", "2021-01-01"],
+      "holdout_role": "train_country_case_study",
+      "claim_strength": "origin_in_train",
+      "signature": [
+        "D80A", "D215G", "K417N", "E484K", "N501Y",
+        "D614G", "A701V"
+      ],
+      "defining_bundle": ["K417N", "E484K", "N501Y"],
+      "bundle_min_hits": 3,
+      "candidate_train_groups": [300, 301, 302, 303],
+      "notes": "SA groups 300-303 span pre-Beta → Beta wave. Group 302 (2020-10 → 2021-01) is primary candidate."
+    },
+    {
+      "id": "Delta",
+      "pango": "B.1.617.2",
+      "who_label": "Delta",
+      "origin_country": "India",
+      "emergence_window": ["2020-10-01", "2021-06-01"],
+      "holdout_role": "train_country_case_study",
+      "claim_strength": "origin_in_train",
+      "signature": [
+        "T19R", "L452R", "T478K", "D614G", "P681R", "D950N"
+      ],
+      "defining_bundle": ["L452R", "T478K"],
+      "bundle_min_hits": 2,
+      "candidate_train_groups": [190, 191, 192],
+      "notes": "India mid-2021 groups; also screen Brazil geo-test for Delta imports."
+    },
+    {
+      "id": "Lambda",
+      "pango": "C.37",
+      "who_label": "Lambda",
+      "origin_country": "Peru",
+      "emergence_window": ["2020-12-01", "2021-06-01"],
+      "holdout_role": "train_country_case_study",
+      "claim_strength": "origin_in_train",
+      "signature": [
+        "G75V", "T76I", "L452Q", "F490S", "D614G", "T859N"
+      ],
+      "defining_bundle": ["L452Q", "F490S"],
+      "bundle_min_hits": 2,
+      "candidate_train_groups": [289, 358],
+      "notes": "Sparse Peru trees (n≈165); may need NCBI top-up."
+    },
+    {
+      "id": "Mu",
+      "pango": "B.1.621",
+      "who_label": "Mu",
+      "origin_country": "Colombia",
+      "emergence_window": ["2021-01-01", "2021-08-01"],
+      "holdout_role": "train_country_case_study",
+      "claim_strength": "origin_in_train",
+      "signature": [
+        "T95I", "Y144S", "Y145N", "R346K", "E484K", "N501Y", "D614G", "P681H", "D950N"
+      ],
+      "defining_bundle": ["R346K", "E484K", "N501Y"],
+      "bundle_min_hits": 2,
+      "candidate_train_groups": [34],
+      "notes": "Only 29 Colombia seqs in current split — NCBI fetch recommended."
+    },
+    {
+      "id": "Omicron_BA1",
+      "pango": "BA.1",
+      "who_label": "Omicron",
+      "origin_country": "South Africa",
+      "emergence_window": ["2021-11-01", "2022-02-01"],
+      "holdout_role": "train_country_case_study",
+      "claim_strength": "origin_in_train",
+      "signature": [
+        "A67V", "T95I", "G339D", "S371L", "S373P", "S375F",
+        "K417N", "N440K", "G446S", "S477N", "T478K", "E484A",
+        "Q493R", "G496S", "Q498R", "N501Y", "Y505H",
+        "T547K", "D614G", "H655Y", "N679K", "P681H", "N764K", "D796Y", "N856K", "Q954H", "N969K", "L981F"
+      ],
+      "defining_bundle": [
+        "G339D", "S371L", "S373P", "S375F", "K417N", "N440K",
+        "S477N", "T478K", "E484A", "Q493R", "Q498R", "N501Y", "Y505H"
+      ],
+      "bundle_min_hits": 8,
+      "candidate_train_groups": [308, 309],
+      "notes": "Large RBD cluster. Prefer root lacking Omicron RBD bundle. Brazil late groups also candidates for held-out import waves."
+    },
+    {
+      "id": "Epsilon",
+      "pango": "B.1.427/B.1.429",
+      "who_label": "Epsilon",
+      "origin_country": "USA",
+      "emergence_window": ["2020-07-01", "2021-03-01"],
+      "holdout_role": "optional",
+      "claim_strength": "origin_in_train",
+      "signature": ["S13I", "W152C", "L452R", "D614G"],
+      "defining_bundle": ["L452R", "W152C"],
+      "bundle_min_hits": 2,
+      "notes": "Optional VOI panel member."
+    },
+    {
+      "id": "Iota",
+      "pango": "B.1.526",
+      "who_label": "Iota",
+      "origin_country": "USA",
+      "emergence_window": ["2020-11-01", "2021-04-01"],
+      "holdout_role": "optional",
+      "claim_strength": "origin_in_train",
+      "signature": ["L5F", "T95I", "D253G", "E484K", "D614G", "A701V"],
+      "defining_bundle": ["E484K"],
+      "bundle_min_hits": 1,
+      "notes": "Optional; E484K-centered."
+    },
+    {
+      "id": "Kappa",
+      "pango": "B.1.617.1",
+      "who_label": "Kappa",
+      "origin_country": "India",
+      "emergence_window": ["2020-10-01", "2021-05-01"],
+      "holdout_role": "optional",
+      "claim_strength": "origin_in_train",
+      "signature": ["L452R", "E484Q", "D614G", "P681R"],
+      "defining_bundle": ["L452R", "E484Q"],
+      "bundle_min_hits": 2,
+      "candidate_train_groups": [190, 191],
+      "notes": "India VOI sibling of Delta."
+    },
+    {
+      "id": "Eta",
+      "pango": "B.1.525",
+      "who_label": "Eta",
+      "origin_country": "Multiple",
+      "emergence_window": ["2020-12-01", "2021-04-01"],
+      "holdout_role": "optional",
+      "claim_strength": "weak",
+      "signature": ["Q52R", "E484K", "D614G", "Q677H", "F888L"],
+      "defining_bundle": ["E484K", "Q677H"],
+      "bundle_min_hits": 2,
+      "notes": "Multi-country VOI — lower priority."
+    }
+  ],
+  "primary_panel": ["Gamma", "Beta", "Delta", "Omicron_BA1", "Alpha"],
+  "brazil_screen_priority": ["Gamma", "Zeta", "Delta", "Omicron_BA1", "Alpha"],
+  "generation_defaults": {
+    "ckpt": "covid_v7_pmc_hotspot",
+    "fallback_ckpt": "covid_v5_mutrec",
+    "mrs": 0.5,
+    "n_samples": 1,
+    "max_leaves": 250,
+    "n_steps": 160,
+    "branch_scale": 6.0,
+    "max_seq_len": 1280
+  }
+}

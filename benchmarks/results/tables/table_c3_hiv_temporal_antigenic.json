@@ -1,0 +1,137 @@
+{
+  "virus": "hiv_temporal",
+  "cache": "/vast/home/n/nnori/DiscreteTreeFlows/benchmarks/results/coverage_cache_c3_hiv_temporal_N16",
+  "mask": "results/hiv_env_mask/mut_hotspot_mask_hiv_env_v1v5.pt",
+  "K_max": 100,
+  "n_roots_scored": 10,
+  "cells": [
+    {
+      "horizon_bucket": "long",
+      "method": "neutral_bd",
+      "n_roots": 3,
+      "lit_hotspot_mut_frac": 0.14151260387182144,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "long",
+      "method": "treesbm",
+      "n_roots": 3,
+      "lit_hotspot_mut_frac": 0.13525613765773337,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "med",
+      "method": "neutral_bd",
+      "n_roots": 2,
+      "lit_hotspot_mut_frac": 0.21230908773813306,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "med",
+      "method": "treesbm",
+      "n_roots": 2,
+      "lit_hotspot_mut_frac": 0.19079566292637168,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    }
+  ],
+  "per_root": [
+    {
+      "root_id": "NODE_0000000",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.09828147140641755,
+      "n_mut_leaves_scored": 1600,
+      "method": "neutral_bd",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000060",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.2480880472994567,
+      "n_mut_leaves_scored": 1490,
+      "method": "neutral_bd",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000165",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.17653012817680946,
+      "n_mut_leaves_scored": 1600,
+      "method": "neutral_bd",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000181",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.2379369838108711,
+      "n_mut_leaves_scored": 1600,
+      "method": "neutral_bd",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000215",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.08831935639817567,
+      "n_mut_leaves_scored": 1600,
+      "method": "neutral_bd",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000000",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.09558903271492196,
+      "n_mut_leaves_scored": 1600,
+      "method": "treesbm",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000060",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.2135337004180687,
+      "n_mut_leaves_scored": 1401,
+      "method": "treesbm",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000165",
+      "n_trees": 100,
+      "n_gen_leaves": 306,
+      "lit_hotspot_mut_frac": 0.16805762543467462,
+      "n_mut_leaves_scored": 305,
+      "method": "treesbm",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000181",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.23289502940407544,
+      "n_mut_leaves_scored": 1600,
+      "method": "treesbm",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000215",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.07728435085420274,
+      "n_mut_leaves_scored": 1600,
+      "method": "treesbm",
+      "horizon_bucket": "long"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "covid": "7628571",
+  "h1n1": "7628572",
+  "h3n2": "7628573",
+  "hiv_geo": "7628574",
+  "hiv_temporal": "7628575",
+  "covid_resume_treesbm": "7635911",
+  "time_limit": "48:00:00",
+  "protocol": "Same as Table5 / H3 coverage; K_MAX=500 K_STEP=50 N=16 max_roots=5 e-abs",
+  "submitted": "2026-08-15",
+  "gap_submit_2026-08-16": "2026-08-16T18:03:30.840741+00:00",
+  "host": "betty_login03",
+  "jobs_gap_2026-08-16": {
+    "c2_covid_tsbm_k500": "7635911",
+    "c2_hivg_plm_cov": "7635912",
+    "c2_hivg_plm_cov100": "7635913",
+    "c2_hivg_plm_enr": "7635914",
+    "c2_ab_plm_roll": "7635915",
+    "c2_ab_oas_roll": "7635916",
+    "c2_ab_eval": "7635917"
+  },
+  "fills_queued_2026-08-16": {
+    "c2_covid_tsbm_k500": "SARS-CoV-2 TreeSBM Cov@500 (resume NODE_0000179; cache 4/5)",
+    "c2_hivg_plm_cov": "HIV Env geo pLM Cov@100+@500 + clade + min dist (K500 curve)",
+    "c2_hivg_plm_cov100": "HIV Env geo pLM K=100 eabs CSV (protocol twin of TreeSBM geo)",
+    "c2_hivg_plm_enr": "HIV Env geo pLM Mut. recall (enrich)",
+    "c2_ab_plm_roll + c2_ab_oas_roll + c2_ab_eval": "Ab pLM + treesbm_ab_oas Cov@500 + clade_recall + mean_min_edit (extend Rod.82 rollouts to 100, then CPU eval)"
+  },
+  "status_2026-08-16": {
+    "covid": "7628571 cancelled incomplete (4/5 roots); treesbm-only resume 7635911 (72h, CACHE_DIR=coverage_cache_covid_N16_eabs_K500)",
+    "h1n1": "COMPLETED (not in paper C.2 template rows)",
+    "h3n2": "COMPLETED gen with e_list=[0] only; rescored 2026-08-16 with e_list=0,1,2,3,5,8,10 \u2192 Cov@500 pLM=0.750 TreeSBM=0.788",
+    "hiv_geo": "COMPLETED TreeSBM Cov@500=0.200; pLM queued 7635912/13/14",
+    "hiv_temporal": "COMPLETED Cov@500=0.000 (geo preferred for C.2 paste)",
+    "ab": "rollouts 7635915/16 \u2192 eval 7635917 for Cov@500 + clade + min dist"
+  },
+  "artifacts": {
+    "covid": "benchmarks/results/coverage_curves_covid_N16_table5_eabs_K500.csv",
+    "h1n1": "benchmarks/results/coverage_curves_h1n1_N16_table5_eabs_K500.csv",
+    "h3n2": "benchmarks/results/coverage_curves_h3n2_N16_eabs_K500.csv",
+    "hiv_geo": "benchmarks/results/coverage_curves_hiv_geo_N16_table5_eabs_K500.csv",
+    "hiv_geo_plm": "benchmarks/results/coverage_curves_hiv_geo_N16_table5_eabs_K500_plm.csv",
+    "hiv_geo_plm_k100": "benchmarks/results/coverage_curves_hiv_geo_N16_table5_eabs_plm.csv",
+    "hiv_geo_plm_enrich": "checkpoints/eval_table5_hiv_geo_plm_prior.json",
+    "hiv_temporal": "benchmarks/results/coverage_curves_hiv_temporal_N16_table5_eabs_K500.csv",
+    "ab_c2": "benchmarks/results/tables/table_c2_ab_metrics.json"
+  },
+  "status_pull_2026-08-16": {
+    "c2_covid_tsbm_k500": "7635911 RUNNING (NODE_0000179 still missing in cache)",
+    "c2_hivg_plm": "7635912/13/14 COMPLETED \u2014 Cov@100=Cov@500=0.188 clade=0.064 min=63.9 mut=0.015",
+    "c2_ab": "7635915/16 COMPLETED; 7635917 MODELS comma bug; re-eval 7639280 COMPLETED \u2014 pLM/OAS Cov@500=0.018/0.027 clade=0.039/0.018 min=15.9/14.3",
+    "c1_h3_nll": "7635752 COMPLETED plm_nll=0.463",
+    "c1_ab_topo": "7635753 COMPLETED free-topo filled"
+  },
+  "status_pull_2026-08-16_2215": {
+    "c2_covid_tsbm_k500": "7635911 RUNNING ~5.2h on dgx028; python 101%CPU + GPU; treesbm cache still 4/5 (no NODE_0000179 dir yet). Root IS in Table5 group_010 / test set. Note: --cache-dir alone does NOT skip complete roots (writes only after K_max); job is regenerating, not true resume. NOT cancelled (healthy). Cov@500 CSV still 0 bytes.",
+    "e3_temp_0p5": "7639276 PENDING (Priority)",
+    "e3_temp_1p5": "7639277 PENDING (Priority)",
+    "e3_maxl_100": "7639278 PENDING (Priority)",
+    "e3_maxl_800": "7639279 PENDING (Priority)",
+    "c2_ab_eval": "7639280 COMPLETED; metrics match tex (0.018/0.027, clade 0.039/0.018, min 15.9/14.3) — no Ab row edit"
+  },
+  "ab_eval_fixed": "7639280"
+}

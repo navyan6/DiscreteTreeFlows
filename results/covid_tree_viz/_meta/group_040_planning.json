@@ -1,0 +1,569 @@
+{
+  "gid": 40,
+  "n_leaves": 207,
+  "n_exact": 4,
+  "n_aligned_sample": 60,
+  "n_scored": 64,
+  "lengths": [
+    [
+      1267,
+      159
+    ],
+    [
+      1271,
+      15
+    ],
+    [
+      1265,
+      13
+    ],
+    [
+      1268,
+      8
+    ],
+    [
+      1264,
+      5
+    ],
+    [
+      1273,
+      4
+    ]
+  ],
+  "date_min": "2023-01-01",
+  "date_max": "2025-09-09",
+  "best_voc": "Omicron_BA1",
+  "voc": {
+    "Alpha": [
+      "D614G",
+      "N501Y",
+      "P681H"
+    ],
+    "Beta": [
+      "D614G",
+      "E484K",
+      "K417N",
+      "N501Y"
+    ],
+    "Gamma": [
+      "D614G",
+      "E484K",
+      "H655Y",
+      "N501Y",
+      "R190S"
+    ],
+    "Delta": [
+      "D614G",
+      "D950N",
+      "G142D",
+      "L452R",
+      "P681R",
+      "T19R",
+      "T478K"
+    ],
+    "Omicron_BA1": [
+      "D614G",
+      "E484A",
+      "G142D",
+      "G339D",
+      "G446S",
+      "H655Y",
+      "K417N",
+      "L981F",
+      "N440K",
+      "N501Y",
+      "N679K",
+      "N856K",
+      "N969K",
+      "P681H",
+      "Q498R",
+      "Q954H",
+      "S371L",
+      "S373P",
+      "S375F",
+      "S477N",
+      "T478K",
+      "T547K",
+      "Y505H"
+    ]
+  },
+  "pmc_primary": [
+    "D614G",
+    "E484K",
+    "K417N",
+    "L212I",
+    "L452R",
+    "L981F",
+    "N501Y",
+    "N856K",
+    "S477N",
+    "T478K",
+    "T547K"
+  ],
+  "pmc_secondary": [
+    "E484A",
+    "G339D",
+    "G446S",
+    "N440K",
+    "P681R",
+    "Q498R",
+    "S371L",
+    "S373P",
+    "S375F",
+    "Y505H"
+  ],
+  "table": [
+    {
+      "mut": "D614G",
+      "n": 63,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "PMC-primary,S1",
+      "high_escape": false,
+      "annotate_pdb": "Y",
+      "region": "S1"
+    },
+    {
+      "mut": "G142D",
+      "n": 62,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "NTD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "NTD"
+    },
+    {
+      "mut": "T478K",
+      "n": 59,
+      "evescape": -0.6579814189159184,
+      "pct_rank": 99.9,
+      "antigenic": "PMC-primary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "Q954H",
+      "n": 49,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S2-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S2"
+    },
+    {
+      "mut": "S477N",
+      "n": 48,
+      "evescape": -1.2787240287681652,
+      "pct_rank": 88.7,
+      "antigenic": "PMC-primary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "N969K",
+      "n": 48,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S2-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S2"
+    },
+    {
+      "mut": "H655Y",
+      "n": 48,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S1-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S1"
+    },
+    {
+      "mut": "N440K",
+      "n": 46,
+      "evescape": -0.9530234428236828,
+      "pct_rank": 97.2,
+      "antigenic": "PMC-secondary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "D796Y",
+      "n": 44,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S2-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S2"
+    },
+    {
+      "mut": "S375F",
+      "n": 42,
+      "evescape": -2.16051435767424,
+      "pct_rank": 55.1,
+      "antigenic": "PMC-secondary,RBD",
+      "high_escape": false,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "S373P",
+      "n": 40,
+      "evescape": -1.9077989600231915,
+      "pct_rank": 64.4,
+      "antigenic": "PMC-secondary,RBD",
+      "high_escape": false,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "N679K",
+      "n": 36,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S1-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S1"
+    },
+    {
+      "mut": "K417N",
+      "n": 36,
+      "evescape": -1.1861156774971369,
+      "pct_rank": 91.5,
+      "antigenic": "PMC-primary,RBD",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "Y505H",
+      "n": 36,
+      "evescape": -1.1596714861228736,
+      "pct_rank": 92.2,
+      "antigenic": "PMC-secondary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "G446S",
+      "n": 35,
+      "evescape": -1.1038470511421261,
+      "pct_rank": 93.9,
+      "antigenic": "PMC-secondary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "N501Y",
+      "n": 35,
+      "evescape": -1.4350399149338156,
+      "pct_rank": 82.6,
+      "antigenic": "PMC-primary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "Q498R",
+      "n": 34,
+      "evescape": -0.9027199397535484,
+      "pct_rank": 98.0,
+      "antigenic": "PMC-secondary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "L212I",
+      "n": 33,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "PMC-primary,NTD",
+      "high_escape": false,
+      "annotate_pdb": "Y",
+      "region": "NTD"
+    },
+    {
+      "mut": "R158G",
+      "n": 32,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "NTD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "NTD"
+    },
+    {
+      "mut": "P681R",
+      "n": 32,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "PMC-secondary,S1",
+      "high_escape": false,
+      "annotate_pdb": "Y",
+      "region": "S1"
+    },
+    {
+      "mut": "N764K",
+      "n": 31,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S2-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S2"
+    },
+    {
+      "mut": "T19I",
+      "n": 31,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "NTD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "NTD"
+    },
+    {
+      "mut": "N460K",
+      "n": 31,
+      "evescape": -1.03277355668505,
+      "pct_rank": 95.7,
+      "antigenic": "RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "R408S",
+      "n": 31,
+      "evescape": -1.5805374213098882,
+      "pct_rank": 77.1,
+      "antigenic": "RBD",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "T376A",
+      "n": 31,
+      "evescape": -2.7986723955496475,
+      "pct_rank": 31.2,
+      "antigenic": "RBD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "RBD"
+    },
+    {
+      "mut": "D405N",
+      "n": 31,
+      "evescape": -1.7897944719070846,
+      "pct_rank": 68.6,
+      "antigenic": "RBD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "RBD"
+    },
+    {
+      "mut": "E484A",
+      "n": 30,
+      "evescape": -0.8707242026498809,
+      "pct_rank": 98.5,
+      "antigenic": "PMC-secondary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "S371F",
+      "n": 30,
+      "evescape": -1.948876277701041,
+      "pct_rank": 62.8,
+      "antigenic": "RBD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "RBD"
+    },
+    {
+      "mut": "A27S",
+      "n": 30,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "NTD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "NTD"
+    },
+    {
+      "mut": "P681H",
+      "n": 30,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "S1-band",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "S1"
+    },
+    {
+      "mut": "V213G",
+      "n": 29,
+      "evescape": null,
+      "pct_rank": null,
+      "antigenic": "NTD",
+      "high_escape": false,
+      "annotate_pdb": "N",
+      "region": "NTD"
+    },
+    {
+      "mut": "L452R",
+      "n": 27,
+      "evescape": -1.0160257795473002,
+      "pct_rank": 96.0,
+      "antigenic": "PMC-primary,RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "G339D",
+      "n": 26,
+      "evescape": -1.229514758702145,
+      "pct_rank": 90.2,
+      "antigenic": "PMC-secondary,RBD",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "F486P",
+      "n": 20,
+      "evescape": -1.0529004448669932,
+      "pct_rank": 95.2,
+      "antigenic": "RBM",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    },
+    {
+      "mut": "G339H",
+      "n": 20,
+      "evescape": -1.4090783138698042,
+      "pct_rank": 83.8,
+      "antigenic": "RBD",
+      "high_escape": true,
+      "annotate_pdb": "Y",
+      "region": "RBD"
+    }
+  ],
+  "top_muts": [
+    [
+      "D614G",
+      63
+    ],
+    [
+      "G142D",
+      62
+    ],
+    [
+      "T478K",
+      59
+    ],
+    [
+      "Q954H",
+      49
+    ],
+    [
+      "S477N",
+      48
+    ],
+    [
+      "H655Y",
+      48
+    ],
+    [
+      "N969K",
+      48
+    ],
+    [
+      "N440K",
+      46
+    ],
+    [
+      "D796Y",
+      44
+    ],
+    [
+      "S375F",
+      42
+    ],
+    [
+      "S373P",
+      40
+    ],
+    [
+      "Y505H",
+      36
+    ],
+    [
+      "N679K",
+      36
+    ],
+    [
+      "K417N",
+      36
+    ],
+    [
+      "N501Y",
+      35
+    ],
+    [
+      "G446S",
+      35
+    ],
+    [
+      "Q498R",
+      34
+    ],
+    [
+      "L212I",
+      33
+    ],
+    [
+      "R158G",
+      32
+    ],
+    [
+      "P681R",
+      32
+    ],
+    [
+      "T19I",
+      31
+    ],
+    [
+      "T376A",
+      31
+    ],
+    [
+      "D405N",
+      31
+    ],
+    [
+      "R408S",
+      31
+    ],
+    [
+      "N460K",
+      31
+    ]
+  ]
+}

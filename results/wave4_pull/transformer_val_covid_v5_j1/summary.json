@@ -1,0 +1,16 @@
+{
+  "n_trees": 335,
+  "n_train_trees": 234,
+  "n_val_trees": 50,
+  "n_test_trees": 51,
+  "data": "data/covid/train",
+  "checkpoint": "checkpoints/covid_v5_mutrec/best.pt",
+  "sources": [
+    "plm",
+    "topological_only",
+    "esm_branch",
+    "node_encoder",
+    "graph_transformer",
+    "graph_random"
+  ]
+}

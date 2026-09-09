@@ -1,0 +1,178 @@
+{
+  "n_cases": 9,
+  "cases": [
+    {
+      "voc_id": "Gamma",
+      "split": "test",
+      "gid": 3,
+      "case_dir": "results/voc_threat_panel/cases/Gamma_g003_test",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/test",
+      "n_leaves_hint": null,
+      "date_min": "2021-03-25",
+      "date_max": "2021-05-10",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 1.0,
+        "acquired_recall": 0.5833333333333334,
+        "bundle_frac": 0.7133333333333334,
+        "root_bundle_hits": [
+          "N501Y"
+        ]
+      }
+    },
+    {
+      "voc_id": "Lambda",
+      "split": "train",
+      "gid": 289,
+      "case_dir": "results/voc_threat_panel/cases/Lambda_g289_train",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/train",
+      "n_leaves_hint": null,
+      "date_min": "2020-03-10",
+      "date_max": "2022-07-19",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 1.0,
+        "acquired_recall": 0.0,
+        "bundle_frac": 0.006134969325153374,
+        "root_bundle_hits": []
+      }
+    },
+    {
+      "voc_id": "Omicron_BA1",
+      "split": "train",
+      "gid": 309,
+      "case_dir": "results/voc_threat_panel/cases/Omicron_BA1_g309_train",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/train",
+      "n_leaves_hint": null,
+      "date_min": "2021-12-26",
+      "date_max": "2023-01-31",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 0.32142857142857145,
+        "acquired_recall": 0.17857142857142858,
+        "bundle_frac": 0.0,
+        "root_bundle_hits": [
+          "K417N",
+          "Q493R"
+        ]
+      }
+    },
+    {
+      "voc_id": "Delta",
+      "split": "train",
+      "gid": 191,
+      "case_dir": "results/voc_threat_panel/cases/Delta_g191_train",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/train",
+      "n_leaves_hint": null,
+      "date_min": "2021-02-28",
+      "date_max": "2021-06-03",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 1.0,
+        "acquired_recall": 0.5,
+        "bundle_frac": 0.38127090301003347,
+        "root_bundle_hits": [
+          "L452R"
+        ]
+      }
+    },
+    {
+      "voc_id": "Beta",
+      "split": "train",
+      "gid": 302,
+      "case_dir": "results/voc_threat_panel/cases/Beta_g302_train",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/train",
+      "n_leaves_hint": null,
+      "date_min": "2020-10-20",
+      "date_max": "2021-01-21",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 1.0,
+        "acquired_recall": 0.7142857142857143,
+        "bundle_frac": 0.06354515050167224,
+        "root_bundle_hits": [
+          "E484K"
+        ]
+      }
+    },
+    {
+      "voc_id": "Delta",
+      "split": "test",
+      "gid": 11,
+      "case_dir": "results/voc_threat_panel/cases/Delta_g011_test",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/test",
+      "n_leaves_hint": 299,
+      "date_min": "2021-07-23",
+      "date_max": "2021-08-04",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 1.0,
+        "acquired_recall": 0.8333333333333334,
+        "bundle_frac": 0.033444816053511704,
+        "root_bundle_hits": []
+      }
+    },
+    {
+      "voc_id": "Alpha",
+      "split": "train",
+      "gid": 323,
+      "case_dir": "results/voc_threat_panel/cases/Alpha_g323_train",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/train",
+      "n_leaves_hint": null,
+      "date_min": "2020-01-29",
+      "date_max": "2026-03-04",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 0.5714285714285714,
+        "acquired_recall": 0.0,
+        "bundle_frac": 0.009708737864077669,
+        "root_bundle_hits": []
+      }
+    },
+    {
+      "voc_id": "Delta",
+      "split": "test",
+      "gid": 7,
+      "case_dir": "results/voc_threat_panel/cases/Delta_g007_test",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/test",
+      "n_leaves_hint": 300,
+      "date_min": "2021-06-15",
+      "date_max": "2021-07-05",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 1.0,
+        "acquired_recall": 0.8333333333333334,
+        "bundle_frac": 0.01,
+        "root_bundle_hits": []
+      }
+    },
+    {
+      "voc_id": "Mu",
+      "split": "train",
+      "gid": 34,
+      "case_dir": "results/voc_threat_panel/cases/Mu_g034_train",
+      "source_data_dir": "/Users/navyanori/Documents/GitHub/DiscreteTreeFlows/data/covid/train",
+      "n_leaves_hint": null,
+      "date_min": "2020-03-11",
+      "date_max": "2022-06-24",
+      "screen": {
+        "prospective": true,
+        "exact_recall": 0.5555555555555556,
+        "acquired_recall": 0.4444444444444444,
+        "bundle_frac": 0.0,
+        "root_bundle_hits": []
+      }
+    }
+  ],
+  "generation_defaults": {
+    "ckpt": "covid_v7_pmc_hotspot",
+    "fallback_ckpt": "covid_v5_mutrec",
+    "mrs": 0.5,
+    "n_samples": 1,
+    "max_leaves": 250,
+    "n_steps": 160,
+    "branch_scale": 6.0,
+    "max_seq_len": 1280
+  },
+  "note": "Primary Betty submit set (held-out Gamma/Delta + origin SA/IN/UK/PE/CO)"
+}

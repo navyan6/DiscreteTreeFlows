@@ -1,0 +1,376 @@
+{
+  "indexing": {
+    "scheme": "H3 numbering (mature HA1) vs full-ORF columns",
+    "signal_len": 16,
+    "h3_to_col_0based": "col = h3_pos + 16 - 1",
+    "max_seq_len": 566,
+    "canonical_ha_len": 566,
+    "F159_col_0based": 174,
+    "globular_head_cols_0based": [
+      78,
+      267
+    ],
+    "pad_truncate_does_not_create_homology": true
+  },
+  "alignment_policy": {
+    "question": "Is pad/truncate to max_seq_len=566 enough for homologous HA columns?",
+    "answer": "No. Same length alone does not define homology. Need reference-anchored ungapped full-length HA (signal+HA1+HA2) or a gapped MSA. Empirically anc_aa are left-aligned ungapped; H3# \u2194 col only when signal_len=16 and L=566.",
+    "group_anc_aa_are_gapped_msa": false,
+    "n_seqs": 21251,
+    "n_seqs_with_gap_char": 0,
+    "total_gap_chars": 0,
+    "max_seq_len_pad_truncate_creates_homology": false,
+    "h3_to_col": "col = h3_pos + 16 - 1"
+  },
+  "wt_landmarks": [
+    {
+      "check": "signal_peptide",
+      "expect": "MKTIIALSYILCLVFA",
+      "got": "MKTIIALSYILCLVFA",
+      "ok": true
+    },
+    {
+      "check": "mature_start_motif",
+      "col_0based_start": 16,
+      "expect": "QKLPGNDNSTATLCL",
+      "got": "QKLPGNDNSTATLCL",
+      "ok": true
+    },
+    {
+      "mutation": "mature_Q1",
+      "h3_pos_1based": 1,
+      "orf_1based": 17,
+      "col_0based": 16,
+      "wt_aa": "Q",
+      "expect": "Q",
+      "ok": true
+    },
+    {
+      "mutation": "Y98_RBS",
+      "h3_pos_1based": 98,
+      "orf_1based": 114,
+      "col_0based": 113,
+      "wt_aa": "Y",
+      "expect": "Y",
+      "ok": true
+    },
+    {
+      "mutation": "W153_RBS",
+      "h3_pos_1based": 153,
+      "orf_1based": 169,
+      "col_0based": 168,
+      "wt_aa": "W",
+      "expect": "W",
+      "ok": true
+    },
+    {
+      "mutation": "H183_RBS",
+      "h3_pos_1based": 183,
+      "orf_1based": 199,
+      "col_0based": 198,
+      "wt_aa": "H",
+      "expect": "H",
+      "ok": true
+    },
+    {
+      "mutation": "Y195_RBS",
+      "h3_pos_1based": 195,
+      "orf_1based": 211,
+      "col_0based": 210,
+      "wt_aa": "Y",
+      "expect": "Y",
+      "ok": true
+    },
+    {
+      "mutation": "F159_TX50",
+      "h3_pos_1based": 159,
+      "orf_1based": 175,
+      "col_0based": 174,
+      "wt_aa": "F",
+      "expect": "F",
+      "ok": true
+    },
+    {
+      "mutation": "K189_TX50",
+      "h3_pos_1based": 189,
+      "orf_1based": 205,
+      "col_0based": 204,
+      "wt_aa": "K",
+      "expect": "K",
+      "ok": true
+    },
+    {
+      "mutation": "N225_TX50",
+      "h3_pos_1based": 225,
+      "orf_1based": 241,
+      "col_0based": 240,
+      "wt_aa": "N",
+      "expect": "N",
+      "ok": true
+    }
+  ],
+  "msa_full_length_proof": {
+    "n_full_len": 20934,
+    "mean_identity_to_wt": 0.9592717314487632,
+    "n_signal_motif": 1928,
+    "n_mature_motif": 1772,
+    "n_checked": 2000,
+    "landmarks": [
+      {
+        "mutation": "mature_Q1",
+        "h3_pos_1based": 1,
+        "col_0based": 16,
+        "wt_aa": "Q",
+        "consensus_aa": "Q",
+        "top_counts": [
+          [
+            "Q",
+            20918
+          ],
+          [
+            "K",
+            14
+          ],
+          [
+            "R",
+            1
+          ],
+          [
+            "P",
+            1
+          ]
+        ],
+        "ok": true,
+        "note": ""
+      },
+      {
+        "mutation": "Y98_RBS",
+        "h3_pos_1based": 98,
+        "col_0based": 113,
+        "wt_aa": "Y",
+        "consensus_aa": "Y",
+        "top_counts": [
+          [
+            "Y",
+            20932
+          ],
+          [
+            "N",
+            1
+          ],
+          [
+            "F",
+            1
+          ]
+        ],
+        "ok": true,
+        "note": ""
+      },
+      {
+        "mutation": "W153_RBS",
+        "h3_pos_1based": 153,
+        "col_0based": 168,
+        "wt_aa": "W",
+        "consensus_aa": "W",
+        "top_counts": [
+          [
+            "W",
+            20931
+          ],
+          [
+            "G",
+            3
+          ]
+        ],
+        "ok": true,
+        "note": ""
+      },
+      {
+        "mutation": "H183_RBS",
+        "h3_pos_1based": 183,
+        "col_0based": 198,
+        "wt_aa": "H",
+        "consensus_aa": "H",
+        "top_counts": [
+          [
+            "H",
+            20902
+          ],
+          [
+            "L",
+            31
+          ],
+          [
+            "F",
+            1
+          ]
+        ],
+        "ok": true,
+        "note": ""
+      },
+      {
+        "mutation": "Y195_RBS",
+        "h3_pos_1based": 195,
+        "col_0based": 210,
+        "wt_aa": "Y",
+        "consensus_aa": "Y",
+        "top_counts": [
+          [
+            "Y",
+            20926
+          ],
+          [
+            "H",
+            5
+          ],
+          [
+            "F",
+            2
+          ],
+          [
+            "N",
+            1
+          ]
+        ],
+        "ok": true,
+        "note": ""
+      },
+      {
+        "mutation": "F159_TX50",
+        "h3_pos_1based": 159,
+        "col_0based": 174,
+        "wt_aa": "F",
+        "consensus_aa": "F",
+        "top_counts": [
+          [
+            "F",
+            15869
+          ],
+          [
+            "Y",
+            3849
+          ],
+          [
+            "S",
+            1203
+          ],
+          [
+            "N",
+            12
+          ]
+        ],
+        "ok": true,
+        "note": "polymorphic OK if flexible landmark"
+      },
+      {
+        "mutation": "K189_TX50",
+        "h3_pos_1based": 189,
+        "col_0based": 204,
+        "wt_aa": "K",
+        "consensus_aa": "K",
+        "top_counts": [
+          [
+            "K",
+            17554
+          ],
+          [
+            "S",
+            1747
+          ],
+          [
+            "N",
+            1629
+          ],
+          [
+            "R",
+            3
+          ]
+        ],
+        "ok": true,
+        "note": "polymorphic OK if flexible landmark"
+      },
+      {
+        "mutation": "N225_TX50",
+        "h3_pos_1based": 225,
+        "col_0based": 240,
+        "wt_aa": "N",
+        "consensus_aa": "N",
+        "top_counts": [
+          [
+            "N",
+            14570
+          ],
+          [
+            "D",
+            5492
+          ],
+          [
+            "G",
+            869
+          ],
+          [
+            "H",
+            1
+          ]
+        ],
+        "ok": true,
+        "note": "polymorphic OK if flexible landmark"
+      }
+    ],
+    "verdict": "PASS: L=566 columns are full-ORF H3 frame; h3_pos = col - 16 + 1",
+    "note": "data/train may mix H3 with other flu groups; prefer data/h3n2/train on Betty for a pure-H3 proof. RBS + signal landmarks are the decisive checks."
+  },
+  "len_hist": {
+    "566": 20934,
+    "6": 170,
+    "571": 138,
+    "561": 3,
+    "534": 1,
+    "40": 1,
+    "567": 1,
+    "565": 1,
+    "578": 1,
+    "550": 1
+  },
+  "primary_h3_positions": [
+    145,
+    155,
+    156,
+    158,
+    159,
+    183,
+    189,
+    193,
+    225
+  ],
+  "secondary_h3_positions": [
+    75,
+    88,
+    94,
+    107,
+    122,
+    127,
+    128,
+    144,
+    157,
+    160,
+    172,
+    174,
+    192,
+    197,
+    203,
+    207,
+    217,
+    219,
+    220,
+    242,
+    246
+  ],
+  "files": {
+    "lit_mask": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_nmicrobiol_lit.pt",
+    "flu_lit_alias": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_flu_lit.pt",
+    "globular_head_mask": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_h3_globular_head.pt",
+    "lit_or_head_mask": "results/flu_mutfreq_vs_lit/mut_hotspot_mask_flu_lit_or_head.pt"
+  },
+  "h1_transfer_note": "Paper also covers A(H1N1)pdm09 with H1 numbering (Sa 153\u2013156 critical). Do not apply H3 signal offset to H1; use H1 signal (~17 aa) after separate landmark validation. H1 primary sites in src/flu_lit_sites.py."
+}

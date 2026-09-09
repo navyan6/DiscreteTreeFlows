@@ -1,0 +1,907 @@
+Start: Sat Aug  8 07:08:57 PM EDT 2026 host=epyc-3-5
+MAX_SEQS=500000 OUT=data/ab_t5_500k SKIP_SUBSAMPLE=0 SKIP_ANARCI=0
+MIN_SIZE=16 MAX_SIZE=64 ANARCI_BATCH=500 ANARCI_JOBS=8
+Reading data/Homo_sapiens.fasta → reservoir up to 500,000
+  … read=200,000 pref=80 other=99,919
+  … read=400,000 pref=3,427 other=196,592
+  … read=600,000 pref=27,127 other=288,701
+  … read=800,000 pref=113,539 other=302,926
+  … read=1,000,000 pref=140,376 other=378,920
+  … read=1,200,000 pref=171,695 other=450,363
+  … read=1,400,000 pref=173,705 other=500,000
+  … read=1,600,000 pref=195,107 other=500,000
+  … read=1,800,000 pref=283,178 other=500,000
+  … read=2,000,000 pref=311,015 other=500,000
+  … read=2,200,000 pref=347,854 other=500,000
+  … read=2,400,000 pref=362,237 other=500,000
+  … read=2,600,000 pref=410,100 other=500,000
+  … read=2,800,000 pref=419,944 other=500,000
+  … read=3,000,000 pref=477,716 other=500,000
+Preferred pool full at read=3,195,932; stopping early.
+{
+  "n_read": 3195932,
+  "n_kept": 500000,
+  "n_preferred_paired": 500000,
+  "n_donors": 1192,
+  "chain_counts": {
+    "heavy": 500000
+  }
+}
+Wrote data/ab_t5_500k/sequences.fasta and data/ab_t5_500k/metadata.tsv
+Loaded 500,000 sequences from data/ab_t5_500k/sequences.fasta
+Using anarci Python API
+ANARCI parallel n_jobs=8 n_batches=1000
+  … completed 5/1000 batches
+  … completed 10/1000 batches
+  … completed 15/1000 batches
+  … completed 20/1000 batches
+  … completed 25/1000 batches
+  … completed 30/1000 batches
+  … completed 35/1000 batches
+  … completed 40/1000 batches
+  … completed 45/1000 batches
+  … completed 50/1000 batches
+  … completed 55/1000 batches
+  … completed 60/1000 batches
+  … completed 65/1000 batches
+  … completed 70/1000 batches
+  … completed 75/1000 batches
+  … completed 80/1000 batches
+  … completed 85/1000 batches
+  … completed 90/1000 batches
+  … completed 95/1000 batches
+  … completed 100/1000 batches
+  … completed 105/1000 batches
+  … completed 110/1000 batches
+  … completed 115/1000 batches
+  … completed 120/1000 batches
+  … completed 125/1000 batches
+  … completed 130/1000 batches
+  … completed 135/1000 batches
+  … completed 140/1000 batches
+  … completed 145/1000 batches
+  … completed 150/1000 batches
+  … completed 155/1000 batches
+  … completed 160/1000 batches
+  … completed 165/1000 batches
+  … completed 170/1000 batches
+  … completed 175/1000 batches
+  … completed 180/1000 batches
+  … completed 185/1000 batches
+  … completed 190/1000 batches
+  … completed 195/1000 batches
+  … completed 200/1000 batches
+  … completed 205/1000 batches
+  … completed 210/1000 batches
+  … completed 215/1000 batches
+  … completed 220/1000 batches
+  … completed 225/1000 batches
+  … completed 230/1000 batches
+  … completed 235/1000 batches
+  … completed 240/1000 batches
+  … completed 245/1000 batches
+  … completed 250/1000 batches
+  … completed 255/1000 batches
+  … completed 260/1000 batches
+  … completed 265/1000 batches
+  … completed 270/1000 batches
+  … completed 275/1000 batches
+  … completed 280/1000 batches
+  … completed 285/1000 batches
+  … completed 290/1000 batches
+  … completed 295/1000 batches
+  … completed 300/1000 batches
+  … completed 305/1000 batches
+  … completed 310/1000 batches
+  … completed 315/1000 batches
+  … completed 320/1000 batches
+  … completed 325/1000 batches
+  … completed 330/1000 batches
+  … completed 335/1000 batches
+  … completed 340/1000 batches
+  … completed 345/1000 batches
+  … completed 350/1000 batches
+  … completed 355/1000 batches
+  … completed 360/1000 batches
+  … completed 365/1000 batches
+  … completed 370/1000 batches
+  … completed 375/1000 batches
+  … completed 380/1000 batches
+  … completed 385/1000 batches
+  … completed 390/1000 batches
+  … completed 395/1000 batches
+  … completed 400/1000 batches
+  … completed 405/1000 batches
+  … completed 410/1000 batches
+  … completed 415/1000 batches
+  … completed 420/1000 batches
+  … completed 425/1000 batches
+  … completed 430/1000 batches
+  … completed 435/1000 batches
+  … completed 440/1000 batches
+  … completed 445/1000 batches
+  … completed 450/1000 batches
+  … completed 455/1000 batches
+  … completed 460/1000 batches
+  … completed 465/1000 batches
+  … completed 470/1000 batches
+  … completed 475/1000 batches
+  … completed 480/1000 batches
+  … completed 485/1000 batches
+  … completed 490/1000 batches
+  … completed 495/1000 batches
+  … completed 500/1000 batches
+  … completed 505/1000 batches
+  … completed 510/1000 batches
+  … completed 515/1000 batches
+  … completed 520/1000 batches
+  … completed 525/1000 batches
+  … completed 530/1000 batches
+  … completed 535/1000 batches
+  … completed 540/1000 batches
+  … completed 545/1000 batches
+  … completed 550/1000 batches
+  … completed 555/1000 batches
+  … completed 560/1000 batches
+  … completed 565/1000 batches
+  … completed 570/1000 batches
+  … completed 575/1000 batches
+  … completed 580/1000 batches
+  … completed 585/1000 batches
+  … completed 590/1000 batches
+  … completed 595/1000 batches
+  … completed 600/1000 batches
+  … completed 605/1000 batches
+  … completed 610/1000 batches
+  … completed 615/1000 batches
+  … completed 620/1000 batches
+  … completed 625/1000 batches
+  … completed 630/1000 batches
+  … completed 635/1000 batches
+  … completed 640/1000 batches
+  … completed 645/1000 batches
+  … completed 650/1000 batches
+  … completed 655/1000 batches
+  … completed 660/1000 batches
+  … completed 665/1000 batches
+  … completed 670/1000 batches
+  … completed 675/1000 batches
+  … completed 680/1000 batches
+  … completed 685/1000 batches
+  … completed 690/1000 batches
+  … completed 695/1000 batches
+  … completed 700/1000 batches
+  … completed 705/1000 batches
+  … completed 710/1000 batches
+  … completed 715/1000 batches
+  … completed 720/1000 batches
+  … completed 725/1000 batches
+  … completed 730/1000 batches
+  … completed 735/1000 batches
+  … completed 740/1000 batches
+  … completed 745/1000 batches
+  … completed 750/1000 batches
+  … completed 755/1000 batches
+  … completed 760/1000 batches
+  … completed 765/1000 batches
+  … completed 770/1000 batches
+  … completed 775/1000 batches
+  … completed 780/1000 batches
+  … completed 785/1000 batches
+  … completed 790/1000 batches
+  … completed 795/1000 batches
+  … completed 800/1000 batches
+  … completed 805/1000 batches
+  … completed 810/1000 batches
+  … completed 815/1000 batches
+  … completed 820/1000 batches
+  … completed 825/1000 batches
+  … completed 830/1000 batches
+  … completed 835/1000 batches
+  … completed 840/1000 batches
+  … completed 845/1000 batches
+  … completed 850/1000 batches
+  … completed 855/1000 batches
+  … completed 860/1000 batches
+  … completed 865/1000 batches
+  … completed 870/1000 batches
+  … completed 875/1000 batches
+  … completed 880/1000 batches
+  … completed 885/1000 batches
+  … completed 890/1000 batches
+  … completed 895/1000 batches
+  … completed 900/1000 batches
+  … completed 905/1000 batches
+  … completed 910/1000 batches
+  … completed 915/1000 batches
+  … completed 920/1000 batches
+  … completed 925/1000 batches
+  … completed 930/1000 batches
+  … completed 935/1000 batches
+  … completed 940/1000 batches
+  … completed 945/1000 batches
+  … completed 950/1000 batches
+  … completed 955/1000 batches
+  … completed 960/1000 batches
+  … completed 965/1000 batches
+  … completed 970/1000 batches
+  … completed 975/1000 batches
+  … completed 980/1000 batches
+  … completed 985/1000 batches
+  … completed 990/1000 batches
+  … completed 995/1000 batches
+  … completed 1000/1000 batches
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+Limiting hmmer search to species ['human', 'mouse'] was requested but hits did not achieve a high enough bitscore. Reverting to using any species
+{
+  "fasta": "data/ab_t5_500k/sequences.fasta",
+  "out": "data/ab_t5_500k/anarci.tsv",
+  "n_input": 500000,
+  "n_ok_cdr3": 499506,
+  "scheme": "imgt",
+  "n_jobs": 8,
+  "batch_size": 500,
+  "backend": "python_api"
+}
+{
+  "n_metadata": 500000,
+  "n_joined_cdr3": 499506,
+  "n_no_cdr3": 494,
+  "n_no_donor": 0,
+  "n_raw_clone_keys": 443147,
+  "n_kept_clones": 488,
+  "min_size": 16,
+  "max_size": 64,
+  "size_hist_top": {
+    "1": 424466,
+    "2": 10017,
+    "3": 3171,
+    "4": 1560,
+    "5": 983,
+    "6": 601,
+    "7": 500,
+    "8": 330,
+    "9": 268,
+    "10": 206,
+    "11": 157,
+    "12": 132,
+    "14": 95,
+    "13": 94,
+    "15": 62,
+    "16": 61,
+    "17": 48,
+    "18": 42,
+    "21": 38,
+    "19": 32,
+    "20": 31,
+    "22": 29,
+    "23": 25,
+    "25": 19,
+    "24": 17,
+    "26": 15,
+    "27": 12,
+    "29": 12,
+    "28": 11,
+    "33": 9
+  },
+  "holdout_unit": "clonal_lineage = donor_id|v_family|cdr3"
+}
+n_kept_clones=488
+[1/400] SRR10596378|human|AK.fasta
+[2/400] SRR10596382|human|AK.fasta
+[3/400] SRR10596387|human|AK.fasta
+[4/400] SRR10596391|human|AK.fasta
+[5/400] SRR10596395|human|AK.fasta
+[6/400] SRR10596400|human|AK.fasta
+[7/400] SRR10596404|human|AK.fasta
+[8/400] SRR10596409|human|AK.fasta
+[9/400] SRR14978396|human|ATSSTTVLTVPHAAFDI.fasta
+[10/400] SRR14978397|human|ATSSTTVLTVPHAAFDI.fasta
+[11/400] SRR17729673|human|ARDRSGDYGYYPYGMDV.fasta
+[12/400] SRR17729673|human|ARVGLGDSSGPYGTYFDY.fasta
+[13/400] SRR17729674|human|ARDSGDFDY.fasta
+[14/400] SRR17729677|human|ARSSSGGSYSHFDY.fasta
+[15/400] SRR17729678|human|ARSSSGGSYSHFDY.fasta
+[16/400] SRR17729679|human|ARGFDY.fasta
+[17/400] SRR17729680|human|ARPASGNNYGWFDP.fasta
+[18/400] SRR17729680|human|ARPHSGSFYGAFDY.fasta
+[19/400] SRR17729682|human|ARPASGNNYGWFDP.fasta
+[20/400] SRR17729682|human|ARPHSGSFYGAFDY.fasta
+[21/400] SRR17729689|human|AKSRSGSLYSAFDI.fasta
+[22/400] SRR17729689|human|ARGFDY.fasta
+[23/400] SRR17729689|human|ARGLSGNYPYIWFDP.fasta
+[24/400] SRR17729690|human|ARDLQYYGMDV.fasta
+[25/400] SRR17729690|human|ARDLRVSVGASDY.fasta
+[26/400] SRR17729691|human|AKGFGSYWYFDL.fasta
+[27/400] SRR17729691|human|AREAVVALDF.fasta
+[28/400] SRR17729692|human|ARWPGQGYFDY.fasta
+[29/400] SRR17729694|human|ARDPTGRLIGYYFDY.fasta
+[30/400] SRR17729695|human|ARDPTGRLIGYYFDY.fasta
+[31/400] SRR17729699|human|AKGAGGGMDV.fasta
+[32/400] SRR17729699|human|ARDPSRFGDATVGMDV.fasta
+[33/400] SRR17729699|human|ARDPTGRLIGYYFDY.fasta
+[34/400] SRR17729699|human|ARGPGWGVVAASYYYNYSMDV.fasta
+[35/400] SRR17729706|human|AKSGSGNFYDAFDI.fasta
+[36/400] SRR17729707|human|AKSGSGNFYDAFDI.fasta
+[37/400] SRR17729708|human|ARTKSGSWYDYFDY.fasta
+[38/400] SRR17729711|human|AKSRGGNYYYGMDV.fasta
+[39/400] SRR17729714|human|AK.fasta
+[40/400] SRR17729714|human|AKFGDYDFWSGLDVRDYRYMDV.fasta
+[41/400] SRR17729714|human|AKMMFGGWSGFDY.fasta
+[42/400] SRR17729714|human|ARAGS.fasta
+[43/400] SRR17729714|human|ARATSGWYRPARNWFDL.fasta
+[44/400] SRR17729714|human|ARATWFGHFDY.fasta
+[45/400] SRR17729714|human|ARAVWVRGVRMDV.fasta
+[46/400] SRR17729714|human|ARAYGSGSYYHGYGMDV.fasta
+[47/400] SRR17729714|human|ARDKGEGSSGWSGSPILYYFDY.fasta
+[48/400] SRR17729714|human|ARDLNGGRGP.fasta
+[49/400] SRR17729714|human|ARDPNAGYYYMDV.fasta
+[50/400] SRR17729714|human|ARDPTTSGYYYTRPGSYAFDI.fasta
+[51/400] SRR17729714|human|AREGGVGTATGFDI.fasta
+[52/400] SRR17729714|human|ARGDDPRKSGVV.fasta
+[53/400] SRR17729714|human|ARGRPESSSALWYYMDV.fasta
+[54/400] SRR17729714|human|ARHWEVAAALYAARFDP.fasta
+[55/400] SRR17729714|human|ARPPVPDVLISNPDAFDI.fasta
+[56/400] SRR17729714|human|ASGDVDIVAIGSNPDAFDI.fasta
+[57/400] SRR17729714|human|ASPVIAVGATTFDY.fasta
+[58/400] SRR17729714|human|ATDLKGGRGP.fasta
+[59/400] SRR17729714|human|GKVRGVTPNIDY.fasta
+[60/400] SRR17729714|human|VDGYSYGSMDV.fasta
+[61/400] SRR17729714|human|VKGSY.fasta
+[62/400] SRR17729715|human|ARGEGWELPFDY.fasta
+[63/400] SRR17729716|human|ARGEGWELPFDY.fasta
+[64/400] SRR17729725|human|AGLQGVALGYGMDV.fasta
+[65/400] SRR17729725|human|AHVPPRLAYMHVMWGNWFDP.fasta
+[66/400] SRR17729725|human|AISPLYDFPPRGGVV.fasta
+[67/400] SRR17729725|human|AK.fasta
+[68/400] SRR17729725|human|AKDGLGAYYYGSSDSFFDY.fasta
+[69/400] SRR17729725|human|AKKAGGIALPGDPFDY.fasta
+[70/400] SRR17729725|human|ARDYEVLVVTYFRAYGMDV.fasta
+[71/400] SRR17729725|human|ARFHRILSPVNFDY.fasta
+[72/400] SRR17729725|human|ARGGYTTWGYDFDY.fasta
+[73/400] SRR17729725|human|ARGWGGSPHVYWFDP.fasta
+[74/400] SRR17729725|human|ARRLGGWLAHLDY.fasta
+[75/400] SRR17729725|human|ARVNSGRIIDY.fasta
+[76/400] SRR17729725|human|ASGGNSGDWYFDL.fasta
+[77/400] SRR17729725|human|SRERTSASEY.fasta
+[78/400] SRR17729725|human|TTLADWGSLSFDAFDI.fasta
+[79/400] SRR17729726|human|AITRRSRAVGGDY.fasta
+[80/400] SRR17729726|human|AK.fasta
+[81/400] SRR17729726|human|AKDKDSGYYVESGVFDY.fasta
+[82/400] SRR17729726|human|AKDLWGSWGSIFDY.fasta
+[83/400] SRR17729726|human|AKERFPLMGISYFDS.fasta
+[84/400] SRR17729726|human|AKERFPLMGVSYFDS.fasta
+[85/400] SRR17729726|human|ALRGVSGQLWLGRNSKVHYFDY.fasta
+[86/400] SRR17729726|human|AMPSYYGMDV.fasta
+[87/400] SRR17729726|human|ARARKYYYDTPYYGSAAFDI.fasta
+[88/400] SRR17729726|human|ARAVWLRGSIDY.fasta
+[89/400] SRR17729726|human|ARDGREEDTGVDI.fasta
+[90/400] SRR17729726|human|ARDLTFYDSSLSMEDWYGMDV.fasta
+[91/400] SRR17729726|human|ARDPWSGISHPFDY.fasta
+[92/400] SRR17729726|human|ARDQGYYYDSSPDYYGSWFDY.fasta
+[93/400] SRR17729726|human|ARDRFRFGWFEDSFDS.fasta
+[94/400] SRR17729726|human|ARDRLRFGWFEDSFDS.fasta
+[95/400] SRR17729726|human|ARDRLRFGWFEDSFDY.fasta
+[96/400] SRR17729726|human|ARERFPLMGISYFDY.fasta
+[97/400] SRR17729726|human|ARETINNWFDS.fasta
+[98/400] SRR17729726|human|AREVPYYDILPYYGTGALDY.fasta
+[99/400] SRR17729726|human|AREYADSSPLVY.fasta
+[100/400] SRR17729726|human|ARFSESNRSWDR.fasta
+[101/400] SRR17729726|human|ARFSEYNRSWDR.fasta
+[102/400] SRR17729726|human|ARFSEYSRSWDR.fasta
+[103/400] SRR17729726|human|ARGCSSTSCTNYYYFDY.fasta
+[104/400] SRR17729726|human|ARGGSGWEPFDY.fasta
+[105/400] SRR17729726|human|ARGRFFYGSYYSGNEFDY.fasta
+[106/400] SRR17729726|human|ARISYYYGWFDP.fasta
+[107/400] SRR17729726|human|ARVGDLSPGNWFDP.fasta
+[108/400] SRR17729726|human|ARVGELSPGNFFDP.fasta
+[109/400] SRR17729726|human|ARWRPGYSSGGDY.fasta
+[110/400] SRR17729726|human|ATAGPQFGYKENWFDP.fasta
+[111/400] SRR17729726|human|ATDWGGYYGY.fasta
+[112/400] SRR17729726|human|GRDRGYSDV.fasta
+[113/400] SRR17729726|human|TRQGEYYYSAMDV.fasta
+[114/400] SRR17729726|human|TRYRHDY.fasta
+[115/400] SRR17729726|human|VRETGDSSQWAYFFDY.fasta
+[116/400] SRR17778090|human|AK.fasta
+[117/400] SRR17778090|human|AKSWIPGNPTMVFDS.fasta
+[118/400] SRR17778090|human|ARDGGAYCHGGCGYDY.fasta
+[119/400] SRR17778090|human|ARDIGLGAFDI.fasta
+[120/400] SRR17778090|human|ARDRSGDYYPGYYGMD.fasta
+[121/400] SRR17778090|human|ARDTGDFDY.fasta
+[122/400] SRR17778090|human|ARGDTAMAVGYFDY.fasta
+[123/400] SRR17778090|human|ARGSIAVAGPATTTWFDP.fasta
+[124/400] SRR17778090|human|ARGWGSGYSYVFDY.fasta
+[125/400] SRR17778090|human|ARLITMVRGLGIVYYFDY.fasta
+[126/400] SRR17778090|human|ARQGWGEYFFDY.fasta
+[127/400] SRR17778090|human|ARRALGGAAVGLFDY.fasta
+[128/400] SRR17778090|human|ARVGLADSSGPYGTYFDY.fasta
+[129/400] SRR17778090|human|ARVGLGDSSGPYGTNFDY.fasta
+[130/400] SRR17778090|human|ARVSYQAYWFDP.fasta
+[131/400] SRR17778090|human|ASPPIAVGAYYFDY.fasta
+[132/400] SRR17778090|human|ASVDRSYRYTGSSDYYAYYRN.fasta
+[133/400] SRR17778096|human|ARGFDY.fasta
+[134/400] SRR17778097|human|ARPHSGSFYGAFDY.fasta
+[135/400] SRR17778131|human|ARAGSSGYQLLYYYYSRERYYMDV.fasta
+[136/400] SRR17778131|human|ARATWFGHFDY.fasta
+[137/400] SRR17778131|human|ARAYGSGSYYHGYGMDV.fasta
+[138/400] SRR17778131|human|ARLMDTAMYDYGMDV.fasta
+[139/400] SRR17778131|human|GKVRGVTPNIDY.fasta
+[140/400] SRR17778142|human|ARGGYTTWGYDFDY.fasta
+[141/400] SRR17778142|human|ARMSYAYGDFDY.fasta
+[142/400] SRR17778142|human|ASRSSGYYNWFDP.fasta
+[143/400] SRR17778142|human|SRERTSASEY.fasta
+[144/400] SRR17778143|human|AKERFPLMGVSYFDS.fasta
+[145/400] SRR17778143|human|ARARKYYYDTPYYGSAAFDI.fasta
+[146/400] SRR17778143|human|ARAVWLRGSIDY.fasta
+[147/400] SRR17778143|human|ARDDILAAAIDY.fasta
+[148/400] SRR17778143|human|ARDRFRFGWFEDSFDS.fasta
+[149/400] SRR17778143|human|ARDRLRFGWFDDSFDS.fasta
+[150/400] SRR17778143|human|ARDRLRFGWFEDSFDY.fasta
+[151/400] SRR17778143|human|ARERFPLMGISYFDY.fasta
+[152/400] SRR17778143|human|ARETINNWFDS.fasta
+[153/400] SRR17778143|human|ARISYYYGWFDP.fasta
+[154/400] SRR17778143|human|ARVDGGIAANKRRNWFDP.fasta
+[155/400] SRR17778143|human|ARVGDLSPGNWFDP.fasta
+[156/400] SRR17778143|human|ARWRPGYSSGGDY.fasta
+[157/400] SRR17816505|human|AREYPHIAVAGQIGRFFDY.fasta
+[158/400] SRR17816505|human|ARFVGGITGYNHYGMDV.fasta
+[159/400] SRR17816505|human|ARGEGRSAFDI.fasta
+[160/400] SRR17816505|human|ARGQSIWFEGLLVDY.fasta
+[161/400] SRR17816505|human|ARHRLRYFDILWGAFDV.fasta
+[162/400] SRR17816505|human|ARHRLRYFDLLWGPFDV.fasta
+[163/400] SRR17816505|human|ARHRLRYFDSLWGAFDI.fasta
+[164/400] SRR17816505|human|ASLIKGWLQYFPWYGMDV.fasta
+[165/400] SRR17816505|human|ATDLTNGPVDPFDM.fasta
+[166/400] SRR17816505|human|VFGSWDY.fasta
+[167/400] SRR17816505|human|VRHEFIVSVATWWFDP.fasta
+[168/400] SRR17816506|human|AK.fasta
+[169/400] SRR17816506|human|AKDAPWIQPQPAY.fasta
+[170/400] SRR17816506|human|AKGRSGSTSSCYNY.fasta
+[171/400] SRR17816506|human|ARHRLRYFDILWGAFDV.fasta
+[172/400] SRR17816506|human|ARHRLRYFDSLWGAFDI.fasta
+[173/400] SRR17816506|human|ASVGQYSGP.fasta
+[174/400] SRR17816506|human|ASWTYDDGGSHFY.fasta
+[175/400] SRR17816506|human|MRGWSTPEY.fasta
+[176/400] SRR17816506|human|TRDSFTGRYYYGMDV.fasta
+[177/400] SRR17816507|human|AKDGSSRWQGFDY.fasta
+[178/400] SRR17816507|human|AKVGGSGSRANWFDP.fasta
+[179/400] SRR17816507|human|ANYYYGSGSPLYYYGKDV.fasta
+[180/400] SRR17816507|human|ARAKFVTIGSNKYALFDF.fasta
+[181/400] SRR17816507|human|ARALGGNYYNGMDV.fasta
+[182/400] SRR17816507|human|ARATAEDGYNF.fasta
+[183/400] SRR17816507|human|ARDKGEVTFDF.fasta
+[184/400] SRR17816507|human|ARDPHGDYAVAY.fasta
+[185/400] SRR17816507|human|ARDRPRTSFLGVPDH.fasta
+[186/400] SRR17816507|human|ARGNKGYYGY.fasta
+[187/400] SRR17816507|human|ARMPPTTAFDY.fasta
+[188/400] SRR17816507|human|ARTSSGNFYGWFDP.fasta
+[189/400] SRR17816507|human|ASNRYVLSWFGANSGDYFEF.fasta
+[190/400] SRR17816507|human|ASTIYGRSGGFDY.fasta
+[191/400] SRR17816507|human|SRDPQWGRMDV.fasta
+[192/400] SRR17816507|human|VRDLLNPEDPAAFDY.fasta
+[193/400] SRR17816507|human|VSRYCSGGCRSTFDP.fasta
+[194/400] SRR17816508|human|AK.fasta
+[195/400] SRR17816508|human|AKDLSGYGGFDV.fasta
+[196/400] SRR17816508|human|AKTSSYESGSFYSDY.fasta
+[197/400] SRR17816508|human|ARACDDGGCDYYIDY.fasta
+[198/400] SRR17816508|human|ARAFGGSNYAPFDY.fasta
+[199/400] SRR17816508|human|ARAILGYNFGDDS.fasta
+[200/400] SRR17816508|human|ARDLDVRGGLDV.fasta
+[201/400] SRR17816508|human|ARDLDVRGGMDV.fasta
+[202/400] SRR17816508|human|ARESYGMDV.fasta
+[203/400] SRR17816508|human|ARGFGGNYYYMDV.fasta
+[204/400] SRR17816508|human|ARGLGGNYYYMDV.fasta
+[205/400] SRR17816508|human|ARIQCTSSGCYEES.fasta
+[206/400] SRR17816508|human|ARLVLRFDLWLQDAYSYIDS.fasta
+[207/400] SRR17816508|human|ARPSGGNNYSYMDV.fasta
+[208/400] SRR17816508|human|ARPYGGNYYSGLDY.fasta
+[209/400] SRR17816508|human|ARSFDNRGHHYYYEY.fasta
+[210/400] SRR17816508|human|ARWPGQGYFDS.fasta
+[211/400] SRR17816508|human|ASAQGYRGGK.fasta
+[212/400] SRR17816508|human|ASGGAGPHIDY.fasta
+[213/400] SRR17816508|human|ASGIAASVSGDY.fasta
+[214/400] SRR17816508|human|ASRPPAAEYYGVFDY.fasta
+[215/400] SRR17816508|human|ASRPPATEYYGIFDY.fasta
+[216/400] SRR17816508|human|ASRPPEDKYYGIFDY.fasta
+[217/400] SRR17816508|human|ATNPYCGGYCDGAFDM.fasta
+[218/400] SRR17816508|human|VR.fasta
+[219/400] SRR17816508|human|WASGSFWGEDY.fasta
+[220/400] SRR17816509|human|AK.fasta
+[221/400] SRR17816509|human|AKGGRGSFYDAFDA.fasta
+[222/400] SRR17816509|human|AKQGFGYAGSSYLDY.fasta
+[223/400] SRR17816509|human|ARDLFDY.fasta
+[224/400] SRR17816509|human|ARDLVVYGMDV.fasta
+[225/400] SRR17816509|human|ARDSAFLTTGTDY.fasta
+[226/400] SRR17816509|human|ARDVWEGSPWRYGMDV.fasta
+[227/400] SRR17816509|human|ARESYGDNNWFDP.fasta
+[228/400] SRR17816509|human|ARGFDY.fasta
+[229/400] SRR17816509|human|ARGQAGTGQYFRLYFDL.fasta
+[230/400] SRR17816509|human|ARIAARVLDYNINHLYTTLHYFDY.fasta
+[231/400] SRR17816509|human|ARQQWLVPDY.fasta
+[232/400] SRR17816509|human|VRDPVDDLTLDH.fasta
+[233/400] SRR17816511|human|AIAPWSFDVWGYYTTNSFQN.fasta
+[234/400] SRR17816511|human|AK.fasta
+[235/400] SRR17816511|human|AKDKTDSWSFDY.fasta
+[236/400] SRR17816511|human|AKTRGPVAFHPDS.fasta
+[237/400] SRR17816511|human|AMKIGDSVY.fasta
+[238/400] SRR17816511|human|ARGFDY.fasta
+[239/400] SRR17816512|human|AK.fasta
+[240/400] SRR17816512|human|AKSRWTLASGYLDH.fasta
+[241/400] SRR17816512|human|ARDLQVYGMDV.fasta
+[242/400] SRR17816512|human|ARETVNNWVDP.fasta
+[243/400] SRR17816512|human|ARGFDY.fasta
+[244/400] SRR17816512|human|ARGFEY.fasta
+[245/400] SRR17816512|human|ARRQWGGLAGHIDY.fasta
+[246/400] SRR17816512|human|TRDWGEFYFDY.fasta
+[247/400] SRR17818204|human|ASTIYGRSGGFDY.fasta
+[248/400] SRR17818205|human|AHLGNAFFDY.fasta
+[249/400] SRR17818205|human|AHNPVLAVPYSYKYMDL.fasta
+[250/400] SRR17818205|human|AHRMAVTGLDY.fasta
+[251/400] SRR17818205|human|AHRQPAGDFDY.fasta
+[252/400] SRR17818205|human|AHRRAYSGHRVFDQ.fasta
+[253/400] SRR17818205|human|AHRREYSSDLAHWFYFDY.fasta
+[254/400] SRR17818205|human|AK.fasta
+[255/400] SRR17818205|human|AKDIGYSSGNPDF.fasta
+[256/400] SRR17818205|human|AKDLDLVTPVLDY.fasta
+[257/400] SRR17818205|human|AKDLSGYGGFDV.fasta
+[258/400] SRR17818205|human|AKDMGYSSGGVDY.fasta
+[259/400] SRR17818205|human|AKEGGGSAIVALDH.fasta
+[260/400] SRR17818205|human|AKGSRYGGDYSDSYGLDV.fasta
+[261/400] SRR17818205|human|AKTSSYESGSFYSDY.fasta
+[262/400] SRR17818205|human|AKVMAYDSGSYGTDY.fasta
+[263/400] SRR17818205|human|ALFGGDDGFAI.fasta
+[264/400] SRR17818205|human|ALFSHFGSGSDQHDH.fasta
+[265/400] SRR17818205|human|ARACDDGGCDYYIDY.fasta
+[266/400] SRR17818205|human|ARADGYNKPPDS.fasta
+[267/400] SRR17818205|human|ARAGSGSYQHFDY.fasta
+[268/400] SRR17818205|human|ARAILGYNFGDDS.fasta
+[269/400] SRR17818205|human|ARAKGGGRYNTFDI.fasta
+[270/400] SRR17818205|human|ARAKGGSRYNAFDI.fasta
+[271/400] SRR17818205|human|ARAPYSEHLRALYYFDY.fasta
+[272/400] SRR17818205|human|ARAVGGGNYAPYDY.fasta
+[273/400] SRR17818205|human|ARCGPNLVPYYYYGVDV.fasta
+[274/400] SRR17818205|human|ARDAGYDSSPYDLIASS.fasta
+[275/400] SRR17818205|human|ARDGPFVYQFRWELQPLDS.fasta
+[276/400] SRR17818205|human|ARDIFLTITTSSTGLSDY.fasta
+[277/400] SRR17818205|human|ARDIGYSSGLIDY.fasta
+[278/400] SRR17818205|human|ARDLDVRGGLDV.fasta
+[279/400] SRR17818205|human|ARDLDVRGGMDV.fasta
+[280/400] SRR17818205|human|ARDLKPYTSTYYHYYSYTDV.fasta
+[281/400] SRR17818205|human|ARDMYQTGAFDP.fasta
+[282/400] SRR17818205|human|ARDPRLSLFYYYGYYMDV.fasta
+[283/400] SRR17818205|human|ARDPSGLSQNAIFDP.fasta
+[284/400] SRR17818205|human|ARDPYSPLRYELFFYQDV.fasta
+[285/400] SRR17818205|human|ARDQRHYDIGGPLTTLHF.fasta
+[286/400] SRR17818205|human|ARDRGLGPWLRRLYFFDY.fasta
+[287/400] SRR17818205|human|ARDRGPTSYYNSGSGSYLEK.fasta
+[288/400] SRR17818205|human|ARDRGSGFWGYFDL.fasta
+[289/400] SRR17818205|human|ARDRSGGKYGPFDY.fasta
+[290/400] SRR17818205|human|ARDYDSSYGYPFDY.fasta
+[291/400] SRR17818205|human|ARDYGDWE.fasta
+[292/400] SRR17818205|human|AREGMYDSGGSYTDD.fasta
+[293/400] SRR17818205|human|AREGPAIEGPPAYYFDY.fasta
+[294/400] SRR17818205|human|AREHRIETVPVIPHFDY.fasta
+[295/400] SRR17818205|human|ARESYGMDV.fasta
+[296/400] SRR17818205|human|ARFDGGYSSRSYYGYYGVDV.fasta
+[297/400] SRR17818205|human|ARFGTSSYYYSYKEV.fasta
+[298/400] SRR17818205|human|ARGAPGYCTCRASYSSDY.fasta
+[299/400] SRR17818205|human|ARGEPGYCTCRGGHSLDV.fasta
+[300/400] SRR17818205|human|ARGEPGYCTCRTSYSNDH.fasta
+[301/400] SRR17818205|human|ARGFGGNYYYMDV.fasta
+[302/400] SRR17818205|human|ARGGKNWMPYQYYGVDV.fasta
+[303/400] SRR17818205|human|ARGGRNYAQYYSYGIDV.fasta
+[304/400] SRR17818205|human|ARGIRSDDFRGPYGSYYFDS.fasta
+[305/400] SRR17818205|human|ARGLGGNYYYFDY.fasta
+[306/400] SRR17818205|human|ARGLGGNYYYMD.fasta
+[307/400] SRR17818205|human|ARGLGGNYYYMDV.fasta
+[308/400] SRR17818205|human|ARGQSHHDGLYYYFYHMDV.fasta
+[309/400] SRR17818205|human|ARHLGYDSPYYDNQPDS.fasta
+[310/400] SRR17818205|human|ARIQCTSSGCYEES.fasta
+[311/400] SRR17818205|human|ARIQTSNKYYYYDYGLDV.fasta
+[312/400] SRR17818205|human|ARIYGYDSNWSDD.fasta
+[313/400] SRR17818205|human|ARKYCSSSTCLLDY.fasta
+[314/400] SRR17818205|human|ARLHTAKVQMYYYSYGMEV.fasta
+[315/400] SRR17818205|human|ARLVLRFDLWLQDAYSYIDS.fasta
+[316/400] SRR17818205|human|ARMYADYPNYYDY.fasta
+[317/400] SRR17818205|human|ARPMGGYYYFD.fasta
+[318/400] SRR17818205|human|ARPMGGYYYFDL.fasta
+[319/400] SRR17818205|human|ARPNGGNNYGYMDV.fasta
+[320/400] SRR17818205|human|ARPRGGNFYDAFDI.fasta
+[321/400] SRR17818205|human|ARPSGGNFYGAFDI.fasta
+[322/400] SRR17818205|human|ARPSGGNNYSYMDV.fasta
+[323/400] SRR17818205|human|ARPSYGSLYSPLDS.fasta
+[324/400] SRR17818205|human|ARPYGGNYYSGLDY.fasta
+[325/400] SRR17818205|human|ARQYRRGYYTGSLDP.fasta
+[326/400] SRR17818205|human|ARRESYYYASRYDGAAFDI.fasta
+[327/400] SRR17818205|human|ARSFDNRGHHYYYEY.fasta
+[328/400] SRR17818205|human|ARSLGGNFYAAFDI.fasta
+[329/400] SRR17818205|human|ARSRGGNLYDTFDI.fasta
+[330/400] SRR17818205|human|ARSYGGNYYAYFDY.fasta
+[331/400] SRR17818205|human|ARTFRGNFYDAFDI.fasta
+[332/400] SRR17818205|human|ARTYGGNGYGFFDY.fasta
+[333/400] SRR17818205|human|ARTYSGNFYHAFDI.fasta
+[334/400] SRR17818205|human|ARVLGEVRLLEWYYYHRSYYMDV.fasta
+[335/400] SRR17818205|human|ARVNADYAILMDV.fasta
+[336/400] SRR17818205|human|ARVSAYSDTSGFLDY.fasta
+[337/400] SRR17818205|human|ARVVGVERTIDQ.fasta
+[338/400] SRR17818205|human|ARVYDLWSDYGYYFDY.fasta
+[339/400] SRR17818205|human|ASDRVGGDDAFHI.fasta
+[340/400] SRR17818205|human|ASGGAGPHIDY.fasta
+[341/400] SRR17818205|human|ASGIAASVSGDY.fasta
+[342/400] SRR17818205|human|ASGRGNSLS.fasta
+[343/400] SRR17818205|human|ASRPPAAEYYGVFDY.fasta
+[344/400] SRR17818205|human|ASRPPATEYYGIFDY.fasta
+[345/400] SRR17818205|human|ASVHHYDSGRYYYDY.fasta
+[346/400] SRR17818205|human|ATGGGSYYTAMNY.fasta
+[347/400] SRR17818205|human|ATLEITLWNTYYYFANGMDV.fasta
+[348/400] SRR17818205|human|ATNPYCGGYCDGAFDM.fasta
+[349/400] SRR17818205|human|ATSLLVAGVARDAFDI.fasta
+[350/400] SRR17818205|human|ATVSAGHAYPPYGMDV.fasta
+[351/400] SRR17818205|human|AVIVAGILQIDY.fasta
+[352/400] SRR17818205|human|AYSAKNQYDEYNWDFFDP.fasta
+[353/400] SRR17818205|human|SSTGGNYFDGFHI.fasta
+[354/400] SRR17818205|human|VHRSITVAGGFDN.fasta
+[355/400] SRR17818205|human|VKPRVGNPSFDFEY.fasta
+[356/400] SRR17818205|human|VKPRVGNPSFDLEY.fasta
+[357/400] SRR17818205|human|VKVGNYDSGRSYTDY.fasta
+[358/400] SRR17818205|human|VR.fasta
+[359/400] SRR17818205|human|VRDLDVRGGMDV.fasta
+[360/400] SRR17818205|human|VRTSSFDSGSSYSDY.fasta
+[361/400] SRR17818205|human|VSSLLTAGVATDGFDI.fasta
+[362/400] SRR17818205|human|VTGRENSLA.fasta
+[363/400] SRR17818205|human|WASGSFWGEDY.fasta
+[364/400] SRR17818206|human|AFSRSGTFYDAFHI.fasta
+[365/400] SRR17818206|human|AKDPAAVGTASGMDV.fasta
+[366/400] SRR17818206|human|AKDQFGLDGLVDYTGFDY.fasta
+[367/400] SRR17818206|human|AKGGRGSFYDAFDA.fasta
+[368/400] SRR17818206|human|AKQGFGYAGSSYLDY.fasta
+[369/400] SRR17818206|human|ARDDIFSAVIDF.fasta
+[370/400] SRR17818206|human|ARDLFDY.fasta
+[371/400] SRR17818206|human|ARDSAFLTTGTDY.fasta
+[372/400] SRR17818206|human|ARESYGDNNWFDP.fasta
+[373/400] SRR17818206|human|ARGFDY.fasta
+[374/400] SRR17818206|human|ARHGGLERRGFDP.fasta
+[375/400] SRR17818206|human|ARIAARVLDYNINHLYTTLHYFDY.fasta
+[376/400] SRR17818206|human|ARQQWLVPDY.fasta
+[377/400] SRR17818208|human|AIAPWSFDVWGYYTTNSFQN.fasta
+[378/400] SRR17818208|human|AKGHSAYDVFFDY.fasta
+[379/400] SRR17818208|human|AMKIGDSVY.fasta
+[380/400] SRR17818208|human|ARGFDY.fasta
+[381/400] SRR17818208|human|ARRASGLGGYFDY.fasta
+[382/400] SRR17818208|human|ARVKSTVTTYYYYYMDV.fasta
+[383/400] SRR17818208|human|VRGPYDFWSGPTYYQRFDF.fasta
+[384/400] SRR17818209|human|AGEVVAVTAVVAGVTYGVDV.fasta
+[385/400] SRR17818209|human|AISLPARGPVGGRLNY.fasta
+[386/400] SRR17818209|human|AK.fasta
+[387/400] SRR17818209|human|AKDLDLSVAPAMIGPDY.fasta
+[388/400] SRR17818209|human|AKDLGYIPYYHFGMDV.fasta
+[389/400] SRR17818209|human|AKDLVKHYYVSGSYFHH.fasta
+[390/400] SRR17818209|human|AKDYFPLLYYAYGLDV.fasta
+[391/400] SRR17818209|human|AKSRDGYKWFDY.fasta
+[392/400] SRR17818209|human|AKTRGGNFYDAFDF.fasta
+[393/400] SRR17818209|human|AKVKGSGISPSGAFDI.fasta
+[394/400] SRR17818209|human|ARAGMIWLLLDH.fasta
+[395/400] SRR17818209|human|ARALGGYSTPFDY.fasta
+[396/400] SRR17818209|human|ARANRGNYYYGMDV.fasta
+[397/400] SRR17818209|human|ARAQGPATAILL.fasta
+[398/400] SRR17818209|human|ARARGGGLYSPLDY.fasta
+[399/400] SRR17818209|human|ARARGGGYYYGMDV.fasta
+[400/400] SRR17818209|human|ARARGGSYYYGMDV.fasta
+{
+  "n_clone_fastas": 488,
+  "n_built": 400,
+  "out_dir": "data/ab_t5_500k/trees_all",
+  "rooting": "midpoint",
+  "asr": "majority_leaf_vote_placeholder",
+  "note": "Germline ASR / IgPhyML not wired \u2014 replace root before FINAL Table 5."
+}
+{
+  "out_base": "data/ab_clones",
+  "holdout": "clonal_lineage",
+  "donor_disjoint": true,
+  "counts": {
+    "train": 362,
+    "val": 20,
+    "test": 18
+  },
+  "n_mapped": 400,
+  "seed": 42
+}
+Done: Sat Aug  8 08:20:24 PM EDT 2026
+Next: baselines via scripts/eval_ab_maturation.py (plm_prior); Neutral SHM / AR still stubs
+  sbatch scripts/slurm_ab_t5_eval.sh
+  /vast/home/n/nnori/.conda/envs/treesbm/bin/python scripts/eval_ab_maturation.py --data data/ab_clones/test --methods plm_prior --out results/ab_t5/eval.json

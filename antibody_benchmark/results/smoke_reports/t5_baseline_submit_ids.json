@@ -1,0 +1,11 @@
+{
+  "mode": "nohup_login01_sbatch_dns_broken",
+  "neutral_shm": "DONE (nohup EXIT=0; 82x20 samples)",
+  "ar_tree_edit": "DONE (nohup EXIT=0; 82x20 samples)",
+  "plm_prior": "RUNNING nohup bash=4143208 python=4143211 on login01 CPU; 568/1640 rollouts (29/82 families)",
+  "sbatch": "BLOCKED on login01 \u2014 sbatch not in PATH; prefer Duo login03",
+  "note": "Do not kill. Eval: python scripts/eval_ab_t6_from_samples.py after 82x20. ETA ~0.5-1h.",
+  "checked_at": "2026-08-15T14:12:12",
+  "plm_rollouts": 568,
+  "plm_families_done": 29
+}

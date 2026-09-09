@@ -1,0 +1,75 @@
+{
+  "cuts": {
+    "virus": "h3n2",
+    "N": 16,
+    "n_train_H": 222,
+    "H_min": 7.620000000000001e-05,
+    "H_max": 0.017906319375,
+    "H_mean": 0.0024552569594594596,
+    "tercile_lo": 0.0008777724999999998,
+    "tercile_hi": 0.0021442664583333337,
+    "buckets": {
+      "short": "H <= 0.000877772",
+      "med": "0.000877772 < H <= 0.00214427",
+      "long": "H > 0.00214427"
+    },
+    "protocol": "generate(root, N, H=example_mean_RTT); stratify by train h_buckets terciles"
+  },
+  "roots": [
+    {
+      "group": 2,
+      "root_id": "NODE_0000000",
+      "H": 0.010315698124999998,
+      "horizon_bucket": "long",
+      "mean_edit": 8.25
+    },
+    {
+      "group": 2,
+      "root_id": "NODE_0000200",
+      "H": 0.0018550131250000003,
+      "horizon_bucket": "med",
+      "mean_edit": 2.875
+    },
+    {
+      "group": 2,
+      "root_id": "NODE_0000223",
+      "H": 0.0014355318749999996,
+      "horizon_bucket": "med",
+      "mean_edit": 0.875
+    },
+    {
+      "group": 2,
+      "root_id": "NODE_0000235",
+      "H": 0.0012566343750000002,
+      "horizon_bucket": "med",
+      "mean_edit": 0.75
+    },
+    {
+      "group": 2,
+      "root_id": "NODE_0000239",
+      "H": 0.00109492625,
+      "horizon_bucket": "med",
+      "mean_edit": 0.5625
+    }
+  ],
+  "methods": [
+    "neutral_bd",
+    "artreeformer_adapted",
+    "treesbm"
+  ],
+  "K_list": [
+    10,
+    100
+  ],
+  "e_list": [
+    1,
+    2,
+    3,
+    5
+  ],
+  "checkpoint": "checkpoints/h3n2_v3_lit_hotspot/best.pt",
+  "max_seq_len": 566,
+  "pin_groups": [
+    2
+  ]
+}

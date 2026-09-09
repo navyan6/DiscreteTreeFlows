@@ -1,0 +1,15 @@
+\begin{table}[t]\centering
+\caption{Tree generation on held-out roots (sim_WAG, N=32)}
+\begin{tabular}{lcccccc}
+\toprule
+Method & Tree-KL $\downarrow$ & Split-KL $\downarrow$ & RF $\downarrow$ & Quartet $\downarrow$ & Branch-W1 $\downarrow$ & Term-edit $\downarrow$ \\
+\midrule
+neutral\_bd & 0.693 $\pm$ 0.000 & 104.444 $\pm$ 0.399 & 0.928 $\pm$ 0.006 & 0.555 $\pm$ 0.012 & 0.000 $\pm$ 0.000 & 0.005 $\pm$ 0.001 \\
+empirical\_bd & 0.693 $\pm$ 0.000 & 104.444 $\pm$ 0.399 & 0.935 $\pm$ 0.007 & 0.559 $\pm$ 0.011 & 0.000 $\pm$ 0.000 & 0.005 $\pm$ 0.001 \\
+plm\_prior & 0.693 $\pm$ 0.000 & 104.444 $\pm$ 0.399 & 0.932 $\pm$ 0.007 & 0.561 $\pm$ 0.010 & 0.000 $\pm$ 0.000 & 0.005 $\pm$ 0.001 \\
+artreeformer\_adapted & 0.693 $\pm$ 0.000 & 133.690 $\pm$ 0.056 & 0.965 $\pm$ 0.004 & 0.612 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.005 $\pm$ 0.001 \\
+phylovae\_adapted & 0.693 $\pm$ 0.000 & 128.020 $\pm$ 0.056 & 0.963 $\pm$ 0.004 & 0.606 $\pm$ 0.004 & 0.000 $\pm$ 0.000 & 0.005 $\pm$ 0.001 \\
+treesbm & 0.693 $\pm$ 0.000 & 120.769 $\pm$ 0.077 & 0.944 $\pm$ 0.007 & 0.617 $\pm$ 0.007 & 0.000 $\pm$ 0.000 & 0.004 $\pm$ 0.001 \\
+\bottomrule
+\end{tabular}
+\end{table}

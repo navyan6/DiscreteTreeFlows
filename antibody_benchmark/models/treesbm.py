@@ -66,8 +66,16 @@ class TreeSBMModel(EvolutionModel):
                 get_lm_logits,
                 load_models,
             )
+            from src.bridge.fitness_tilt import tilt_log_R0_by_fitness
+            from src.bridge.shm_site_prior import apply_shm_site_prior
+            from src.bridge.losses import _build_seq_indices
             from src.bridge.mutation_sample import mutate_sequence_independent
             from src.networks import RateHeads  # noqa: F401
+            from src.r0_backends import (
+                BACKEND_THRIFTY_AA,
+                build_r0_backend,
+                normalize_backend_name,
+            )
             from src.tree_state import TreeState
             from src.treeencoder.edges import build_edges
             from src.treeencoder.laplacian import compute_laplacian_pe
@@ -82,6 +90,9 @@ class TreeSBMModel(EvolutionModel):
             self._torch = torch
             self._mutate = mutate_sequence_independent
             self._get_lm_logits = get_lm_logits
+            self._tilt_log_R0 = tilt_log_R0_by_fitness
+            self._apply_shm = apply_shm_site_prior
+            self._build_seq_indices = _build_seq_indices
             self._TreeState = TreeState
             self._build_edges = build_edges
             self._compute_laplacian_pe = compute_laplacian_pe
@@ -91,15 +102,27 @@ class TreeSBMModel(EvolutionModel):
                 self.checkpoint, self.device, self.max_seq_len
             )
             self.embedder = ESM2Embedder(device=self.device)
-            esm_id = "facebook/esm2_t6_8M_UR50D"
-            self.tokenizer = AutoTokenizer.from_pretrained(esm_id)
-            self.esm_model = EsmForMaskedLM.from_pretrained(esm_id).to(self.device).eval()
-            for p in self.esm_model.parameters():
-                p.requires_grad = False
-            self.aa_token_ids = torch.tensor(
-                [self.tokenizer.convert_tokens_to_ids(aa) for aa in AA_VOCAB],
-                dtype=torch.long,
-            )
+            # Q0: ESM-2-8M for pathogen / OAS v1/v2. Thrifty AA Q0 only when the
+            # ckpt was trained with --r0-backend thrifty_aa (Ab Recipe B).
+            cfg = getattr(self.rate_heads, "_ckpt_config", None) or {}
+            r0_name = normalize_backend_name(cfg.get("r0_backend") or "esm2")
+            self._r0_name = r0_name
+            self._r0 = None
+            self.tokenizer = None
+            self.esm_model = None
+            self.aa_token_ids = None
+            if r0_name == BACKEND_THRIFTY_AA:
+                self._r0 = build_r0_backend(r0_name, device=self.device)
+            else:
+                esm_id = "facebook/esm2_t6_8M_UR50D"
+                self.tokenizer = AutoTokenizer.from_pretrained(esm_id)
+                self.esm_model = EsmForMaskedLM.from_pretrained(esm_id).to(self.device).eval()
+                for p in self.esm_model.parameters():
+                    p.requires_grad = False
+                self.aa_token_ids = torch.tensor(
+                    [self.tokenizer.convert_tokens_to_ids(aa) for aa in AA_VOCAB],
+                    dtype=torch.long,
+                )
             self._ready = True
         except Exception as e:
             raise RuntimeError(
@@ -128,15 +151,47 @@ class TreeSBMModel(EvolutionModel):
         node_seqs = [tree.node_seqs[nid] for nid in node_ids_t]
         plm_t = self.embedder.embed_sequences(node_seqs).to(self.device)
         active_seqs = [tree.node_seqs[v] for v in active_leaves]
-        log_R0_mut = self._get_lm_logits(
-            self.tokenizer,
-            self.esm_model,
-            self.aa_token_ids,
-            active_seqs,
-            self.max_seq_len,
-            self.device,
+        if self._r0 is not None:
+            log_R0_mut = self._r0.log_mutation_rates(
+                active_seqs, self.max_seq_len, device=self.device
+            )
+            if not torch.is_tensor(log_R0_mut):
+                raise TypeError("r0_backend.log_mutation_rates must return a tensor")
+            log_R0_mut = log_R0_mut.to(self.device)
+        else:
+            log_R0_mut = self._get_lm_logits(
+                self.tokenizer,
+                self.esm_model,
+                self.aa_token_ids,
+                active_seqs,
+                self.max_seq_len,
+                self.device,
+            )
+        log_R0_mut = self._tilt_log_R0(
+            log_R0_mut,
+            beta=float(getattr(self.rate_heads, "_fitness_beta", 0.0) or 0.0),
+            score=getattr(self.rate_heads, "_fitness_score", "log_R0"),
+            mode=getattr(self.rate_heads, "_fitness_tilt_mode", "site_local"),
         )
+        shm_boost = float(getattr(self.rate_heads, "_shm_site_boost", 0.0) or 0.0)
+        shm_fwr = float(getattr(self.rate_heads, "_shm_fwr_stay", 0.0) or 0.0)
+        shm_aid = bool(getattr(self.rate_heads, "_shm_use_aid", False))
+        if shm_boost != 0.0 or shm_fwr != 0.0 or shm_aid:
+            log_R0_mut = self._apply_shm(
+                log_R0_mut,
+                active_seqs,
+                cdr_mask=getattr(self.rate_heads, "_mut_hotspot_mask", None),
+                boost=shm_boost,
+                fwr_stay=shm_fwr,
+                use_aid=shm_aid,
+            )
         log_pssm = getattr(self.rate_heads, "_train_log_pssm", None)
+        aa_indices = None
+        if getattr(self.rate_heads, "needs_aa_indices", False):
+            # OAS / mut-aa-emb / cosine-head ckpts need current-AA indices.
+            aa_indices = self._build_seq_indices(
+                active_seqs, self.max_seq_len, self.device
+            )
         with torch.no_grad():
             h_t = self.node_enc(plm_t, struct_t, lap_t)
             H_t, _ = self.tree_enc(
@@ -152,6 +207,7 @@ class TreeSBMModel(EvolutionModel):
                 active_idx,
                 log_R0_mut,
                 site_entropy=self.col_entropy,
+                aa_indices=aa_indices,
                 log_pssm=log_pssm,
             )
         log_R_i = out["log_R_theta_mut"][0]

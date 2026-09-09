@@ -1,0 +1,41 @@
+method_code,method_short,method_paper,N,K,eps_hamming,coverage_obs_e5,coverage_obs_unique_e5,frac_gen_e5,mut_recovery,clade_recall,mean_min_edit,site_recall
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,10,5,0.8,0.8,0.79875,0.0,0.0,2.6625,0.20809523809523808
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,20,5,0.8,0.8,0.799375,0.0,0.0,2.6625,0.38047619047619047
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,30,5,0.8,0.8,0.7979166666666667,0.0,0.0,2.6625,0.4684126984126984
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,40,5,0.8,0.8,0.798125,0.0,0.0,2.6625,0.5893650793650793
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,50,5,0.8,0.8,0.7985,0.0,0.0,2.6625,0.5893650793650793
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,60,5,0.8,0.8,0.7985,0.0,0.0,2.6625,0.6115873015873016
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,70,5,0.8,0.8,0.79875,0.0,0.0,2.6625,0.6601587301587302
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,80,5,0.8,0.8,0.79925,0.02,0.0,2.65,0.6823809523809523
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,90,5,0.8,0.8,0.7995,0.02,0.0,2.65,0.7146031746031746
+neutral_bd,NeutralBD,Neutral CTMC + birth-death,16,100,5,0.8,0.8,0.7985,0.02,0.0,2.65,0.7368253968253968
+plm_prior,PLMPrior,pLM mutation prior only,16,10,5,0.8,0.8,0.79875,0.0013888888888888887,0.0,2.975,0.1787301587301587
+plm_prior,PLMPrior,pLM mutation prior only,16,20,5,0.8,0.8,0.799375,0.0,0.0,2.6625,0.23873015873015874
+plm_prior,PLMPrior,pLM mutation prior only,16,30,5,0.8,0.8,0.7991666666666667,0.0,0.0,2.6625,0.30952380952380953
+plm_prior,PLMPrior,pLM mutation prior only,16,40,5,0.8,0.8,0.799375,0.004166666666666667,0.0,2.65,0.346031746031746
+plm_prior,PLMPrior,pLM mutation prior only,16,50,5,0.8,0.8,0.79925,0.004166666666666667,0.0,2.65,0.39174603174603173
+plm_prior,PLMPrior,pLM mutation prior only,16,60,5,0.8,0.8,0.79925,0.004166666666666667,0.0,2.65,0.46253968253968253
+plm_prior,PLMPrior,pLM mutation prior only,16,70,5,0.8,0.8,0.79925,0.004166666666666667,0.0,2.65,0.4919047619047619
+plm_prior,PLMPrior,pLM mutation prior only,16,80,5,0.8,0.8,0.79925,0.004166666666666667,0.0,2.65,0.519047619047619
+plm_prior,PLMPrior,pLM mutation prior only,16,90,5,0.8,0.8,0.7995,0.004166666666666667,0.0,2.65,0.519047619047619
+plm_prior,PLMPrior,pLM mutation prior only,16,100,5,0.8,0.8,0.7995,0.004166666666666667,0.0,2.65,0.5512698412698412
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,10,5,0.8,0.8,0.79125,0.01,0.1,2.65,0.21238095238095236
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,20,5,0.8,0.8,0.795625,0.0225,0.1,2.6375,0.3753968253968254
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,30,5,0.8,0.8,0.7954166666666667,0.0225,0.1,2.6375,0.4826984126984127
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,40,5,0.8,0.8,0.79375,0.02875,0.1,2.625,0.542063492063492
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,50,5,0.8,0.8,0.79475,0.031875,0.1,2.6125,0.6065079365079366
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,60,5,0.8,0.8,0.79425,0.0225,0.1,2.6375,0.6522222222222223
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,70,5,0.8,0.8,0.79525,0.02875,0.1,2.625,0.6893650793650794
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,80,5,0.8,0.8,0.7947500000000001,0.036041666666666666,0.3,2.6,0.717936507936508
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,90,5,0.8,0.8,0.79525,0.031875,0.3,2.6125,0.717936507936508
+artreeformer_adapted,ART / ARTreeFormer,Autoregressive tree-edit model,16,100,5,0.8125,0.8142857142857143,0.79375,0.07900297619047619,0.3,2.4,0.7795238095238095
+treesbm,TreeSBM,TreeSBM,16,10,5,0.8,0.8,0.8,0.11927579365079365,0.2,2.5375,0.29619047619047617
+treesbm,TreeSBM,TreeSBM,16,20,5,0.8,0.8,0.8,0.20399801587301586,0.3,2.35,0.38476190476190475
+treesbm,TreeSBM,TreeSBM,16,30,5,0.8,0.8,0.8,0.23302579365079365,0.3,2.3,0.47285714285714286
+treesbm,TreeSBM,TreeSBM,16,40,5,0.8125,0.8142857142857143,0.8003125,0.2520982142857143,0.3,2.175,0.5344444444444444
+treesbm,TreeSBM,TreeSBM,16,50,5,0.8125,0.8142857142857143,0.80075,0.2520982142857143,0.3,2.175,0.583015873015873
+treesbm,TreeSBM,TreeSBM,16,60,5,0.8125,0.8142857142857143,0.8005,0.2520982142857143,0.3,2.175,0.6152380952380953
+treesbm,TreeSBM,TreeSBM,16,70,5,0.8125,0.8142857142857143,0.801,0.22102678571428572,0.1,2.2,0.6696825396825397
+treesbm,TreeSBM,TreeSBM,16,80,5,0.8125,0.8142857142857143,0.801,0.2620982142857143,0.3,2.175,0.6796825396825397
+treesbm,TreeSBM,TreeSBM,16,90,5,0.8125,0.8142857142857143,0.80025,0.2871626984126984,0.3,2.1625,0.6896825396825397
+treesbm,TreeSBM,TreeSBM,16,100,5,0.8125,0.8142857142857143,0.80075,0.15646329365079364,0.1,2.2375,0.7168253968253968

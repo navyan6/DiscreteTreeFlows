@@ -35,7 +35,7 @@ from src.treeencoder.plm_embeddings import ESM2Embedder
 from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
-from src.networks import TreeEncoder, RateHeads
+from src.networks import TreeEncoder, RateHeads, rate_heads_from_config
 from src.bridge.fitness_tilt import (
     TILT_FULL_ESM,
     TILT_SITE_LOCAL,
@@ -55,16 +55,7 @@ def load_models(checkpoint, device, max_seq_len):
 
     node_enc  = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc  = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads   = RateHeads(
-        d_model=128, max_seq_len=max_seq_len,
-        use_pos_emb=cfg.get("use_pos_emb", False),
-        use_site_entropy=cfg.get("use_site_entropy", False),
-        deep_mut_head=cfg.get("deep_mut_head", False),
-        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
-        d_aa=cfg.get("mut_aa_emb_dim", 16),
-        use_pssm_gate=cfg.get("use_pssm_gate", False),
-        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
-    ).to(device)
+    r_heads   = rate_heads_from_config(cfg, max_seq_len).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])

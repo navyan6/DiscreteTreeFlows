@@ -1,0 +1,457 @@
+{
+  "voc_id": "Gamma",
+  "pango": "P.1",
+  "signature": [
+    "L18F",
+    "T20N",
+    "P26S",
+    "D138Y",
+    "R190S",
+    "K417T",
+    "E484K",
+    "N501Y",
+    "D614G",
+    "H655Y",
+    "T1027I",
+    "V1176F"
+  ],
+  "defining_bundle": [
+    "K417T",
+    "E484K",
+    "N501Y"
+  ],
+  "gen_fasta": "results/covid_tree_viz/group_003_generated_matched.fasta",
+  "obs_fasta": "results/covid_tree_viz/group_003_observed_anc_aa.fasta",
+  "n_gen_leaves": 250,
+  "score_root_source": "obs",
+  "gen_vs_score_root": {
+    "voc_id": "Gamma",
+    "n_leaves": 250,
+    "n_signature": 12,
+    "root_signature_hits": [
+      "D138Y",
+      "N501Y",
+      "D614G",
+      "H655Y",
+      "V1176F"
+    ],
+    "root_n_sig": 5,
+    "root_bundle_hits": [
+      "N501Y"
+    ],
+    "root_has_full_bundle": false,
+    "prospective": true,
+    "leaf_exact_counts": {
+      "L18F": 30,
+      "T20N": 3,
+      "P26S": 24,
+      "D138Y": 177,
+      "R190S": 2,
+      "K417T": 1,
+      "E484K": 0,
+      "N501Y": 220,
+      "D614G": 214,
+      "H655Y": 166,
+      "T1027I": 6,
+      "V1176F": 94
+    },
+    "leaf_acquired_counts": {
+      "L18F": 30,
+      "T20N": 3,
+      "P26S": 24,
+      "D138Y": 0,
+      "R190S": 2,
+      "K417T": 1,
+      "E484K": 0,
+      "N501Y": 0,
+      "D614G": 0,
+      "H655Y": 0,
+      "T1027I": 6,
+      "V1176F": 0
+    },
+    "voc_exact_mut_recall": 0.9166666666666666,
+    "voc_acquired_mut_recall": 0.5,
+    "voc_bundle_any": false,
+    "voc_bundle_frac": 0.0,
+    "voc_bundle_acquired_any": false,
+    "voc_bundle_acquired_frac": 0.0,
+    "max_sig_on_leaf": 6,
+    "max_acquired_on_leaf": 2,
+    "best_sig_leaf": "root_child_1_child_0_child_1_child_1_child_1_child_0_child_1_child_1|leaf",
+    "leaf_frac": {
+      "L18F": 0.12,
+      "T20N": 0.012,
+      "P26S": 0.096,
+      "D138Y": 0.708,
+      "R190S": 0.008,
+      "K417T": 0.004,
+      "E484K": 0.0,
+      "N501Y": 0.88,
+      "D614G": 0.856,
+      "H655Y": 0.664,
+      "T1027I": 0.024,
+      "V1176F": 0.376
+    },
+    "acquired_frac": {
+      "L18F": 0.12,
+      "T20N": 0.012,
+      "P26S": 0.096,
+      "D138Y": 0.0,
+      "R190S": 0.008,
+      "K417T": 0.004,
+      "E484K": 0.0,
+      "N501Y": 0.0,
+      "D614G": 0.0,
+      "H655Y": 0.0,
+      "T1027I": 0.024,
+      "V1176F": 0.0
+    }
+  },
+  "gen_vs_own_root": {
+    "voc_id": "Gamma",
+    "n_leaves": 250,
+    "n_signature": 12,
+    "root_signature_hits": [
+      "D138Y",
+      "N501Y",
+      "D614G",
+      "H655Y",
+      "V1176F"
+    ],
+    "root_n_sig": 5,
+    "root_bundle_hits": [
+      "N501Y"
+    ],
+    "root_has_full_bundle": false,
+    "prospective": true,
+    "leaf_exact_counts": {
+      "L18F": 30,
+      "T20N": 3,
+      "P26S": 24,
+      "D138Y": 177,
+      "R190S": 2,
+      "K417T": 1,
+      "E484K": 0,
+      "N501Y": 220,
+      "D614G": 214,
+      "H655Y": 166,
+      "T1027I": 6,
+      "V1176F": 94
+    },
+    "leaf_acquired_counts": {
+      "L18F": 30,
+      "T20N": 3,
+      "P26S": 24,
+      "D138Y": 0,
+      "R190S": 2,
+      "K417T": 1,
+      "E484K": 0,
+      "N501Y": 0,
+      "D614G": 0,
+      "H655Y": 0,
+      "T1027I": 6,
+      "V1176F": 0
+    },
+    "voc_exact_mut_recall": 0.9166666666666666,
+    "voc_acquired_mut_recall": 0.5,
+    "voc_bundle_any": false,
+    "voc_bundle_frac": 0.0,
+    "voc_bundle_acquired_any": false,
+    "voc_bundle_acquired_frac": 0.0,
+    "max_sig_on_leaf": 6,
+    "max_acquired_on_leaf": 2,
+    "best_sig_leaf": "root_child_1_child_0_child_1_child_1_child_1_child_0_child_1_child_1|leaf",
+    "leaf_frac": {
+      "L18F": 0.12,
+      "T20N": 0.012,
+      "P26S": 0.096,
+      "D138Y": 0.708,
+      "R190S": 0.008,
+      "K417T": 0.004,
+      "E484K": 0.0,
+      "N501Y": 0.88,
+      "D614G": 0.856,
+      "H655Y": 0.664,
+      "T1027I": 0.024,
+      "V1176F": 0.376
+    },
+    "acquired_frac": {
+      "L18F": 0.12,
+      "T20N": 0.012,
+      "P26S": 0.096,
+      "D138Y": 0.0,
+      "R190S": 0.008,
+      "K417T": 0.004,
+      "E484K": 0.0,
+      "N501Y": 0.0,
+      "D614G": 0.0,
+      "H655Y": 0.0,
+      "T1027I": 0.024,
+      "V1176F": 0.0
+    }
+  },
+  "obs": {
+    "voc_id": "Gamma",
+    "n_leaves": 300,
+    "n_signature": 12,
+    "root_signature_hits": [
+      "D138Y",
+      "N501Y",
+      "D614G",
+      "H655Y",
+      "V1176F"
+    ],
+    "root_n_sig": 5,
+    "root_bundle_hits": [
+      "N501Y"
+    ],
+    "root_has_full_bundle": false,
+    "prospective": true,
+    "leaf_exact_counts": {
+      "L18F": 220,
+      "T20N": 288,
+      "P26S": 292,
+      "D138Y": 293,
+      "R190S": 259,
+      "K417T": 289,
+      "E484K": 217,
+      "N501Y": 292,
+      "D614G": 296,
+      "H655Y": 292,
+      "T1027I": 286,
+      "V1176F": 296
+    },
+    "leaf_acquired_counts": {
+      "L18F": 220,
+      "T20N": 288,
+      "P26S": 292,
+      "D138Y": 0,
+      "R190S": 259,
+      "K417T": 289,
+      "E484K": 217,
+      "N501Y": 0,
+      "D614G": 0,
+      "H655Y": 0,
+      "T1027I": 286,
+      "V1176F": 0
+    },
+    "voc_exact_mut_recall": 1.0,
+    "voc_acquired_mut_recall": 0.5833333333333334,
+    "voc_bundle_any": true,
+    "voc_bundle_frac": 0.7133333333333334,
+    "voc_bundle_acquired_any": false,
+    "voc_bundle_acquired_frac": 0.0,
+    "max_sig_on_leaf": 12,
+    "max_acquired_on_leaf": 7,
+    "best_sig_leaf": "ON574945.1",
+    "leaf_frac": {
+      "L18F": 0.7333333333333333,
+      "T20N": 0.96,
+      "P26S": 0.9733333333333334,
+      "D138Y": 0.9766666666666667,
+      "R190S": 0.8633333333333333,
+      "K417T": 0.9633333333333334,
+      "E484K": 0.7233333333333334,
+      "N501Y": 0.9733333333333334,
+      "D614G": 0.9866666666666667,
+      "H655Y": 0.9733333333333334,
+      "T1027I": 0.9533333333333334,
+      "V1176F": 0.9866666666666667
+    },
+    "acquired_frac": {
+      "L18F": 0.7333333333333333,
+      "T20N": 0.96,
+      "P26S": 0.9733333333333334,
+      "D138Y": 0.0,
+      "R190S": 0.8633333333333333,
+      "K417T": 0.9633333333333334,
+      "E484K": 0.7233333333333334,
+      "N501Y": 0.0,
+      "D614G": 0.0,
+      "H655Y": 0.0,
+      "T1027I": 0.9533333333333334,
+      "V1176F": 0.0
+    }
+  },
+  "voc_site_recall_vs_wuhan": 1.0,
+  "topk": {
+    "topk": 10,
+    "hamming_range": [
+      39,
+      43
+    ],
+    "union_sig": [
+      "D138Y",
+      "D614G",
+      "H655Y",
+      "K417T",
+      "L18F",
+      "N501Y",
+      "V1176F"
+    ],
+    "union_acquired": [
+      "K417T",
+      "L18F"
+    ],
+    "union_exact_recall": 0.5833333333333334,
+    "union_acquired_recall": 0.16666666666666666,
+    "leaves": [
+      {
+        "leaf": "root_child_1_child_1_child_0_child_0_child_1_child_1_child_1_child_1|leaf",
+        "rbd_or_full_hamming": 39,
+        "sig_hits": [
+          "D138Y",
+          "K417T",
+          "N501Y",
+          "H655Y"
+        ],
+        "acquired": [
+          "K417T"
+        ],
+        "n_sig": 4
+      },
+      {
+        "leaf": "root_child_1_child_0_child_1_child_1_child_1_child_1_child_1|leaf",
+        "rbd_or_full_hamming": 41,
+        "sig_hits": [
+          "L18F",
+          "N501Y",
+          "D614G",
+          "H655Y",
+          "V1176F"
+        ],
+        "acquired": [
+          "L18F"
+        ],
+        "n_sig": 5
+      },
+      {
+        "leaf": "root_child_1_child_0_child_1_child_1_child_1_child_1_child_0|leaf",
+        "rbd_or_full_hamming": 42,
+        "sig_hits": [
+          "L18F",
+          "N501Y",
+          "D614G",
+          "H655Y",
+          "V1176F"
+        ],
+        "acquired": [
+          "L18F"
+        ],
+        "n_sig": 5
+      },
+      {
+        "leaf": "root_child_1_child_1_child_0_child_1_child_1_child_1_child_0_child_1|leaf",
+        "rbd_or_full_hamming": 42,
+        "sig_hits": [
+          "D138Y",
+          "N501Y"
+        ],
+        "acquired": [],
+        "n_sig": 2
+      },
+      {
+        "leaf": "root_child_0_child_1_child_0_child_1_child_0_child_0_child_1_child_1|leaf",
+        "rbd_or_full_hamming": 42,
+        "sig_hits": [
+          "N501Y",
+          "D614G"
+        ],
+        "acquired": [],
+        "n_sig": 2
+      },
+      {
+        "leaf": "root_child_1_child_1_child_0_child_1_child_0_child_0_child_1_child_1_child_1|leaf",
+        "rbd_or_full_hamming": 42,
+        "sig_hits": [
+          "D138Y",
+          "N501Y",
+          "V1176F"
+        ],
+        "acquired": [],
+        "n_sig": 3
+      },
+      {
+        "leaf": "root_child_1_child_1_child_0_child_0_child_1_child_1_child_0_child_0|leaf",
+        "rbd_or_full_hamming": 42,
+        "sig_hits": [
+          "D138Y",
+          "N501Y",
+          "H655Y"
+        ],
+        "acquired": [],
+        "n_sig": 3
+      },
+      {
+        "leaf": "root_child_0_child_1_child_1_child_1_child_1_child_0|leaf",
+        "rbd_or_full_hamming": 43,
+        "sig_hits": [
+          "D138Y",
+          "N501Y",
+          "D614G",
+          "H655Y"
+        ],
+        "acquired": [],
+        "n_sig": 4
+      },
+      {
+        "leaf": "root_child_0_child_1_child_1_child_0_child_1_child_0_child_0|leaf",
+        "rbd_or_full_hamming": 43,
+        "sig_hits": [
+          "D138Y",
+          "N501Y",
+          "D614G",
+          "V1176F"
+        ],
+        "acquired": [],
+        "n_sig": 4
+      },
+      {
+        "leaf": "root_child_0_child_0_child_0_child_0_child_1_child_0_child_1_child_1|leaf",
+        "rbd_or_full_hamming": 43,
+        "sig_hits": [
+          "D138Y",
+          "D614G",
+          "H655Y"
+        ],
+        "acquired": [],
+        "n_sig": 3
+      }
+    ]
+  },
+  "evescape_signature": {
+    "L18F": null,
+    "T20N": null,
+    "P26S": null,
+    "D138Y": null,
+    "R190S": null,
+    "K417T": -1.1072657108306885,
+    "E484K": -0.829327404499054,
+    "N501Y": -1.4350398778915405,
+    "D614G": null,
+    "H655Y": null,
+    "T1027I": null,
+    "V1176F": null
+  },
+  "evescape_recovered": {
+    "L18F": null,
+    "T20N": null,
+    "P26S": null,
+    "D138Y": null,
+    "R190S": null,
+    "K417T": -1.1072657108306885,
+    "N501Y": -1.4350398778915405,
+    "D614G": null,
+    "H655Y": null,
+    "T1027I": null,
+    "V1176F": null
+  },
+  "evescape_missing": {
+    "E484K": -0.829327404499054
+  },
+  "evescape_meta": {
+    "standardized": false,
+    "score_col": "evescape",
+    "pathogen": "covid_spike_rbd"
+  }
+}

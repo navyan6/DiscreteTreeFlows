@@ -1,0 +1,20 @@
+Checked 2026-08-07 ~14:20 EDT
+
+Jobs:
+  7431995 track_a_v5 (covid_v5_mutrec)  RUNNING  Elapsed~1-12:30  Timelimit=2-00:00:00  Node=dgx028
+  7431996 track_a_v6 (covid_v6_hotspot)  RUNNING  Elapsed~1-12:30  Timelimit=2-00:00:00  Node=dgx028
+
+Artifacts on Betty:
+  Expected: ~/DiscreteTreeFlows/benchmarks/results/track_a_{covid_v5_mutrec,covid_v6_hotspot}_K{100,500,1000}.json
+  Found: NONE (no track_a*.json)
+  Logs: logs/track_a_v5_7431995.log, logs/track_a_v6_7431996.log (1.7K each, last write 2026-08-06 01:48 after ESM load)
+
+Process state (dgx028):
+  Both PIDs ~101% CPU for full wall time; MIG UUIDs set; CUDA fds open; nvidia-smi does not list them (MIG).
+  Still argv = track_a.py ... --K 100 ... first K only.
+  utime still increasing → not frozen dead, but no group-level log line in ~36.5h.
+  Wall remaining ~11.5h → will not finish 20 groups × K∈{100,500,1000}.
+
+Resubmit: DO NOT kill/resubmit while RUNNING. After TIMEOUT, leaner:
+  KS=100 N_GROUPS=5 NSTEPS=50 MAX_LEAVES=200 PYTHONUNBUFFERED=1 --time=48:00:00
+  one K per job; add per-tree progress prints.

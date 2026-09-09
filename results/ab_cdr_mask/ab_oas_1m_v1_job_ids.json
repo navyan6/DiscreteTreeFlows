@@ -1,0 +1,76 @@
+{
+  "written": "2026-08-15T10:10:00Z",
+  "host": "betty",
+  "diagnosis": {
+    "failed_job": 7618018,
+    "symptom": "val=nan every epoch → early stop @40 → no best.pt",
+    "root_cause": "anc_aa had root+tips only; TreeDataset filled missing internals with \"-\"*L; bridge mutated toward gaps; L_pll empty-mask mean → nan. Train skipped nan batches; val did not.",
+    "fix": [
+      "src.dataset.fill_missing_node_seqs (parent copy)",
+      "bridge L_pll empty→0; sample_bridge skip non-AA child",
+      "train val skips non-finite; REFRESH_CACHES rebuilds plm/ref_rates",
+      "re-postprocessed anc_aa with all nodes; gapcheck 0/0"
+    ]
+  },
+  "canceled": [
+    {
+      "job_id": 7618019,
+      "reason": "DependencyNeverSatisfied after 7618018 FAILED"
+    },
+    {
+      "job_id": 7627290,
+      "reason": "DependencyNeverSatisfied after 7627289 FAILED; canceled 2026-08-15 for resubmit without afterok"
+    }
+  ],
+  "train": {
+    "job_id": 7627289,
+    "name": "ab_oas_train",
+    "script": "scripts/slurm_ab_oas_treesbm_train.sh",
+    "partition": "b200-mig90",
+    "ckpt": "checkpoints/ab_oas_1m_v1",
+    "data": "data/ab_clones_1m",
+    "lambda_br": 0,
+    "entropy": "ON empirical",
+    "cdr_mask": "results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt",
+    "test_data": "data/ab_clones_1m/test",
+    "refresh_caches": 1,
+    "log": "logs/ab_oas_train_7627289.log",
+    "status": "FAILED_after_best_pt",
+    "best_val": 64.4053,
+    "early_stop_epoch": 122,
+    "ckpt_written": true,
+    "fail_reason": "post-train RuntimeError: No PLM embeddings on test split (train/val plm OK; test plm=0)"
+  },
+  "precompute_plm": {
+    "job_id": 7627915,
+    "name": "pre_ab_oas",
+    "data": "data/ab_clones_1m",
+    "max_seq_len": 160,
+    "note": "train/val already cached; fills test PLM + ref_rates (missing after 7627289)",
+    "log": "logs/precompute_ab_oas_7627915.log",
+    "status": "SUBMITTED"
+  },
+  "rod82_eval": {
+    "job_id": 7627919,
+    "name": "ab_oas_rod82",
+    "script": "scripts/slurm_ab_oas_rod82_eval.sh",
+    "dependency": "none (no afterok on failed train)",
+    "prior_stuck_job": 7627290,
+    "prior_failed_job": 7627916,
+    "prior_fail_reason": "use_mut_aa_emb=True ckpt but antibody_benchmark/models/treesbm.py omitted aa_indices — fixed then resubmitted",
+    "write_as": "treesbm_ab_oas",
+    "samples": "antibody_benchmark/results/samples/treesbm_ab_oas",
+    "protocol": "N=20, observed topo+BL, Rodriguez 82, max_seq_len=160",
+    "table6": "benchmarks/results/tables/table6_ab_track_c.{json,md}",
+    "does_not_overwrite": [
+      "treesbm",
+      "treesbm_ab"
+    ],
+    "log": "logs/ab_oas_rod82_7627919.log",
+    "status": "RUNNING"
+  },
+  "hiv": "untouched",
+  "t7": "see benchmarks/results/tables/table7_job_ids.json (ProGen2 length fix resubmit)",
+  "c3": "untouched",
+  "updated_at": "2026-08-15T10:10:00Z"
+}

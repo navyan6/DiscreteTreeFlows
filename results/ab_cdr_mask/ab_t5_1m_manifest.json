@@ -1,0 +1,16 @@
+{
+  "created": "2026-08-12T22:19:00.518761+00:00",
+  "job_id": "7585306",
+  "input": "data/Homo_sapiens.fasta",
+  "max_seqs": 1000000,
+  "out": "data/ab_t5_1m",
+  "out_base": "data/ab_clones_1m",
+  "holdout": "clonal_lineage donor-disjoint (ab_family_holdout_split)",
+  "holdout_note": "NOT Rodriguez 82; antibody_benchmark freeze stays separate for CoSiNE/DASM table",
+  "cdr_mask": "results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt",
+  "max_seq_len": 160,
+  "n_kept_clones": 611,
+  "max_clones_built": 800,
+  "asr_note": "majority_leaf_vote_placeholder \u2014 germline ASR not wired",
+  "next": "sbatch --dependency=afterok:7585306 scripts/slurm_ab_oas_treesbm_train.sh"
+}

@@ -38,7 +38,7 @@ from src.treeencoder.plm_embeddings import ESM2Embedder
 from src.treeencoder.structural_features import compute_structural_features
 from src.treeencoder.laplacian import compute_laplacian_pe
 from src.treeencoder.edges import build_edges
-from src.networks import TreeEncoder, RateHeads
+from src.networks import TreeEncoder, RateHeads, rate_heads_from_config
 from src.bridge.losses import _build_seq_indices
 from src.bridge.fitness_tilt import (
     TILT_FULL_ESM,
@@ -203,16 +203,7 @@ def load_models(checkpoint, device, max_seq_len):
     cfg = ckpt.get("config", {})
     node_enc = NodeEncoder(d_plm=320, d_struct=3, d_laplacian=8, d_node=128).to(device)
     tree_enc = TreeEncoder(d_model=128, n_layers=4, n_heads=8, dropout=0.1).to(device)
-    r_heads  = RateHeads(
-        d_model=128, max_seq_len=max_seq_len,
-        use_pos_emb=cfg.get("use_pos_emb", False),
-        use_site_entropy=cfg.get("use_site_entropy", False),
-        deep_mut_head=cfg.get("deep_mut_head", False),
-        use_mut_aa_emb=cfg.get("use_mut_aa_emb", False),
-        d_aa=cfg.get("mut_aa_emb_dim", 16),
-        use_pssm_gate=cfg.get("use_pssm_gate", False),
-        pssm_gate_fixed_w=cfg.get("pssm_gate_fixed_w", None),
-    ).to(device)
+    r_heads  = rate_heads_from_config(cfg, max_seq_len).to(device)
     node_enc.load_state_dict(ckpt["node_enc"])
     tree_enc.load_state_dict(ckpt["tree_enc"])
     r_heads.load_state_dict(ckpt["rate_heads"])
@@ -244,11 +235,21 @@ def load_models(checkpoint, device, max_seq_len):
         )
     # Stash on module so generate_tree / callers keep the 4-tuple unpack stable.
     r_heads._train_log_pssm = log_pssm
+    r_heads.ablate_mut_head = bool(cfg.get("ablate_mut_head", False))
+    r_heads.ablate_stop_head = bool(cfg.get("ablate_stop_head", False))
     r_heads._fitness_beta = float(cfg.get("fitness_beta", 0.0))
     r_heads._fitness_score = cfg.get("fitness_score", "log_R0")
     r_heads._fitness_tilt_mode = cfg.get("fitness_tilt_mode", TILT_SITE_LOCAL)
     r_heads._fitness_esm_batch_size = int(cfg.get("fitness_esm_batch_size", 8))
     r_heads._fitness_esm_top_k = cfg.get("fitness_esm_top_k")
+    r_heads._shm_site_boost = float(cfg.get("shm_site_boost", 0.0) or 0.0)
+    r_heads._shm_fwr_stay = float(cfg.get("shm_fwr_stay", 0.0) or 0.0)
+    r_heads._shm_use_aid = bool(cfg.get("shm_use_aid", False))
+    hot = ckpt.get("mut_hotspot_mask", None)
+    if hot is not None:
+        hot = hot.to(device).bool()
+    r_heads._mut_hotspot_mask = hot
+    r_heads._ckpt_config = cfg
     return node_enc, tree_enc, r_heads, col_entropy
 
 
@@ -272,6 +273,7 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                   ref_lambda: float = 1.0,
                   ablate_branch_length_head: bool = False,
                   ablate_internal_node_seqs: bool = False,
+                  ablate_site_entropy: bool = False,
                   r0_backend=None):
     """Generate a tree (Algorithm 4).
 
@@ -285,6 +287,8 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
       branching_mode='poisson_ref': constant-λ Poisson branching (no seq-dep head)
       ablate_branch_length_head: use constant BL=dt instead of BL head
       ablate_internal_node_seqs: zero PLM embeddings for non-leaf nodes
+      ablate_site_entropy: disable RateHeads site-entropy injection (even if
+        checkpoint was trained with --use-site-entropy / col_entropy)
 
     Table 7: pass ``r0_backend`` (from ``src.r0_backends.build_r0_backend``) to
     swap the frozen mutation prior (JTT / ESM-2-650M / ESM-C / …).
@@ -423,8 +427,21 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
             batch_size=int(fitness_esm_batch_size),
             top_k_aas=fitness_esm_top_k,
         )
+        shm_boost = float(getattr(rate_heads, "_shm_site_boost", 0.0) or 0.0)
+        shm_fwr = float(getattr(rate_heads, "_shm_fwr_stay", 0.0) or 0.0)
+        shm_aid = bool(getattr(rate_heads, "_shm_use_aid", False))
+        if shm_boost != 0.0 or shm_fwr != 0.0 or shm_aid:
+            from src.bridge.shm_site_prior import apply_shm_site_prior
+            log_R0_mut = apply_shm_site_prior(
+                log_R0_mut,
+                active_seqs,
+                cdr_mask=getattr(rate_heads, "_mut_hotspot_mask", None),
+                boost=shm_boost,
+                fwr_stay=shm_fwr,
+                use_aid=shm_aid,
+            )
         aa_indices = None
-        if getattr(rate_heads, "use_mut_aa_emb", False):
+        if getattr(rate_heads, "needs_aa_indices", False):
             aa_indices = _build_seq_indices(active_seqs, max_seq_len, device)
         with torch.no_grad():
             h_t     = node_enc(plm_t, struct_t, lap_t)
@@ -432,12 +449,21 @@ def generate_tree(root_seq, n_steps, max_seq_len, branch_rate_scale, max_leaves,
                                 edge_index_t, branch_lens_t, t_scalar=t)
             if ablate_tree_context:
                 H_t = torch.zeros_like(H_t)
-            out     = rate_heads(
-                H_t, active_idx, log_R0_mut,
-                site_entropy=col_entropy,
-                aa_indices=aa_indices,
-                log_pssm=log_pssm,
-            )
+            # Ablating site entropy must disable the flag: passing site_entropy=None
+            # still triggers RateHeads' fallback entropy-from-R0 path.
+            _ent_was = getattr(rate_heads, "use_site_entropy", False)
+            if ablate_site_entropy and _ent_was:
+                rate_heads.use_site_entropy = False
+            try:
+                out = rate_heads(
+                    H_t, active_idx, log_R0_mut,
+                    site_entropy=None if ablate_site_entropy else col_entropy,
+                    aa_indices=aa_indices,
+                    log_pssm=log_pssm,
+                )
+            finally:
+                if ablate_site_entropy and _ent_was:
+                    rate_heads.use_site_entropy = _ent_was
             if ablate_bridge:
                 # Table 8: without bridge matching → pure R0 (no learned c_θ).
                 out = dict(out)

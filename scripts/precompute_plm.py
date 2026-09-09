@@ -15,7 +15,7 @@ import argparse
 import torch
 from Bio import SeqIO
 
-from src.dataset import parse_newick
+from src.dataset import fill_missing_node_seqs, parse_newick
 from src.treeencoder.plm_embeddings import ESM2Embedder
 
 
@@ -23,6 +23,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="data/train",
                         help="Dir of group_NNN_rooted.nwk / _anc_aa.fasta (e.g. data/h3n2/train)")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Recompute even if group_XXX_plm.pt already exists")
     args = parser.parse_args()
     DATA = ROOT / args.data
 
@@ -40,20 +42,17 @@ def main():
 
     for g in groups:
         out_path = DATA / f"group_{g:03d}_plm.pt"
-        if out_path.exists():
+        if out_path.exists() and not args.overwrite:
             print(f"[{g:03d}] already cached, skipping")
             continue
 
         nwk   = DATA / f"group_{g:03d}_rooted.nwk"
         fasta = DATA / f"group_{g:03d}_anc_aa.fasta"
 
-        root_id, node_ids, _, _ = parse_newick(str(nwk))
+        root_id, node_ids, edges, _ = parse_newick(str(nwk))
 
         seqs = {rec.id: str(rec.seq) for rec in SeqIO.parse(fasta, "fasta")}
-        ref_len = len(next(iter(seqs.values())))
-        for nid in node_ids:
-            if nid not in seqs:
-                seqs[nid] = "-" * ref_len
+        seqs = fill_missing_node_seqs(root_id, edges, seqs)
 
         sequences = [seqs[nid] for nid in node_ids]
 

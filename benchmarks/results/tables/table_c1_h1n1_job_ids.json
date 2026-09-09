@@ -1,0 +1,35 @@
+{
+  "submitted_at": "2026-08-18T03:53:24.889361+00:00",
+  "host": "betty",
+  "protocol": "Appendix C.1 H1N1 replace HIV Env: topo N=16 + Neutral/AR/TreeSBM pLM NLL",
+  "best_treesbm": {
+    "ckpt": "checkpoints/h1n1_v2_lit_hotspot/best.pt",
+    "split": "geo (data/h1n1) \u2014 same as Table 5 / C.3; NOT h1n1_leafholdout or h1n1_temporal",
+    "why": "Table 5 viral forecasting + C.3 horizon locked to this ckpt (ep74). leafholdout/temporal unused for paper T5."
+  },
+  "jobs": {
+    "c1h1_bl": "7646375",
+    "c1nll_h1": "7646376",
+    "c1nll_h1ts": "7646377"
+  },
+  "fills": {
+    "c1h1_bl": "Influenza HA H1N1 Tree-KL/Split-KL/RF/Quartet/Branch W1 (Neutral CTMC / AR / TreeSBM)",
+    "c1nll_h1": "Influenza HA H1N1 Neutral CTMC + Autoregressive tree-edit pLM NLL",
+    "c1nll_h1ts": "Influenza HA H1N1 TreeSBM pLM NLL"
+  },
+  "artifacts": {
+    "c1h1_bl": "benchmarks/results/results_baselines_h1n1.csv + tables/h1n1/table_empirical_N16.csv (+ sim_neutral)",
+    "c1nll_h1": "checkpoints/eval_table5_h1n1_baselines_plmnll.json",
+    "c1nll_h1ts": "checkpoints/eval_enrichment_h1n1_v2_lit_hotspot_mrs0.5_plmnll.json"
+  },
+  "analogous_to": {
+    "c1nll_h1": "7635749 covid / 7635750 h3 / 7635751 hiv_geo",
+    "c1nll_h1ts": "7635752 h3 TreeSBM",
+    "c1h1_bl": "7635753 Ab free-topo / 7626610 HIV geo topo"
+  },
+  "prior_artifacts_no_nll": {
+    "eval_table5_h1n1_baselines.json": "job 7539950 \u2014 plm_prior + AR only; no plm_nll field",
+    "eval_enrichment_h1n1_v2_lit_hotspot_mrs0.5_fullmetrics.json": "no plm_nll",
+    "results_baselines_h1n1.csv": "absent (no prior topo suite)"
+  }
+}

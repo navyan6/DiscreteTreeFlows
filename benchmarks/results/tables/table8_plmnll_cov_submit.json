@@ -1,0 +1,29 @@
+{
+  "submitted_at": "2026-08-13T12:54:22",
+  "host": "betty",
+  "enrich_plm_nll": {
+    "no_bridge": "7597319",
+    "no_tree_ctx": "7597320",
+    "no_seq_branch": "7597321",
+    "no_bl_eval": "7597322",
+    "no_internal_seqs": "7597323",
+    "no_lit_mask": "7597325"
+  },
+  "coverage_K100": {
+    "no_tree_ctx": "7597326",
+    "no_seq_branch": "7597327",
+    "no_internal_seqs": "7597328"
+  },
+  "already_have_plm_nll": {
+    "full": "7585970",
+    "no_entropy": "7585969"
+  },
+  "already_have_coverage": {
+    "full": "7585971",
+    "no_bridge": "7585972",
+    "no_entropy": "7585973",
+    "no_bl_eval": "7585974",
+    "no_lit_mask": "7585975"
+  },
+  "note": "Re-enrich overwrites table8_*_mrs0.5.json; pre-NLL copies on Betty in checkpoints/table8_pre_plmnll_backup/. No gen-seq backfill possible (enrich JSON stores metrics only)."
+}

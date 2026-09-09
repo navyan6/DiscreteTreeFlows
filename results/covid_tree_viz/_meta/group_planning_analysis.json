@@ -1,0 +1,1114 @@
+{
+  "1": {
+    "gid": 1,
+    "meta": {
+      "n": 300,
+      "date_min": "2020-02-28",
+      "date_max": "2020-09-04",
+      "n_dated_exact": 296
+    },
+    "geography": "Brazil (geographic held-out test split)",
+    "n_leaves_tree": 296,
+    "n_full_len_leaves": 296,
+    "n_short_leaves": 0,
+    "length_dist_top": [
+      [
+        1273,
+        296
+      ]
+    ],
+    "root_name": "NODE_0000000",
+    "root_len": 1273,
+    "best_voc_by_signature": "Gamma",
+    "voc_hits": {
+      "Alpha": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.3333333333333333
+      },
+      "Beta": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.2
+      },
+      "Gamma": {
+        "hits": [
+          "D614G",
+          "V1176F"
+        ],
+        "n": 2,
+        "frac": 0.16666666666666666
+      },
+      "Delta": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.14285714285714285
+      },
+      "Omicron_BA1": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.034482758620689655
+      }
+    },
+    "top_prevalent": [
+      [
+        "D614G",
+        292
+      ],
+      [
+        "V1176F",
+        120
+      ]
+    ],
+    "annotation_table": [
+      {
+        "mut": "D614G",
+        "n_leaves": 292,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "PMC-primary,S1",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "V1176F",
+        "n_leaves": 120,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S2-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      }
+    ],
+    "high_escape_prevalent": [],
+    "key_mut_counts": {
+      "D614G": 292,
+      "V1176F": 120,
+      "E484K": 8,
+      "A222V": 3,
+      "L18F": 2,
+      "N679K": 2,
+      "D138Y": 1
+    },
+    "pmc_primary_present": [
+      "A222V",
+      "D614G",
+      "E484K"
+    ],
+    "pmc_secondary_present": [],
+    "paths": {
+      "observed_nwk": "results/covid_tree_viz/group_001_observed.nwk",
+      "observed_matched_nwk": "results/covid_tree_viz/group_001_observed_matched.nwk",
+      "generated_matched_nwk": "results/covid_tree_viz/group_001_generated_matched.nwk",
+      "anc_aa": "results/covid_tree_viz/group_001_observed_anc_aa.fasta",
+      "dates_csv": "results/covid_tree_viz/_meta/covidtest_group_001.csv",
+      "betty_rooted": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid/test/group_001_rooted.nwk"
+    }
+  },
+  "3": {
+    "gid": 3,
+    "meta": {
+      "n": 300,
+      "date_min": "2021-03-25",
+      "date_max": "2021-05-10",
+      "n_dated_exact": 300
+    },
+    "geography": "Brazil (geographic held-out test split)",
+    "n_leaves_tree": 300,
+    "n_full_len_leaves": 296,
+    "n_short_leaves": 4,
+    "length_dist_top": [
+      [
+        1273,
+        296
+      ],
+      [
+        1270,
+        2
+      ],
+      [
+        1272,
+        1
+      ],
+      [
+        1269,
+        1
+      ]
+    ],
+    "root_name": "NODE_0000001",
+    "root_len": 1273,
+    "best_voc_by_signature": "Gamma",
+    "voc_hits": {
+      "Alpha": {
+        "hits": [
+          "D614G",
+          "N501Y"
+        ],
+        "n": 2,
+        "frac": 0.6666666666666666
+      },
+      "Beta": {
+        "hits": [
+          "D614G",
+          "E484K",
+          "N501Y"
+        ],
+        "n": 3,
+        "frac": 0.6
+      },
+      "Gamma": {
+        "hits": [
+          "D138Y",
+          "D614G",
+          "E484K",
+          "H655Y",
+          "K417T",
+          "L18F",
+          "N501Y",
+          "P26S",
+          "R190S",
+          "T1027I",
+          "T20N",
+          "V1176F"
+        ],
+        "n": 12,
+        "frac": 1.0
+      },
+      "Delta": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.14285714285714285
+      },
+      "Omicron_BA1": {
+        "hits": [
+          "D614G",
+          "H655Y",
+          "N501Y"
+        ],
+        "n": 3,
+        "frac": 0.10344827586206896
+      }
+    },
+    "top_prevalent": [
+      [
+        "D614G",
+        296
+      ],
+      [
+        "V1176F",
+        296
+      ],
+      [
+        "H655Y",
+        292
+      ],
+      [
+        "D138Y",
+        291
+      ],
+      [
+        "N501Y",
+        291
+      ],
+      [
+        "P26S",
+        290
+      ],
+      [
+        "K417T",
+        289
+      ],
+      [
+        "T1027I",
+        286
+      ],
+      [
+        "T20N",
+        286
+      ],
+      [
+        "R190S",
+        259
+      ],
+      [
+        "L18F",
+        219
+      ],
+      [
+        "E484K",
+        217
+      ],
+      [
+        "E661D",
+        16
+      ]
+    ],
+    "annotation_table": [
+      {
+        "mut": "E484K",
+        "n_leaves": 217,
+        "evescape": -0.8293274275843208,
+        "pct_rank": 98.92642052893427,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "K417T",
+        "n_leaves": 289,
+        "evescape": -1.1072657175442466,
+        "pct_rank": 93.66326263419744,
+        "antigenic": "PMC-secondary,RBD",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "N501Y",
+        "n_leaves": 291,
+        "evescape": -1.4350399149338156,
+        "pct_rank": 82.58706467661692,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "D614G",
+        "n_leaves": 296,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "PMC-primary,S1",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "V1176F",
+        "n_leaves": 296,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S2-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "H655Y",
+        "n_leaves": 292,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S1-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "D138Y",
+        "n_leaves": 291,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "P26S",
+        "n_leaves": 290,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "T1027I",
+        "n_leaves": 286,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S2-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "T20N",
+        "n_leaves": 286,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "R190S",
+        "n_leaves": 259,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "L18F",
+        "n_leaves": 219,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "E661D",
+        "n_leaves": 16,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S1-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      }
+    ],
+    "high_escape_prevalent": [
+      {
+        "mut": "E484K",
+        "n_leaves": 217,
+        "evescape": -0.8293274275843208,
+        "pct_rank": 98.92642052893427,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "K417T",
+        "n_leaves": 289,
+        "evescape": -1.1072657175442466,
+        "pct_rank": 93.66326263419744,
+        "antigenic": "PMC-secondary,RBD",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "N501Y",
+        "n_leaves": 291,
+        "evescape": -1.4350399149338156,
+        "pct_rank": 82.58706467661692,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      }
+    ],
+    "key_mut_counts": {
+      "D614G": 296,
+      "V1176F": 296,
+      "H655Y": 292,
+      "D138Y": 291,
+      "N501Y": 291,
+      "P26S": 290,
+      "K417T": 289,
+      "T1027I": 286,
+      "T20N": 286,
+      "R190S": 259,
+      "L18F": 219,
+      "E484K": 217,
+      "P681H": 3
+    },
+    "pmc_primary_present": [
+      "D614G",
+      "E484K",
+      "N501Y"
+    ],
+    "pmc_secondary_present": [
+      "K417T"
+    ],
+    "paths": {
+      "observed_nwk": "results/covid_tree_viz/group_003_observed.nwk",
+      "observed_matched_nwk": "results/covid_tree_viz/group_003_observed_matched.nwk",
+      "generated_matched_nwk": "results/covid_tree_viz/group_003_generated_matched.nwk",
+      "anc_aa": "results/covid_tree_viz/group_003_observed_anc_aa.fasta",
+      "dates_csv": "results/covid_tree_viz/_meta/covidtest_group_003.csv",
+      "betty_rooted": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid/test/group_003_rooted.nwk"
+    }
+  },
+  "9": {
+    "gid": 9,
+    "meta": {
+      "n": 300,
+      "date_min": "2021-07-09",
+      "date_max": "2021-07-14",
+      "n_dated_exact": 300
+    },
+    "geography": "Brazil (geographic held-out test split)",
+    "n_leaves_tree": 266,
+    "n_full_len_leaves": 258,
+    "n_short_leaves": 8,
+    "length_dist_top": [
+      [
+        1273,
+        258
+      ],
+      [
+        1272,
+        6
+      ],
+      [
+        1271,
+        2
+      ]
+    ],
+    "root_name": "NODE_0000000",
+    "root_len": 160,
+    "best_voc_by_signature": "Gamma",
+    "voc_hits": {
+      "Alpha": {
+        "hits": [
+          "D614G",
+          "N501Y",
+          "P681H"
+        ],
+        "n": 3,
+        "frac": 1.0
+      },
+      "Beta": {
+        "hits": [
+          "D614G",
+          "E484K",
+          "N501Y"
+        ],
+        "n": 3,
+        "frac": 0.6
+      },
+      "Gamma": {
+        "hits": [
+          "D138Y",
+          "D614G",
+          "E484K",
+          "H655Y",
+          "K417T",
+          "L18F",
+          "N501Y",
+          "P26S",
+          "R190S",
+          "T1027I",
+          "T20N",
+          "V1176F"
+        ],
+        "n": 12,
+        "frac": 1.0
+      },
+      "Delta": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.14285714285714285
+      },
+      "Omicron_BA1": {
+        "hits": [
+          "D614G",
+          "H655Y",
+          "N501Y",
+          "N679K",
+          "P681H"
+        ],
+        "n": 5,
+        "frac": 0.1724137931034483
+      }
+    },
+    "top_prevalent": [
+      [
+        "K417T",
+        258
+      ],
+      [
+        "N501Y",
+        258
+      ],
+      [
+        "D614G",
+        258
+      ],
+      [
+        "H655Y",
+        258
+      ],
+      [
+        "V1176F",
+        258
+      ],
+      [
+        "T20N",
+        257
+      ],
+      [
+        "P26S",
+        257
+      ],
+      [
+        "R190S",
+        257
+      ],
+      [
+        "T1027I",
+        257
+      ],
+      [
+        "D138Y",
+        256
+      ],
+      [
+        "E484K",
+        253
+      ],
+      [
+        "L18F",
+        253
+      ],
+      [
+        "N679K",
+        29
+      ],
+      [
+        "P681H",
+        29
+      ],
+      [
+        "Q675H",
+        13
+      ]
+    ],
+    "annotation_table": [
+      {
+        "mut": "E484K",
+        "n_leaves": 253,
+        "evescape": -0.8293274275843208,
+        "pct_rank": 98.92642052893427,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "K417T",
+        "n_leaves": 258,
+        "evescape": -1.1072657175442466,
+        "pct_rank": 93.66326263419744,
+        "antigenic": "PMC-secondary,RBD",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "N501Y",
+        "n_leaves": 258,
+        "evescape": -1.4350399149338156,
+        "pct_rank": 82.58706467661692,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "D614G",
+        "n_leaves": 258,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "PMC-primary,S1",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "H655Y",
+        "n_leaves": 258,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S1-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "V1176F",
+        "n_leaves": 258,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S2-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "T20N",
+        "n_leaves": 257,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "P26S",
+        "n_leaves": 257,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "R190S",
+        "n_leaves": 257,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "T1027I",
+        "n_leaves": 257,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S2-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "D138Y",
+        "n_leaves": 256,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "L18F",
+        "n_leaves": 253,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "N679K",
+        "n_leaves": 29,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S1-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "P681H",
+        "n_leaves": 29,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S1-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "Q675H",
+        "n_leaves": 13,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "S1-band",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      }
+    ],
+    "high_escape_prevalent": [
+      {
+        "mut": "E484K",
+        "n_leaves": 253,
+        "evescape": -0.8293274275843208,
+        "pct_rank": 98.92642052893427,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "K417T",
+        "n_leaves": 258,
+        "evescape": -1.1072657175442466,
+        "pct_rank": 93.66326263419744,
+        "antigenic": "PMC-secondary,RBD",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "N501Y",
+        "n_leaves": 258,
+        "evescape": -1.4350399149338156,
+        "pct_rank": 82.58706467661692,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      }
+    ],
+    "key_mut_counts": {
+      "D614G": 258,
+      "H655Y": 258,
+      "K417T": 258,
+      "N501Y": 258,
+      "V1176F": 258,
+      "P26S": 257,
+      "R190S": 257,
+      "T1027I": 257,
+      "T20N": 257,
+      "D138Y": 256,
+      "E484K": 253,
+      "L18F": 253,
+      "N679K": 29,
+      "P681H": 29,
+      "A222V": 1,
+      "G496S": 1,
+      "T95I": 1
+    },
+    "pmc_primary_present": [
+      "A222V",
+      "D614G",
+      "E484K",
+      "G496S",
+      "N501Y"
+    ],
+    "pmc_secondary_present": [
+      "K417T"
+    ],
+    "paths": {
+      "observed_nwk": "results/covid_tree_viz/group_009_observed.nwk",
+      "observed_matched_nwk": "results/covid_tree_viz/group_009_observed_matched.nwk",
+      "generated_matched_nwk": "results/covid_tree_viz/group_009_generated_matched.nwk",
+      "anc_aa": "results/covid_tree_viz/group_009_observed_anc_aa.fasta",
+      "dates_csv": "results/covid_tree_viz/_meta/covidtest_group_009.csv",
+      "betty_rooted": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid/test/group_009_rooted.nwk"
+    }
+  },
+  "36": {
+    "gid": 36,
+    "meta": {
+      "n": 300,
+      "date_min": "2022-01-13",
+      "date_max": "2022-01-18",
+      "n_dated_exact": 300
+    },
+    "geography": "Brazil (geographic held-out test split)",
+    "n_leaves_tree": 291,
+    "n_full_len_leaves": 0,
+    "n_short_leaves": 291,
+    "length_dist_top": [
+      [
+        1267,
+        291
+      ]
+    ],
+    "root_name": "NODE_0000000",
+    "root_len": 1267,
+    "best_voc_by_signature": "Alpha",
+    "voc_hits": {
+      "Alpha": {
+        "hits": [],
+        "n": 0,
+        "frac": 0.0
+      },
+      "Beta": {
+        "hits": [],
+        "n": 0,
+        "frac": 0.0
+      },
+      "Gamma": {
+        "hits": [],
+        "n": 0,
+        "frac": 0.0
+      },
+      "Delta": {
+        "hits": [],
+        "n": 0,
+        "frac": 0.0
+      },
+      "Omicron_BA1": {
+        "hits": [],
+        "n": 0,
+        "frac": 0.0
+      }
+    },
+    "top_prevalent": [],
+    "annotation_table": [],
+    "high_escape_prevalent": [],
+    "key_mut_counts": {},
+    "pmc_primary_present": [],
+    "pmc_secondary_present": [],
+    "paths": {
+      "observed_nwk": "results/covid_tree_viz/group_036_observed.nwk",
+      "observed_matched_nwk": "results/covid_tree_viz/group_036_observed_matched.nwk",
+      "generated_matched_nwk": "results/covid_tree_viz/group_036_generated_matched.nwk",
+      "anc_aa": "results/covid_tree_viz/group_036_observed_anc_aa.fasta",
+      "dates_csv": "results/covid_tree_viz/_meta/covidtest_group_036.csv",
+      "betty_rooted": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid/test/group_036_rooted.nwk"
+    }
+  },
+  "40": {
+    "gid": 40,
+    "meta": {
+      "n": 207,
+      "date_min": "2023-01-01",
+      "date_max": "2025-09-09",
+      "n_dated_exact": 130
+    },
+    "geography": "Brazil (geographic held-out test split)",
+    "n_leaves_tree": 207,
+    "n_full_len_leaves": 4,
+    "n_short_leaves": 203,
+    "length_dist_top": [
+      [
+        1267,
+        159
+      ],
+      [
+        1271,
+        15
+      ],
+      [
+        1265,
+        13
+      ],
+      [
+        1268,
+        8
+      ],
+      [
+        1264,
+        5
+      ]
+    ],
+    "root_name": "NODE_0000000",
+    "root_len": 1269,
+    "best_voc_by_signature": "Delta",
+    "voc_hits": {
+      "Alpha": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.3333333333333333
+      },
+      "Beta": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.2
+      },
+      "Gamma": {
+        "hits": [
+          "D614G"
+        ],
+        "n": 1,
+        "frac": 0.08333333333333333
+      },
+      "Delta": {
+        "hits": [
+          "D614G",
+          "G142D",
+          "L452R",
+          "P681R"
+        ],
+        "n": 4,
+        "frac": 0.5714285714285714
+      },
+      "Omicron_BA1": {
+        "hits": [
+          "D614G",
+          "G142D"
+        ],
+        "n": 2,
+        "frac": 0.06896551724137931
+      }
+    },
+    "top_prevalent": [
+      [
+        "D614G",
+        3
+      ],
+      [
+        "G142D",
+        2
+      ],
+      [
+        "L452R",
+        2
+      ],
+      [
+        "P681R",
+        2
+      ]
+    ],
+    "annotation_table": [
+      {
+        "mut": "L452R",
+        "n_leaves": 2,
+        "evescape": -1.0160257795473002,
+        "pct_rank": 96.01990049751244,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "D614G",
+        "n_leaves": 3,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "PMC-primary,S1",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      },
+      {
+        "mut": "G142D",
+        "n_leaves": 2,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "NTD",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "N",
+        "why": "lower priority"
+      },
+      {
+        "mut": "P681R",
+        "n_leaves": 2,
+        "evescape": null,
+        "pct_rank": null,
+        "antigenic": "PMC-secondary,S1",
+        "high_escape": false,
+        "region": "outside RBD (no EVEscape)",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      }
+    ],
+    "high_escape_prevalent": [
+      {
+        "mut": "L452R",
+        "n_leaves": 2,
+        "evescape": -1.0160257795473002,
+        "pct_rank": 96.01990049751244,
+        "antigenic": "PMC-primary,RBM",
+        "high_escape": true,
+        "region": "RBD",
+        "annotate_pdb": "Y",
+        "why": "PMC antigenic"
+      }
+    ],
+    "key_mut_counts": {
+      "D614G": 3,
+      "G142D": 2,
+      "L452R": 2,
+      "P681R": 2,
+      "E484A": 1,
+      "H655Y": 1,
+      "N501Y": 1,
+      "P681H": 1,
+      "Q498R": 1,
+      "Q954H": 1,
+      "S477N": 1,
+      "T478K": 1,
+      "Y505H": 1
+    },
+    "pmc_primary_present": [
+      "D614G",
+      "L452R",
+      "N501Y",
+      "S477N",
+      "T478K"
+    ],
+    "pmc_secondary_present": [
+      "E484A",
+      "P681R",
+      "Q498R",
+      "Y505H"
+    ],
+    "paths": {
+      "observed_nwk": "results/covid_tree_viz/group_040_observed.nwk",
+      "observed_matched_nwk": "results/covid_tree_viz/group_040_observed_matched.nwk",
+      "generated_matched_nwk": "results/covid_tree_viz/group_040_generated_matched.nwk",
+      "anc_aa": "results/covid_tree_viz/group_040_observed_anc_aa.fasta",
+      "dates_csv": "results/covid_tree_viz/_meta/covidtest_group_040.csv",
+      "betty_rooted": "/vast/home/n/nnori/DiscreteTreeFlows/data/covid/test/group_040_rooted.nwk"
+    }
+  }
+}

@@ -1,0 +1,92 @@
+Start: Thu Aug  6 01:47:34 AM EDT 2026
+ckpt=checkpoints/covid_v5_mutrec/best.pt data=data/covid/test max_seq_len=1280 KS=[100 500 1000] n_groups=20
+-rw-rw-r-- 1 nnori nnori 12M Aug  2 05:25 checkpoints/covid_v5_mutrec/best.pt
+
+############################################################
+# track_a  covid_v5_mutrec  K=100
+############################################################
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+TreeDataset: 40 trees found
+40 groups available; evaluating 20: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+Checkpoint: epoch 14  val_loss=0.9931
+Loading weights:   0%|          | 0/102 [00:00<?, ?it/s]Loading weights: 100%|██████████| 102/102 [00:00<00:00, 30296.65it/s]
+[transformers] [1mEsmModel LOAD REPORT[0m from: facebook/esm2_t6_8M_UR50D
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.bias              | UNEXPECTED | 
+pooler.dense.bias         | MISSING    | 
+pooler.dense.weight       | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 10761.85it/s]
+[1] recovery=0.000 cons=0.993 cov@k=1.000 mutF1=0.009 aa_acc=0.000 BLratio=2.44 couple=-0.08
+[2] recovery=0.066 cons=0.990 cov@k=0.983 mutF1=0.224 aa_acc=0.553 BLratio=2.62 couple=-0.07
+[3] recovery=0.000 cons=0.990 cov@k=0.967 mutF1=0.445 aa_acc=0.149 BLratio=2.05 couple=-0.07
+[4] recovery=0.000 cons=0.989 cov@k=1.000 mutF1=0.313 aa_acc=0.000 BLratio=1.78 couple=-0.06
+[5] recovery=0.142 cons=1.000 cov@k=1.000 mutF1=0.099 aa_acc=1.000 BLratio=0.26 couple=0.11
+[6] recovery=0.000 cons=0.990 cov@k=0.983 mutF1=0.449 aa_acc=0.417 BLratio=0.47 couple=-0.06
+[7] recovery=0.001 cons=0.991 cov@k=0.950 mutF1=0.327 aa_acc=0.455 BLratio=1.67 couple=-0.05
+[8] recovery=0.001 cons=0.990 cov@k=0.917 mutF1=0.339 aa_acc=0.337 BLratio=1.69 couple=-0.07
+[9] recovery=0.200 cons=1.000 cov@k=1.000 mutF1=0.036 aa_acc=1.000 BLratio=0.33 couple=0.10
+[10] recovery=0.005 cons=0.990 cov@k=0.800 mutF1=0.452 aa_acc=0.425 BLratio=2.61 couple=-0.08
+[11] recovery=0.006 cons=0.993 cov@k=0.583 mutF1=0.361 aa_acc=0.469 BLratio=5.35 couple=-0.05
+[12] recovery=0.226 cons=1.000 cov@k=1.000 mutF1=0.018 aa_acc=0.811 BLratio=0.32 couple=0.12
+[13] recovery=0.005 cons=0.992 cov@k=0.617 mutF1=0.328 aa_acc=0.406 BLratio=2.41 couple=-0.06
+[14] recovery=0.006 cons=0.989 cov@k=0.583 mutF1=0.319 aa_acc=0.483 BLratio=2.66 couple=-0.07
+[15] recovery=0.007 cons=0.989 cov@k=0.183 mutF1=0.427 aa_acc=0.432 BLratio=2.69 couple=-0.05
+[16] recovery=0.016 cons=1.000 cov@k=0.000 mutF1=0.353 aa_acc=0.373 BLratio=3.77 couple=-0.04
+[17] recovery=0.017 cons=0.986 cov@k=0.033 mutF1=0.327 aa_acc=0.487 BLratio=0.93 couple=-0.05
+[18] recovery=0.002 cons=0.991 cov@k=0.883 mutF1=0.459 aa_acc=0.467 BLratio=2.69 couple=-0.12
+[19] recovery=0.013 cons=0.995 cov@k=0.067 mutF1=0.433 aa_acc=0.440 BLratio=2.13 couple=-0.07
+[20] recovery=0.001 cons=0.993 cov@k=0.900 mutF1=0.456 aa_acc=0.528 BLratio=2.38 couple=-0.12
+
+=== Track A1 aggregate (mean over groups) ===
+  mut_recovery           0.0358
+  cons_retention         0.9925
+  aa_acc_given_hit       0.4616
+  site_recall_positional 0.0618
+  best_of_k_identity     0.7769
+  coverage@k_eps2pct     0.7225
+  mut_precision          0.1959
+  mut_recall             0.9143
+  mut_f1                 0.3088
+  site_recall            0.9999
+  sackin_ratio           0.1405
+  colless_ratio          0.0646
+  cherry_ratio           0.4090
+  height_ratio           0.2037
+  branch_len_ratio       2.0631
+  seq_patristic_corr     -0.0433
+
+Saved benchmarks/results/track_a_covid_v5_mutrec_K100.json
+
+############################################################
+# track_a  covid_v5_mutrec  K=500
+############################################################
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+TreeDataset: 40 trees found
+40 groups available; evaluating 20: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+Checkpoint: epoch 14  val_loss=0.9931
+Loading weights:   0%|          | 0/102 [00:00<?, ?it/s]Loading weights: 100%|██████████| 102/102 [00:00<00:00, 25731.93it/s]
+[transformers] [1mEsmModel LOAD REPORT[0m from: facebook/esm2_t6_8M_UR50D
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.bias              | UNEXPECTED | 
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+pooler.dense.weight       | MISSING    | 
+pooler.dense.bias         | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 11824.28it/s]
+slurmstepd: error: *** JOB 7431995 ON dgx028 CANCELLED AT 2026-08-08T01:47:56 DUE TO TIME LIMIT ***

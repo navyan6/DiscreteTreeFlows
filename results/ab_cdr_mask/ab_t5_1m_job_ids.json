@@ -1,0 +1,24 @@
+{
+  "submitted": "2026-08-12T19:45:54.636032+00:00",
+  "host": "login02",
+  "preprocess_job": "7585306",
+  "train_job_failed": "7585307",
+  "train_job": "7596655",
+  "postprocess": "scripts/ab_postprocess_clones_for_treesbm.py",
+  "lambda_br": 0,
+  "dependency": "afterok:7585306",
+  "out": "data/ab_t5_1m",
+  "out_base": "data/ab_clones_1m",
+  "ckpt": "checkpoints/ab_oas_1m_v1",
+  "cdr_mask": "results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt",
+  "entropy_flags": [
+    "--use-site-entropy",
+    "--use-entropy-loss-weighting",
+    "--use-entropy-cons-weighting",
+    "--entropy-source empirical",
+    "--entropy-weight-alpha 3.0",
+    "--entropy-weight-alpha-cons 1.0"
+  ],
+  "holdout": "clonal_lineage donor-disjoint (NOT Rodriguez 82)",
+  "eta_note": "500k prep ~1.2h; 1M ANARCI ~2-4h + trees; train up to 24h GPU after prep"
+}

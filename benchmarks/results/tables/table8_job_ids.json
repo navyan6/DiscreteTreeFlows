@@ -1,0 +1,224 @@
+{
+  "updated_at": "2026-08-13T12:55:00",
+  "host": "betty",
+  "ckpt": "checkpoints/covid_v5_mutrec/best.pt",
+  "entropy_ablation": {
+    "flag": "--ablate-site-entropy",
+    "slurm_ABLATE": "no_entropy",
+    "note": "Disables RateHeads.use_site_entropy for the forward (passing site_entropy=None alone still triggers R0-entropy fallback)."
+  },
+  "roadblocks": {
+    "tree_kl_split_kl": "Empirical NaN. sim_neutral Tree-KL=ln2 all ablations (7585976\u201380 COMPLETED). Split-KL\u224857.4\u201357.6.",
+    "coverage_at_100": "COMPLETED for full/no_bridge/no_entropy/no_bl_eval/no_lit_mask. PENDING tree-ctx/seq-branch/internal: 7597326\u201328.",
+    "plm_nll": "Have 7585970 full=0.4572 and 7585969 no_entropy=0.4573. Re-enrich PENDING 7597319\u201323,7597325 for remaining six. Cannot backfill (no gen seqs in JSON).",
+    "7575017": "COMPLETED 22h11m N=16+32. No pLM NLL column.",
+    "7539981": "TIMEOUT epoch 40; best.pt epoch=14 val=0.9984. No eval."
+  },
+  "jobs": [
+    {
+      "job_id": "7539951",
+      "name": "t8_no_bridge",
+      "mode": "enrich",
+      "flags": "--ablate-bridge",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7597319"
+    },
+    {
+      "job_id": "7539952",
+      "name": "t8_no_tree_ctx",
+      "mode": "enrich",
+      "flags": "--ablate-tree-context",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7597320"
+    },
+    {
+      "job_id": "7539953",
+      "name": "t8_no_seq_branch",
+      "mode": "enrich",
+      "flags": "poisson_ref",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7597321"
+    },
+    {
+      "job_id": "7539954",
+      "name": "t8_no_bl_eval",
+      "mode": "enrich",
+      "flags": "--ablate-branch-length-head",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7597322"
+    },
+    {
+      "job_id": "7539980",
+      "name": "t8_full",
+      "mode": "enrich",
+      "flags": "",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7585970"
+    },
+    {
+      "job_id": "7546797",
+      "name": "t8_no_internal",
+      "mode": "enrich",
+      "flags": "--ablate-internal-node-seqs",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7597323"
+    },
+    {
+      "job_id": "7575907",
+      "name": "t8_no_lit",
+      "mode": "enrich",
+      "flags": "--no-lit-hotspot-mask",
+      "status": "COMPLETED",
+      "note": "pre-plm_nll; superseded by 7597325"
+    },
+    {
+      "job_id": "7575017",
+      "name": "t8_base_covid",
+      "mode": "baselines_all_methods",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585969",
+      "name": "t8_no_ent",
+      "mode": "enrich",
+      "flags": "--ablate-site-entropy",
+      "status": "COMPLETED",
+      "plm_nll": 0.4573
+    },
+    {
+      "job_id": "7585970",
+      "name": "t8_full_nll",
+      "mode": "enrich",
+      "flags": "full + plm_nll",
+      "status": "COMPLETED",
+      "plm_nll": 0.4572
+    },
+    {
+      "job_id": "7585971",
+      "name": "t8c_full",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585972",
+      "name": "t8c_no_bridge",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585973",
+      "name": "t8c_no_entropy",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585974",
+      "name": "t8c_no_bl_eval",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585975",
+      "name": "t8c_no_lit_mask",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585976",
+      "name": "t8b_full",
+      "mode": "baselines_treesbm",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585977",
+      "name": "t8b_no_bridge",
+      "mode": "baselines_treesbm",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585978",
+      "name": "t8b_no_entropy",
+      "mode": "baselines_treesbm",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585979",
+      "name": "t8b_no_bl_eval",
+      "mode": "baselines_treesbm",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585980",
+      "name": "t8b_no_lit_mask",
+      "mode": "baselines_treesbm",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7597319",
+      "name": "t8nll_no_bridge",
+      "mode": "enrich",
+      "flags": "--ablate-bridge",
+      "status": "PENDING",
+      "purpose": "fill plm_nll"
+    },
+    {
+      "job_id": "7597320",
+      "name": "t8nll_no_tree_ctx",
+      "mode": "enrich",
+      "flags": "--ablate-tree-context",
+      "status": "PENDING",
+      "purpose": "fill plm_nll"
+    },
+    {
+      "job_id": "7597321",
+      "name": "t8nll_no_seq_branch",
+      "mode": "enrich",
+      "flags": "poisson_ref",
+      "status": "PENDING",
+      "purpose": "fill plm_nll"
+    },
+    {
+      "job_id": "7597322",
+      "name": "t8nll_no_bl_eval",
+      "mode": "enrich",
+      "flags": "--ablate-branch-length-head",
+      "status": "PENDING",
+      "purpose": "fill plm_nll"
+    },
+    {
+      "job_id": "7597323",
+      "name": "t8nll_no_internal_seqs",
+      "mode": "enrich",
+      "flags": "--ablate-internal-node-seqs",
+      "status": "PENDING",
+      "purpose": "fill plm_nll"
+    },
+    {
+      "job_id": "7597325",
+      "name": "t8nll_no_lit_mask",
+      "mode": "enrich",
+      "flags": "--no-lit-hotspot-mask",
+      "status": "PENDING",
+      "purpose": "fill plm_nll"
+    },
+    {
+      "job_id": "7597326",
+      "name": "t8c_no_tree_ctx",
+      "mode": "coverage_K100",
+      "status": "PENDING"
+    },
+    {
+      "job_id": "7597327",
+      "name": "t8c_no_seq_branch",
+      "mode": "coverage_K100",
+      "status": "PENDING"
+    },
+    {
+      "job_id": "7597328",
+      "name": "t8c_no_internal_seqs",
+      "mode": "coverage_K100",
+      "status": "PENDING"
+    }
+  ],
+  "queue": "9 T8 fill jobs PENDING behind h3n2_emp / ab_oas"
+}

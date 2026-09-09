@@ -1,0 +1,200 @@
+{
+  "virus": "covid",
+  "cache": "/vast/home/n/nnori/DiscreteTreeFlows/benchmarks/results/coverage_cache_c3_covid_N16",
+  "mask": "results/covid_mutfreq_vs_lit/mut_hotspot_mask_pmc_lit.pt",
+  "K_max": 100,
+  "n_roots_scored": 15,
+  "cells": [
+    {
+      "horizon_bucket": "long",
+      "method": "artreeformer_adapted",
+      "n_roots": 3,
+      "lit_hotspot_mut_frac": 0.0045813503547923766,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "long",
+      "method": "neutral_bd",
+      "n_roots": 3,
+      "lit_hotspot_mut_frac": 0.013047034764826175,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "long",
+      "method": "treesbm",
+      "n_roots": 3,
+      "lit_hotspot_mut_frac": 0.017485684796512746,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "med",
+      "method": "artreeformer_adapted",
+      "n_roots": 2,
+      "lit_hotspot_mut_frac": 0.008217783844624854,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "med",
+      "method": "neutral_bd",
+      "n_roots": 2,
+      "lit_hotspot_mut_frac": 0.010279873820541682,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    },
+    {
+      "horizon_bucket": "med",
+      "method": "treesbm",
+      "n_roots": 2,
+      "lit_hotspot_mut_frac": 0.006030443513399608,
+      "aa_acc_given_hit": null,
+      "mut_recovery": null,
+      "cons_retention": null
+    }
+  ],
+  "per_root": [
+    {
+      "root_id": "NODE_0000000",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.0,
+      "n_mut_leaves_scored": 361,
+      "method": "artreeformer_adapted",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000162",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.008908685968819599,
+      "n_mut_leaves_scored": 449,
+      "method": "artreeformer_adapted",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000179",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.007526881720430108,
+      "n_mut_leaves_scored": 465,
+      "method": "artreeformer_adapted",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000271",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.002711187214611872,
+      "n_mut_leaves_scored": 584,
+      "method": "artreeformer_adapted",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000282",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.011032863849765259,
+      "n_mut_leaves_scored": 710,
+      "method": "artreeformer_adapted",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000000",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.0,
+      "n_mut_leaves_scored": 373,
+      "method": "neutral_bd",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000162",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.009515570934256055,
+      "n_mut_leaves_scored": 578,
+      "method": "neutral_bd",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000179",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.01104417670682731,
+      "n_mut_leaves_scored": 498,
+      "method": "neutral_bd",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000271",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.008307770961145194,
+      "n_mut_leaves_scored": 652,
+      "method": "neutral_bd",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000282",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.030833333333333334,
+      "n_mut_leaves_scored": 840,
+      "method": "neutral_bd",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000000",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.0,
+      "n_mut_leaves_scored": 150,
+      "method": "treesbm",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000162",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.01076555023923445,
+      "n_mut_leaves_scored": 418,
+      "method": "treesbm",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000179",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.0012953367875647669,
+      "n_mut_leaves_scored": 386,
+      "method": "treesbm",
+      "horizon_bucket": "med"
+    },
+    {
+      "root_id": "NODE_0000271",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.016929363689433742,
+      "n_mut_leaves_scored": 571,
+      "method": "treesbm",
+      "horizon_bucket": "long"
+    },
+    {
+      "root_id": "NODE_0000282",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.035527690700104496,
+      "n_mut_leaves_scored": 638,
+      "method": "treesbm",
+      "horizon_bucket": "long"
+    }
+  ]
+}

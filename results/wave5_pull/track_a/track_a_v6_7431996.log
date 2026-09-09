@@ -1,0 +1,28 @@
+Start: Thu Aug  6 01:47:34 AM EDT 2026
+ckpt=checkpoints/covid_v6_hotspot/best.pt data=data/covid/test max_seq_len=1280 KS=[100 500 1000] n_groups=20
+-rw-rw-r-- 1 nnori nnori 12M Aug  4 22:27 checkpoints/covid_v6_hotspot/best.pt
+
+############################################################
+# track_a  covid_v6_hotspot  K=100
+############################################################
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+TreeDataset: 40 trees found
+40 groups available; evaluating 20: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+Checkpoint: epoch 14  val_loss=1.0529
+Loading weights:   0%|          | 0/102 [00:00<?, ?it/s]Loading weights: 100%|██████████| 102/102 [00:00<00:00, 26311.13it/s]
+[transformers] [1mEsmModel LOAD REPORT[0m from: facebook/esm2_t6_8M_UR50D
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.bias              | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+pooler.dense.weight       | MISSING    | 
+pooler.dense.bias         | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 12288.90it/s]
+slurmstepd: error: *** JOB 7431996 ON dgx028 CANCELLED AT 2026-08-08T01:47:56 DUE TO TIME LIMIT ***

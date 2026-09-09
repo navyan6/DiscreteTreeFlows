@@ -1,0 +1,75 @@
+{
+  "submitted_at": "2026-08-15T02:25:30Z",
+  "completed_at": "2026-08-15T08:29:10Z",
+  "script": "scripts/slurm_table_c3_horizon.sh",
+  "eval": "benchmarks/table_c3_horizon.py",
+  "protocol": "benchmarks/results/tables/table_c3_horizon_protocol.md",
+  "paste": "benchmarks/results/tables/table_c3_horizon.md",
+  "cuts": "benchmarks/results/tables/table_c3_h_cuts_all.json",
+  "N": 16,
+  "K": [10, 100],
+  "jobs": {
+    "c3_covid": "7627191",
+    "c3_h1n1": "7627192",
+    "c3_h3n2": "7627193",
+    "c3_hiv_geo": "7627194",
+    "c3_hiv_temp": "7627195"
+  },
+  "states": {
+    "7627191": "COMPLETED",
+    "7627192": "COMPLETED",
+    "7627193": "COMPLETED",
+    "7627194": "COMPLETED",
+    "7627195": "COMPLETED"
+  },
+  "methods": {
+    "covid": ["neutral_bd", "artreeformer_adapted", "treesbm"],
+    "h1n1": ["neutral_bd", "artreeformer_adapted", "treesbm"],
+    "h3n2": ["neutral_bd", "artreeformer_adapted", "treesbm"],
+    "hiv_geo": ["neutral_bd", "treesbm"],
+    "hiv_temporal": ["neutral_bd", "treesbm"]
+  },
+  "ckpts": {
+    "covid": "checkpoints/covid_v5_mutrec/best.pt",
+    "h1n1": "checkpoints/h1n1_v2_lit_hotspot/best.pt",
+    "h3n2": "checkpoints/h3n2_v3_lit_hotspot/best.pt",
+    "hiv_geo": "checkpoints/hiv_geo_v1/best.pt",
+    "hiv_temporal": "checkpoints/hiv_temporal_v1/best.pt"
+  },
+  "max_seq_len": {
+    "covid": 1280,
+    "h1n1": 566,
+    "h3n2": 566,
+    "hiv_geo": 900,
+    "hiv_temporal": 900
+  },
+  "metrics": [
+    "coverage_obs_e1",
+    "coverage_obs_e2",
+    "coverage_obs_e3",
+    "coverage_obs_e5",
+    "mut_recovery",
+    "clade_recall",
+    "mean_min_edit",
+    "cons_retention",
+    "aa_acc_given_hit"
+  ],
+  "artifacts": [
+    "benchmarks/results/table_c3_covid_N16.csv",
+    "benchmarks/results/table_c3_h1n1_N16.csv",
+    "benchmarks/results/table_c3_h3n2_N16.csv",
+    "benchmarks/results/table_c3_hiv_geo_N16.csv",
+    "benchmarks/results/table_c3_hiv_temporal_N16.csv"
+  ],
+  "remaining": [
+    "Tree-KL not scored (expensive at K=100)",
+    "pLM prior not included (C.3 method list = NeutralBD / AR / TreeSBM)",
+    "HIV AR skipped (no virus-specific topology pools)",
+    "Locked T5/T4 roots leave some buckets empty (COVID: no short; H1: no med; H3: no short; HIV geo: no med; HIV temp: no short)",
+    "Antigenic site proportion not in C.3 runner (additive enrichment deferred)"
+  ],
+  "next_wave": {
+    "done": "local aggregation -> table_c3_horizon.md",
+    "deferred": ["Tree-KL", "empty-bucket root expansion", "pLM-prior C.3 rows", "antigenic enrichment on C.3 gens"]
+  }
+}

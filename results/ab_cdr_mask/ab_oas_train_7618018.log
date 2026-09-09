@@ -1,0 +1,1029 @@
+=== Ab OAS TreeSBM train ===
+host=dgx029 date=2026-08-14T20:26:14-04:00 job=7618018
+data=data/ab_clones_1m ckpt=checkpoints/ab_oas_1m_v1 max_seq_len=160
+entropy ON (empirical) + CDR mask=results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt
+lambda_mut=12.0 lambda_cons=0.5 lambda_semi=0.05 lambda_br=0
+-rw-rw-r-- 1 nnori nnori 2556 Aug 12 18:18 results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt
+torch 2.11.0+cu128 cuda True
+smoke_group 0 n_nodes=67
+TreeDataset train: Found 397 complete groups
+smoke_group 0 n_nodes=73
+TreeDataset val: Found 44 complete groups
+=== precompute_plm train ===
+Device: cuda
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/102 [00:00<?, ?it/s]Loading weights: 100%|██████████| 102/102 [00:00<00:00, 14851.22it/s]
+[transformers] [1mEsmModel LOAD REPORT[0m from: facebook/esm2_t6_8M_UR50D
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.bias              | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+pooler.dense.bias         | MISSING    | 
+pooler.dense.weight       | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Found 397 complete groups
+
+[000] already cached, skipping
+[001] already cached, skipping
+[002] already cached, skipping
+[003] already cached, skipping
+[004] already cached, skipping
+[005] already cached, skipping
+[006] already cached, skipping
+[007] already cached, skipping
+[008] already cached, skipping
+[009] already cached, skipping
+[010] already cached, skipping
+[011] already cached, skipping
+[012] already cached, skipping
+[013] already cached, skipping
+[014] already cached, skipping
+[015] already cached, skipping
+[016] already cached, skipping
+[017] already cached, skipping
+[018] already cached, skipping
+[019] already cached, skipping
+[020] already cached, skipping
+[021] already cached, skipping
+[022] already cached, skipping
+[023] already cached, skipping
+[024] already cached, skipping
+[025] already cached, skipping
+[026] already cached, skipping
+[027] already cached, skipping
+[028] already cached, skipping
+[029] already cached, skipping
+[030] already cached, skipping
+[031] already cached, skipping
+[032] already cached, skipping
+[033] already cached, skipping
+[034] already cached, skipping
+[035] already cached, skipping
+[036] already cached, skipping
+[037] already cached, skipping
+[038] already cached, skipping
+[039] already cached, skipping
+[040] already cached, skipping
+[041] already cached, skipping
+[042] already cached, skipping
+[043] already cached, skipping
+[044] already cached, skipping
+[045] already cached, skipping
+[046] already cached, skipping
+[047] already cached, skipping
+[048] already cached, skipping
+[049] already cached, skipping
+[050] already cached, skipping
+[051] already cached, skipping
+[052] already cached, skipping
+[053] already cached, skipping
+[054] already cached, skipping
+[055] already cached, skipping
+[056] already cached, skipping
+[057] already cached, skipping
+[058] already cached, skipping
+[059] already cached, skipping
+[060] already cached, skipping
+[061] already cached, skipping
+[062] already cached, skipping
+[063] already cached, skipping
+[064] already cached, skipping
+[065] already cached, skipping
+[066] already cached, skipping
+[067] already cached, skipping
+[068] already cached, skipping
+[069] already cached, skipping
+[070] already cached, skipping
+[071] already cached, skipping
+[072] already cached, skipping
+[073] already cached, skipping
+[074] already cached, skipping
+[075] already cached, skipping
+[076] already cached, skipping
+[077] already cached, skipping
+[078] already cached, skipping
+[079] already cached, skipping
+[080] already cached, skipping
+[081] already cached, skipping
+[082] already cached, skipping
+[083] already cached, skipping
+[084] already cached, skipping
+[085] already cached, skipping
+[086] already cached, skipping
+[087] already cached, skipping
+[088] already cached, skipping
+[089] already cached, skipping
+[090] already cached, skipping
+[091] already cached, skipping
+[092] already cached, skipping
+[093] already cached, skipping
+[094] already cached, skipping
+[095] already cached, skipping
+[096] already cached, skipping
+[097] already cached, skipping
+[098] already cached, skipping
+[099] already cached, skipping
+[100] already cached, skipping
+[101] already cached, skipping
+[102] already cached, skipping
+[103] already cached, skipping
+[104] already cached, skipping
+[105] already cached, skipping
+[106] already cached, skipping
+[107] already cached, skipping
+[108] already cached, skipping
+[109] already cached, skipping
+[110] already cached, skipping
+[111] already cached, skipping
+[112] already cached, skipping
+[113] already cached, skipping
+[114] already cached, skipping
+[115] already cached, skipping
+[116] already cached, skipping
+[117] already cached, skipping
+[118] already cached, skipping
+[119] already cached, skipping
+[120] already cached, skipping
+[121] already cached, skipping
+[122] already cached, skipping
+[123] already cached, skipping
+[124] already cached, skipping
+[125] already cached, skipping
+[126] already cached, skipping
+[127] already cached, skipping
+[128] already cached, skipping
+[129] already cached, skipping
+[130] already cached, skipping
+[131] already cached, skipping
+[132] already cached, skipping
+[133] already cached, skipping
+[134] already cached, skipping
+[135] already cached, skipping
+[136] already cached, skipping
+[137] already cached, skipping
+[138] already cached, skipping
+[139] already cached, skipping
+[140] already cached, skipping
+[141] already cached, skipping
+[142] already cached, skipping
+[143] already cached, skipping
+[144] already cached, skipping
+[145] already cached, skipping
+[146] already cached, skipping
+[147] already cached, skipping
+[148] already cached, skipping
+[149] already cached, skipping
+[150] already cached, skipping
+[151] already cached, skipping
+[152] already cached, skipping
+[153] already cached, skipping
+[154] already cached, skipping
+[155] already cached, skipping
+[156] already cached, skipping
+[157] already cached, skipping
+[158] already cached, skipping
+[159] already cached, skipping
+[160] already cached, skipping
+[161] already cached, skipping
+[162] already cached, skipping
+[163] already cached, skipping
+[164] already cached, skipping
+[165] already cached, skipping
+[166] already cached, skipping
+[167] already cached, skipping
+[168] already cached, skipping
+[169] already cached, skipping
+[170] already cached, skipping
+[171] already cached, skipping
+[172] already cached, skipping
+[173] already cached, skipping
+[174] already cached, skipping
+[175] already cached, skipping
+[176] already cached, skipping
+[177] already cached, skipping
+[178] already cached, skipping
+[179] already cached, skipping
+[180] already cached, skipping
+[181] already cached, skipping
+[182] already cached, skipping
+[183] already cached, skipping
+[184] already cached, skipping
+[185] already cached, skipping
+[186] already cached, skipping
+[187] already cached, skipping
+[188] already cached, skipping
+[189] already cached, skipping
+[190] already cached, skipping
+[191] already cached, skipping
+[192] already cached, skipping
+[193] already cached, skipping
+[194] already cached, skipping
+[195] already cached, skipping
+[196] already cached, skipping
+[197] already cached, skipping
+[198] already cached, skipping
+[199] already cached, skipping
+[200] already cached, skipping
+[201] already cached, skipping
+[202] already cached, skipping
+[203] already cached, skipping
+[204] already cached, skipping
+[205] already cached, skipping
+[206] already cached, skipping
+[207] already cached, skipping
+[208] already cached, skipping
+[209] already cached, skipping
+[210] already cached, skipping
+[211] already cached, skipping
+[212] already cached, skipping
+[213] already cached, skipping
+[214] already cached, skipping
+[215] already cached, skipping
+[216] already cached, skipping
+[217] already cached, skipping
+[218] already cached, skipping
+[219] already cached, skipping
+[220] already cached, skipping
+[221] already cached, skipping
+[222] already cached, skipping
+[223] already cached, skipping
+[224] already cached, skipping
+[225] already cached, skipping
+[226] already cached, skipping
+[227] already cached, skipping
+[228] already cached, skipping
+[229] already cached, skipping
+[230] already cached, skipping
+[231] already cached, skipping
+[232] already cached, skipping
+[233] already cached, skipping
+[234] already cached, skipping
+[235] already cached, skipping
+[236] already cached, skipping
+[237] already cached, skipping
+[238] already cached, skipping
+[239] already cached, skipping
+[240] already cached, skipping
+[241] already cached, skipping
+[242] already cached, skipping
+[243] already cached, skipping
+[244] already cached, skipping
+[245] already cached, skipping
+[246] already cached, skipping
+[247] already cached, skipping
+[248] already cached, skipping
+[249] already cached, skipping
+[250] already cached, skipping
+[251] already cached, skipping
+[252] already cached, skipping
+[253] already cached, skipping
+[254] already cached, skipping
+[255] already cached, skipping
+[256] already cached, skipping
+[257] already cached, skipping
+[258] already cached, skipping
+[259] already cached, skipping
+[260] already cached, skipping
+[261] already cached, skipping
+[262] already cached, skipping
+[263] already cached, skipping
+[264] already cached, skipping
+[265] already cached, skipping
+[266] already cached, skipping
+[267] already cached, skipping
+[268] already cached, skipping
+[269] already cached, skipping
+[270] already cached, skipping
+[271] already cached, skipping
+[272] already cached, skipping
+[273] already cached, skipping
+[274] already cached, skipping
+[275] already cached, skipping
+[276] already cached, skipping
+[277] already cached, skipping
+[278] already cached, skipping
+[279] already cached, skipping
+[280] already cached, skipping
+[281] already cached, skipping
+[282] already cached, skipping
+[283] already cached, skipping
+[284] already cached, skipping
+[285] already cached, skipping
+[286] already cached, skipping
+[287] already cached, skipping
+[288] already cached, skipping
+[289] already cached, skipping
+[290] already cached, skipping
+[291] already cached, skipping
+[292] already cached, skipping
+[293] already cached, skipping
+[294] already cached, skipping
+[295] already cached, skipping
+[296] already cached, skipping
+[297] already cached, skipping
+[298] already cached, skipping
+[299] already cached, skipping
+[300] already cached, skipping
+[301] already cached, skipping
+[302] already cached, skipping
+[303] already cached, skipping
+[304] already cached, skipping
+[305] already cached, skipping
+[306] already cached, skipping
+[307] already cached, skipping
+[308] already cached, skipping
+[309] already cached, skipping
+[310] already cached, skipping
+[311] already cached, skipping
+[312] already cached, skipping
+[313] already cached, skipping
+[314] already cached, skipping
+[315] already cached, skipping
+[316] already cached, skipping
+[317] already cached, skipping
+[318] already cached, skipping
+[319] already cached, skipping
+[320] already cached, skipping
+[321] already cached, skipping
+[322] already cached, skipping
+[323] already cached, skipping
+[324] already cached, skipping
+[325] already cached, skipping
+[326] already cached, skipping
+[327] already cached, skipping
+[328] already cached, skipping
+[329] already cached, skipping
+[330] already cached, skipping
+[331] already cached, skipping
+[332] already cached, skipping
+[333] already cached, skipping
+[334] already cached, skipping
+[335] already cached, skipping
+[336] already cached, skipping
+[337] already cached, skipping
+[338] already cached, skipping
+[339] already cached, skipping
+[340] already cached, skipping
+[341] already cached, skipping
+[342] already cached, skipping
+[343] already cached, skipping
+[344] already cached, skipping
+[345] already cached, skipping
+[346] already cached, skipping
+[347] already cached, skipping
+[348] already cached, skipping
+[349] already cached, skipping
+[350] already cached, skipping
+[351] already cached, skipping
+[352] already cached, skipping
+[353] already cached, skipping
+[354] already cached, skipping
+[355] already cached, skipping
+[356] already cached, skipping
+[357] already cached, skipping
+[358] already cached, skipping
+[359] already cached, skipping
+[360] already cached, skipping
+[361] already cached, skipping
+[362] already cached, skipping
+[363] already cached, skipping
+[364] already cached, skipping
+[365] already cached, skipping
+[366] already cached, skipping
+[367] already cached, skipping
+[368] already cached, skipping
+[369] already cached, skipping
+[370] already cached, skipping
+[371] already cached, skipping
+[372] already cached, skipping
+[373] already cached, skipping
+[374] already cached, skipping
+[375] already cached, skipping
+[376] already cached, skipping
+[377] already cached, skipping
+[378] already cached, skipping
+[379] already cached, skipping
+[380] already cached, skipping
+[381] already cached, skipping
+[382] already cached, skipping
+[383] already cached, skipping
+[384] already cached, skipping
+[385] already cached, skipping
+[386] already cached, skipping
+[387] already cached, skipping
+[388] already cached, skipping
+[389] already cached, skipping
+[390] already cached, skipping
+[391] already cached, skipping
+[392] already cached, skipping
+[393] already cached, skipping
+[394] already cached, skipping
+[395] already cached, skipping
+[396] already cached, skipping
+
+All groups done.
+=== precompute_ref_rates train ===
+Device: cuda
+R0 backend: esm2  model=(default)  tag=''
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 15338.02it/s]
+Found 397 complete groups
+
+[000] already cached (group_000_ref_rates.pt), skipping
+[001] already cached (group_001_ref_rates.pt), skipping
+[002] already cached (group_002_ref_rates.pt), skipping
+[003] already cached (group_003_ref_rates.pt), skipping
+[004] already cached (group_004_ref_rates.pt), skipping
+[005] already cached (group_005_ref_rates.pt), skipping
+[006] already cached (group_006_ref_rates.pt), skipping
+[007] already cached (group_007_ref_rates.pt), skipping
+[008] already cached (group_008_ref_rates.pt), skipping
+[009] already cached (group_009_ref_rates.pt), skipping
+[010] already cached (group_010_ref_rates.pt), skipping
+[011] already cached (group_011_ref_rates.pt), skipping
+[012] already cached (group_012_ref_rates.pt), skipping
+[013] already cached (group_013_ref_rates.pt), skipping
+[014] already cached (group_014_ref_rates.pt), skipping
+[015] already cached (group_015_ref_rates.pt), skipping
+[016] already cached (group_016_ref_rates.pt), skipping
+[017] already cached (group_017_ref_rates.pt), skipping
+[018] already cached (group_018_ref_rates.pt), skipping
+[019] already cached (group_019_ref_rates.pt), skipping
+[020] already cached (group_020_ref_rates.pt), skipping
+[021] already cached (group_021_ref_rates.pt), skipping
+[022] already cached (group_022_ref_rates.pt), skipping
+[023] already cached (group_023_ref_rates.pt), skipping
+[024] already cached (group_024_ref_rates.pt), skipping
+[025] already cached (group_025_ref_rates.pt), skipping
+[026] already cached (group_026_ref_rates.pt), skipping
+[027] already cached (group_027_ref_rates.pt), skipping
+[028] already cached (group_028_ref_rates.pt), skipping
+[029] already cached (group_029_ref_rates.pt), skipping
+[030] already cached (group_030_ref_rates.pt), skipping
+[031] already cached (group_031_ref_rates.pt), skipping
+[032] already cached (group_032_ref_rates.pt), skipping
+[033] already cached (group_033_ref_rates.pt), skipping
+[034] already cached (group_034_ref_rates.pt), skipping
+[035] already cached (group_035_ref_rates.pt), skipping
+[036] already cached (group_036_ref_rates.pt), skipping
+[037] already cached (group_037_ref_rates.pt), skipping
+[038] already cached (group_038_ref_rates.pt), skipping
+[039] already cached (group_039_ref_rates.pt), skipping
+[040] already cached (group_040_ref_rates.pt), skipping
+[041] already cached (group_041_ref_rates.pt), skipping
+[042] already cached (group_042_ref_rates.pt), skipping
+[043] already cached (group_043_ref_rates.pt), skipping
+[044] already cached (group_044_ref_rates.pt), skipping
+[045] already cached (group_045_ref_rates.pt), skipping
+[046] already cached (group_046_ref_rates.pt), skipping
+[047] already cached (group_047_ref_rates.pt), skipping
+[048] already cached (group_048_ref_rates.pt), skipping
+[049] already cached (group_049_ref_rates.pt), skipping
+[050] already cached (group_050_ref_rates.pt), skipping
+[051] already cached (group_051_ref_rates.pt), skipping
+[052] already cached (group_052_ref_rates.pt), skipping
+[053] already cached (group_053_ref_rates.pt), skipping
+[054] already cached (group_054_ref_rates.pt), skipping
+[055] already cached (group_055_ref_rates.pt), skipping
+[056] already cached (group_056_ref_rates.pt), skipping
+[057] already cached (group_057_ref_rates.pt), skipping
+[058] already cached (group_058_ref_rates.pt), skipping
+[059] already cached (group_059_ref_rates.pt), skipping
+[060] already cached (group_060_ref_rates.pt), skipping
+[061] already cached (group_061_ref_rates.pt), skipping
+[062] already cached (group_062_ref_rates.pt), skipping
+[063] already cached (group_063_ref_rates.pt), skipping
+[064] already cached (group_064_ref_rates.pt), skipping
+[065] already cached (group_065_ref_rates.pt), skipping
+[066] already cached (group_066_ref_rates.pt), skipping
+[067] already cached (group_067_ref_rates.pt), skipping
+[068] already cached (group_068_ref_rates.pt), skipping
+[069] already cached (group_069_ref_rates.pt), skipping
+[070] already cached (group_070_ref_rates.pt), skipping
+[071] already cached (group_071_ref_rates.pt), skipping
+[072] already cached (group_072_ref_rates.pt), skipping
+[073] already cached (group_073_ref_rates.pt), skipping
+[074] already cached (group_074_ref_rates.pt), skipping
+[075] already cached (group_075_ref_rates.pt), skipping
+[076] already cached (group_076_ref_rates.pt), skipping
+[077] already cached (group_077_ref_rates.pt), skipping
+[078] already cached (group_078_ref_rates.pt), skipping
+[079] already cached (group_079_ref_rates.pt), skipping
+[080] already cached (group_080_ref_rates.pt), skipping
+[081] already cached (group_081_ref_rates.pt), skipping
+[082] already cached (group_082_ref_rates.pt), skipping
+[083] already cached (group_083_ref_rates.pt), skipping
+[084] already cached (group_084_ref_rates.pt), skipping
+[085] already cached (group_085_ref_rates.pt), skipping
+[086] already cached (group_086_ref_rates.pt), skipping
+[087] already cached (group_087_ref_rates.pt), skipping
+[088] already cached (group_088_ref_rates.pt), skipping
+[089] already cached (group_089_ref_rates.pt), skipping
+[090] already cached (group_090_ref_rates.pt), skipping
+[091] already cached (group_091_ref_rates.pt), skipping
+[092] already cached (group_092_ref_rates.pt), skipping
+[093] already cached (group_093_ref_rates.pt), skipping
+[094] already cached (group_094_ref_rates.pt), skipping
+[095] already cached (group_095_ref_rates.pt), skipping
+[096] already cached (group_096_ref_rates.pt), skipping
+[097] already cached (group_097_ref_rates.pt), skipping
+[098] already cached (group_098_ref_rates.pt), skipping
+[099] already cached (group_099_ref_rates.pt), skipping
+[100] already cached (group_100_ref_rates.pt), skipping
+[101] already cached (group_101_ref_rates.pt), skipping
+[102] already cached (group_102_ref_rates.pt), skipping
+[103] already cached (group_103_ref_rates.pt), skipping
+[104] already cached (group_104_ref_rates.pt), skipping
+[105] already cached (group_105_ref_rates.pt), skipping
+[106] already cached (group_106_ref_rates.pt), skipping
+[107] already cached (group_107_ref_rates.pt), skipping
+[108] already cached (group_108_ref_rates.pt), skipping
+[109] already cached (group_109_ref_rates.pt), skipping
+[110] already cached (group_110_ref_rates.pt), skipping
+[111] already cached (group_111_ref_rates.pt), skipping
+[112] already cached (group_112_ref_rates.pt), skipping
+[113] already cached (group_113_ref_rates.pt), skipping
+[114] already cached (group_114_ref_rates.pt), skipping
+[115] already cached (group_115_ref_rates.pt), skipping
+[116] already cached (group_116_ref_rates.pt), skipping
+[117] already cached (group_117_ref_rates.pt), skipping
+[118] already cached (group_118_ref_rates.pt), skipping
+[119] already cached (group_119_ref_rates.pt), skipping
+[120] already cached (group_120_ref_rates.pt), skipping
+[121] already cached (group_121_ref_rates.pt), skipping
+[122] already cached (group_122_ref_rates.pt), skipping
+[123] already cached (group_123_ref_rates.pt), skipping
+[124] already cached (group_124_ref_rates.pt), skipping
+[125] already cached (group_125_ref_rates.pt), skipping
+[126] already cached (group_126_ref_rates.pt), skipping
+[127] already cached (group_127_ref_rates.pt), skipping
+[128] already cached (group_128_ref_rates.pt), skipping
+[129] already cached (group_129_ref_rates.pt), skipping
+[130] already cached (group_130_ref_rates.pt), skipping
+[131] already cached (group_131_ref_rates.pt), skipping
+[132] already cached (group_132_ref_rates.pt), skipping
+[133] already cached (group_133_ref_rates.pt), skipping
+[134] already cached (group_134_ref_rates.pt), skipping
+[135] already cached (group_135_ref_rates.pt), skipping
+[136] already cached (group_136_ref_rates.pt), skipping
+[137] already cached (group_137_ref_rates.pt), skipping
+[138] already cached (group_138_ref_rates.pt), skipping
+[139] already cached (group_139_ref_rates.pt), skipping
+[140] already cached (group_140_ref_rates.pt), skipping
+[141] already cached (group_141_ref_rates.pt), skipping
+[142] already cached (group_142_ref_rates.pt), skipping
+[143] already cached (group_143_ref_rates.pt), skipping
+[144] already cached (group_144_ref_rates.pt), skipping
+[145] already cached (group_145_ref_rates.pt), skipping
+[146] already cached (group_146_ref_rates.pt), skipping
+[147] already cached (group_147_ref_rates.pt), skipping
+[148] already cached (group_148_ref_rates.pt), skipping
+[149] already cached (group_149_ref_rates.pt), skipping
+[150] already cached (group_150_ref_rates.pt), skipping
+[151] already cached (group_151_ref_rates.pt), skipping
+[152] already cached (group_152_ref_rates.pt), skipping
+[153] already cached (group_153_ref_rates.pt), skipping
+[154] already cached (group_154_ref_rates.pt), skipping
+[155] already cached (group_155_ref_rates.pt), skipping
+[156] already cached (group_156_ref_rates.pt), skipping
+[157] already cached (group_157_ref_rates.pt), skipping
+[158] already cached (group_158_ref_rates.pt), skipping
+[159] already cached (group_159_ref_rates.pt), skipping
+[160] already cached (group_160_ref_rates.pt), skipping
+[161] already cached (group_161_ref_rates.pt), skipping
+[162] already cached (group_162_ref_rates.pt), skipping
+[163] already cached (group_163_ref_rates.pt), skipping
+[164] already cached (group_164_ref_rates.pt), skipping
+[165] already cached (group_165_ref_rates.pt), skipping
+[166] already cached (group_166_ref_rates.pt), skipping
+[167] already cached (group_167_ref_rates.pt), skipping
+[168] already cached (group_168_ref_rates.pt), skipping
+[169] already cached (group_169_ref_rates.pt), skipping
+[170] already cached (group_170_ref_rates.pt), skipping
+[171] already cached (group_171_ref_rates.pt), skipping
+[172] already cached (group_172_ref_rates.pt), skipping
+[173] already cached (group_173_ref_rates.pt), skipping
+[174] already cached (group_174_ref_rates.pt), skipping
+[175] already cached (group_175_ref_rates.pt), skipping
+[176] already cached (group_176_ref_rates.pt), skipping
+[177] already cached (group_177_ref_rates.pt), skipping
+[178] already cached (group_178_ref_rates.pt), skipping
+[179] already cached (group_179_ref_rates.pt), skipping
+[180] already cached (group_180_ref_rates.pt), skipping
+[181] already cached (group_181_ref_rates.pt), skipping
+[182] already cached (group_182_ref_rates.pt), skipping
+[183] already cached (group_183_ref_rates.pt), skipping
+[184] already cached (group_184_ref_rates.pt), skipping
+[185] already cached (group_185_ref_rates.pt), skipping
+[186] already cached (group_186_ref_rates.pt), skipping
+[187] already cached (group_187_ref_rates.pt), skipping
+[188] already cached (group_188_ref_rates.pt), skipping
+[189] already cached (group_189_ref_rates.pt), skipping
+[190] already cached (group_190_ref_rates.pt), skipping
+[191] already cached (group_191_ref_rates.pt), skipping
+[192] already cached (group_192_ref_rates.pt), skipping
+[193] already cached (group_193_ref_rates.pt), skipping
+[194] already cached (group_194_ref_rates.pt), skipping
+[195] already cached (group_195_ref_rates.pt), skipping
+[196] already cached (group_196_ref_rates.pt), skipping
+[197] already cached (group_197_ref_rates.pt), skipping
+[198] already cached (group_198_ref_rates.pt), skipping
+[199] already cached (group_199_ref_rates.pt), skipping
+[200] already cached (group_200_ref_rates.pt), skipping
+[201] already cached (group_201_ref_rates.pt), skipping
+[202] already cached (group_202_ref_rates.pt), skipping
+[203] already cached (group_203_ref_rates.pt), skipping
+[204] already cached (group_204_ref_rates.pt), skipping
+[205] already cached (group_205_ref_rates.pt), skipping
+[206] already cached (group_206_ref_rates.pt), skipping
+[207] already cached (group_207_ref_rates.pt), skipping
+[208] already cached (group_208_ref_rates.pt), skipping
+[209] already cached (group_209_ref_rates.pt), skipping
+[210] already cached (group_210_ref_rates.pt), skipping
+[211] already cached (group_211_ref_rates.pt), skipping
+[212] already cached (group_212_ref_rates.pt), skipping
+[213] already cached (group_213_ref_rates.pt), skipping
+[214] already cached (group_214_ref_rates.pt), skipping
+[215] already cached (group_215_ref_rates.pt), skipping
+[216] already cached (group_216_ref_rates.pt), skipping
+[217] already cached (group_217_ref_rates.pt), skipping
+[218] already cached (group_218_ref_rates.pt), skipping
+[219] already cached (group_219_ref_rates.pt), skipping
+[220] already cached (group_220_ref_rates.pt), skipping
+[221] already cached (group_221_ref_rates.pt), skipping
+[222] already cached (group_222_ref_rates.pt), skipping
+[223] already cached (group_223_ref_rates.pt), skipping
+[224] already cached (group_224_ref_rates.pt), skipping
+[225] already cached (group_225_ref_rates.pt), skipping
+[226] already cached (group_226_ref_rates.pt), skipping
+[227] already cached (group_227_ref_rates.pt), skipping
+[228] already cached (group_228_ref_rates.pt), skipping
+[229] already cached (group_229_ref_rates.pt), skipping
+[230] already cached (group_230_ref_rates.pt), skipping
+[231] already cached (group_231_ref_rates.pt), skipping
+[232] already cached (group_232_ref_rates.pt), skipping
+[233] already cached (group_233_ref_rates.pt), skipping
+[234] already cached (group_234_ref_rates.pt), skipping
+[235] already cached (group_235_ref_rates.pt), skipping
+[236] already cached (group_236_ref_rates.pt), skipping
+[237] already cached (group_237_ref_rates.pt), skipping
+[238] already cached (group_238_ref_rates.pt), skipping
+[239] already cached (group_239_ref_rates.pt), skipping
+[240] already cached (group_240_ref_rates.pt), skipping
+[241] already cached (group_241_ref_rates.pt), skipping
+[242] already cached (group_242_ref_rates.pt), skipping
+[243] already cached (group_243_ref_rates.pt), skipping
+[244] already cached (group_244_ref_rates.pt), skipping
+[245] already cached (group_245_ref_rates.pt), skipping
+[246] already cached (group_246_ref_rates.pt), skipping
+[247] already cached (group_247_ref_rates.pt), skipping
+[248] already cached (group_248_ref_rates.pt), skipping
+[249] already cached (group_249_ref_rates.pt), skipping
+[250] already cached (group_250_ref_rates.pt), skipping
+[251] already cached (group_251_ref_rates.pt), skipping
+[252] already cached (group_252_ref_rates.pt), skipping
+[253] already cached (group_253_ref_rates.pt), skipping
+[254] already cached (group_254_ref_rates.pt), skipping
+[255] already cached (group_255_ref_rates.pt), skipping
+[256] already cached (group_256_ref_rates.pt), skipping
+[257] already cached (group_257_ref_rates.pt), skipping
+[258] already cached (group_258_ref_rates.pt), skipping
+[259] already cached (group_259_ref_rates.pt), skipping
+[260] already cached (group_260_ref_rates.pt), skipping
+[261] already cached (group_261_ref_rates.pt), skipping
+[262] already cached (group_262_ref_rates.pt), skipping
+[263] already cached (group_263_ref_rates.pt), skipping
+[264] already cached (group_264_ref_rates.pt), skipping
+[265] already cached (group_265_ref_rates.pt), skipping
+[266] already cached (group_266_ref_rates.pt), skipping
+[267] already cached (group_267_ref_rates.pt), skipping
+[268] already cached (group_268_ref_rates.pt), skipping
+[269] already cached (group_269_ref_rates.pt), skipping
+[270] already cached (group_270_ref_rates.pt), skipping
+[271] already cached (group_271_ref_rates.pt), skipping
+[272] already cached (group_272_ref_rates.pt), skipping
+[273] already cached (group_273_ref_rates.pt), skipping
+[274] already cached (group_274_ref_rates.pt), skipping
+[275] already cached (group_275_ref_rates.pt), skipping
+[276] already cached (group_276_ref_rates.pt), skipping
+[277] already cached (group_277_ref_rates.pt), skipping
+[278] already cached (group_278_ref_rates.pt), skipping
+[279] already cached (group_279_ref_rates.pt), skipping
+[280] already cached (group_280_ref_rates.pt), skipping
+[281] already cached (group_281_ref_rates.pt), skipping
+[282] already cached (group_282_ref_rates.pt), skipping
+[283] already cached (group_283_ref_rates.pt), skipping
+[284] already cached (group_284_ref_rates.pt), skipping
+[285] already cached (group_285_ref_rates.pt), skipping
+[286] already cached (group_286_ref_rates.pt), skipping
+[287] already cached (group_287_ref_rates.pt), skipping
+[288] already cached (group_288_ref_rates.pt), skipping
+[289] already cached (group_289_ref_rates.pt), skipping
+[290] already cached (group_290_ref_rates.pt), skipping
+[291] already cached (group_291_ref_rates.pt), skipping
+[292] already cached (group_292_ref_rates.pt), skipping
+[293] already cached (group_293_ref_rates.pt), skipping
+[294] already cached (group_294_ref_rates.pt), skipping
+[295] already cached (group_295_ref_rates.pt), skipping
+[296] already cached (group_296_ref_rates.pt), skipping
+[297] already cached (group_297_ref_rates.pt), skipping
+[298] already cached (group_298_ref_rates.pt), skipping
+[299] already cached (group_299_ref_rates.pt), skipping
+[300] already cached (group_300_ref_rates.pt), skipping
+[301] already cached (group_301_ref_rates.pt), skipping
+[302] already cached (group_302_ref_rates.pt), skipping
+[303] already cached (group_303_ref_rates.pt), skipping
+[304] already cached (group_304_ref_rates.pt), skipping
+[305] already cached (group_305_ref_rates.pt), skipping
+[306] already cached (group_306_ref_rates.pt), skipping
+[307] already cached (group_307_ref_rates.pt), skipping
+[308] already cached (group_308_ref_rates.pt), skipping
+[309] already cached (group_309_ref_rates.pt), skipping
+[310] already cached (group_310_ref_rates.pt), skipping
+[311] already cached (group_311_ref_rates.pt), skipping
+[312] already cached (group_312_ref_rates.pt), skipping
+[313] already cached (group_313_ref_rates.pt), skipping
+[314] already cached (group_314_ref_rates.pt), skipping
+[315] already cached (group_315_ref_rates.pt), skipping
+[316] already cached (group_316_ref_rates.pt), skipping
+[317] already cached (group_317_ref_rates.pt), skipping
+[318] already cached (group_318_ref_rates.pt), skipping
+[319] already cached (group_319_ref_rates.pt), skipping
+[320] already cached (group_320_ref_rates.pt), skipping
+[321] already cached (group_321_ref_rates.pt), skipping
+[322] already cached (group_322_ref_rates.pt), skipping
+[323] already cached (group_323_ref_rates.pt), skipping
+[324] already cached (group_324_ref_rates.pt), skipping
+[325] already cached (group_325_ref_rates.pt), skipping
+[326] already cached (group_326_ref_rates.pt), skipping
+[327] already cached (group_327_ref_rates.pt), skipping
+[328] already cached (group_328_ref_rates.pt), skipping
+[329] already cached (group_329_ref_rates.pt), skipping
+[330] already cached (group_330_ref_rates.pt), skipping
+[331] already cached (group_331_ref_rates.pt), skipping
+[332] already cached (group_332_ref_rates.pt), skipping
+[333] already cached (group_333_ref_rates.pt), skipping
+[334] already cached (group_334_ref_rates.pt), skipping
+[335] already cached (group_335_ref_rates.pt), skipping
+[336] already cached (group_336_ref_rates.pt), skipping
+[337] already cached (group_337_ref_rates.pt), skipping
+[338] already cached (group_338_ref_rates.pt), skipping
+[339] already cached (group_339_ref_rates.pt), skipping
+[340] already cached (group_340_ref_rates.pt), skipping
+[341] already cached (group_341_ref_rates.pt), skipping
+[342] already cached (group_342_ref_rates.pt), skipping
+[343] already cached (group_343_ref_rates.pt), skipping
+[344] already cached (group_344_ref_rates.pt), skipping
+[345] already cached (group_345_ref_rates.pt), skipping
+[346] already cached (group_346_ref_rates.pt), skipping
+[347] already cached (group_347_ref_rates.pt), skipping
+[348] already cached (group_348_ref_rates.pt), skipping
+[349] already cached (group_349_ref_rates.pt), skipping
+[350] already cached (group_350_ref_rates.pt), skipping
+[351] already cached (group_351_ref_rates.pt), skipping
+[352] already cached (group_352_ref_rates.pt), skipping
+[353] already cached (group_353_ref_rates.pt), skipping
+[354] already cached (group_354_ref_rates.pt), skipping
+[355] already cached (group_355_ref_rates.pt), skipping
+[356] already cached (group_356_ref_rates.pt), skipping
+[357] already cached (group_357_ref_rates.pt), skipping
+[358] already cached (group_358_ref_rates.pt), skipping
+[359] already cached (group_359_ref_rates.pt), skipping
+[360] already cached (group_360_ref_rates.pt), skipping
+[361] already cached (group_361_ref_rates.pt), skipping
+[362] already cached (group_362_ref_rates.pt), skipping
+[363] already cached (group_363_ref_rates.pt), skipping
+[364] already cached (group_364_ref_rates.pt), skipping
+[365] already cached (group_365_ref_rates.pt), skipping
+[366] already cached (group_366_ref_rates.pt), skipping
+[367] already cached (group_367_ref_rates.pt), skipping
+[368] already cached (group_368_ref_rates.pt), skipping
+[369] already cached (group_369_ref_rates.pt), skipping
+[370] already cached (group_370_ref_rates.pt), skipping
+[371] already cached (group_371_ref_rates.pt), skipping
+[372] already cached (group_372_ref_rates.pt), skipping
+[373] already cached (group_373_ref_rates.pt), skipping
+[374] already cached (group_374_ref_rates.pt), skipping
+[375] already cached (group_375_ref_rates.pt), skipping
+[376] already cached (group_376_ref_rates.pt), skipping
+[377] already cached (group_377_ref_rates.pt), skipping
+[378] already cached (group_378_ref_rates.pt), skipping
+[379] already cached (group_379_ref_rates.pt), skipping
+[380] already cached (group_380_ref_rates.pt), skipping
+[381] already cached (group_381_ref_rates.pt), skipping
+[382] already cached (group_382_ref_rates.pt), skipping
+[383] already cached (group_383_ref_rates.pt), skipping
+[384] already cached (group_384_ref_rates.pt), skipping
+[385] already cached (group_385_ref_rates.pt), skipping
+[386] already cached (group_386_ref_rates.pt), skipping
+[387] already cached (group_387_ref_rates.pt), skipping
+[388] already cached (group_388_ref_rates.pt), skipping
+[389] already cached (group_389_ref_rates.pt), skipping
+[390] already cached (group_390_ref_rates.pt), skipping
+[391] already cached (group_391_ref_rates.pt), skipping
+[392] already cached (group_392_ref_rates.pt), skipping
+[393] already cached (group_393_ref_rates.pt), skipping
+[394] already cached (group_394_ref_rates.pt), skipping
+[395] already cached (group_395_ref_rates.pt), skipping
+[396] already cached (group_396_ref_rates.pt), skipping
+
+All groups done.
+=== precompute_plm val ===
+Device: cuda
+Loading weights:   0%|          | 0/102 [00:00<?, ?it/s]Loading weights: 100%|██████████| 102/102 [00:00<00:00, 16495.18it/s]
+[transformers] [1mEsmModel LOAD REPORT[0m from: facebook/esm2_t6_8M_UR50D
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.bias              | UNEXPECTED | 
+lm_head.layer_norm.weight | UNEXPECTED | 
+pooler.dense.bias         | MISSING    | 
+pooler.dense.weight       | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Found 44 complete groups
+
+[000] already cached, skipping
+[001] already cached, skipping
+[002] already cached, skipping
+[003] already cached, skipping
+[004] already cached, skipping
+[005] already cached, skipping
+[006] already cached, skipping
+[007] already cached, skipping
+[008] already cached, skipping
+[009] already cached, skipping
+[010] already cached, skipping
+[011] already cached, skipping
+[012] already cached, skipping
+[013] already cached, skipping
+[014] already cached, skipping
+[015] already cached, skipping
+[016] already cached, skipping
+[017] already cached, skipping
+[018] already cached, skipping
+[019] already cached, skipping
+[020] already cached, skipping
+[021] already cached, skipping
+[022] already cached, skipping
+[023] already cached, skipping
+[024] already cached, skipping
+[025] already cached, skipping
+[026] already cached, skipping
+[027] already cached, skipping
+[028] already cached, skipping
+[029] already cached, skipping
+[030] already cached, skipping
+[031] already cached, skipping
+[032] already cached, skipping
+[033] already cached, skipping
+[034] already cached, skipping
+[035] already cached, skipping
+[036] already cached, skipping
+[037] already cached, skipping
+[038] already cached, skipping
+[039] already cached, skipping
+[040] already cached, skipping
+[041] already cached, skipping
+[042] already cached, skipping
+[043] already cached, skipping
+
+All groups done.
+=== precompute_ref_rates val ===
+Device: cuda
+R0 backend: esm2  model=(default)  tag=''
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 10499.01it/s]
+Found 44 complete groups
+
+[000] already cached (group_000_ref_rates.pt), skipping
+[001] already cached (group_001_ref_rates.pt), skipping
+[002] already cached (group_002_ref_rates.pt), skipping
+[003] already cached (group_003_ref_rates.pt), skipping
+[004] already cached (group_004_ref_rates.pt), skipping
+[005] already cached (group_005_ref_rates.pt), skipping
+[006] already cached (group_006_ref_rates.pt), skipping
+[007] already cached (group_007_ref_rates.pt), skipping
+[008] already cached (group_008_ref_rates.pt), skipping
+[009] already cached (group_009_ref_rates.pt), skipping
+[010] already cached (group_010_ref_rates.pt), skipping
+[011] already cached (group_011_ref_rates.pt), skipping
+[012] already cached (group_012_ref_rates.pt), skipping
+[013] already cached (group_013_ref_rates.pt), skipping
+[014] already cached (group_014_ref_rates.pt), skipping
+[015] already cached (group_015_ref_rates.pt), skipping
+[016] already cached (group_016_ref_rates.pt), skipping
+[017] already cached (group_017_ref_rates.pt), skipping
+[018] already cached (group_018_ref_rates.pt), skipping
+[019] already cached (group_019_ref_rates.pt), skipping
+[020] already cached (group_020_ref_rates.pt), skipping
+[021] already cached (group_021_ref_rates.pt), skipping
+[022] already cached (group_022_ref_rates.pt), skipping
+[023] already cached (group_023_ref_rates.pt), skipping
+[024] already cached (group_024_ref_rates.pt), skipping
+[025] already cached (group_025_ref_rates.pt), skipping
+[026] already cached (group_026_ref_rates.pt), skipping
+[027] already cached (group_027_ref_rates.pt), skipping
+[028] already cached (group_028_ref_rates.pt), skipping
+[029] already cached (group_029_ref_rates.pt), skipping
+[030] already cached (group_030_ref_rates.pt), skipping
+[031] already cached (group_031_ref_rates.pt), skipping
+[032] already cached (group_032_ref_rates.pt), skipping
+[033] already cached (group_033_ref_rates.pt), skipping
+[034] already cached (group_034_ref_rates.pt), skipping
+[035] already cached (group_035_ref_rates.pt), skipping
+[036] already cached (group_036_ref_rates.pt), skipping
+[037] already cached (group_037_ref_rates.pt), skipping
+[038] already cached (group_038_ref_rates.pt), skipping
+[039] already cached (group_039_ref_rates.pt), skipping
+[040] already cached (group_040_ref_rates.pt), skipping
+[041] already cached (group_041_ref_rates.pt), skipping
+[042] already cached (group_042_ref_rates.pt), skipping
+[043] already cached (group_043_ref_rates.pt), skipping
+
+All groups done.
+=== train.py ===
+Device: cuda
+R0 backend: esm2  ref_rates_tag=''
+Pre-split data: loading train/val/test from separate dirs
+TreeDataset: 397 trees found
+TreeDataset: 44 trees found
+TreeDataset: 170 trees found
+Total — Train: 397  Val: 44  Test: 170
+PLM embeddings cached — skipping ESM2 at training time
+Computing empirical column entropy from the training alignment...
+  col_entropy: [160]  mean=0.491  max=0.911  nonzero=131
+  loaded hotspot mask from results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt (score=precomputed)
+  mut hotspots (precomputed): n=27/160  weight=5.0  force=True  (topk=None frac=None mask=results/ab_cdr_mask/mut_hotspot_mask_imgt_cdr_1m.pt)
+Computing empirical train log-PSSM for --pssm-gate...
+  log_pssm: (160, 20)  mean=-4.186
+Epoch 001  train=14.1844 (rate=14.182 mut=1.180 cons=0.039 top=-0.015 br=0.717488 stop=0.063 pll=0.377 semi=0.008)  val=nan  lr=1.00e-04  [mut_entropy=0.142 mut_w=2.111 mut_w_max=3.887]  [br_pred_std=0.020872 br_target_std=0.013993]
+Epoch 002  train=12.3653 (rate=12.425 mut=1.034 cons=0.033 top=-0.127 br=0.587424 stop=0.003 pll=0.376 semi=0.003)  val=nan  lr=1.00e-04  [mut_entropy=0.129 mut_w=1.863 mut_w_max=3.554]  [br_pred_std=0.020140 br_target_std=0.014245]
+Epoch 003  train=11.3543 (rate=11.404 mut=0.949 cons=0.030 top=-0.108 br=0.524551 stop=0.001 pll=0.377 semi=0.003)  val=nan  lr=9.99e-05  [mut_entropy=0.119 mut_w=1.750 mut_w_max=3.292]  [br_pred_std=0.016258 br_target_std=0.014533]
+Epoch 004  train=11.6295 (rate=11.685 mut=0.972 cons=0.032 top=-0.118 br=0.439633 stop=0.000 pll=0.378 semi=0.003)  val=nan  lr=9.98e-05  [mut_entropy=0.128 mut_w=1.947 mut_w_max=3.494]  [br_pred_std=0.006914 br_target_std=0.014803]
+Epoch 005  train=11.3689 (rate=11.421 mut=0.951 cons=0.028 top=-0.111 br=0.410419 stop=0.000 pll=0.376 semi=0.002)  val=nan  lr=9.97e-05  [mut_entropy=0.123 mut_w=1.755 mut_w_max=3.381]  [br_pred_std=0.006968 br_target_std=0.014678]
+Epoch 006  train=11.1932 (rate=11.256 mut=0.937 cons=0.026 top=-0.133 br=0.380273 stop=0.000 pll=0.377 semi=0.004)  val=nan  lr=9.96e-05  [mut_entropy=0.129 mut_w=1.868 mut_w_max=3.563]  [br_pred_std=0.002497 br_target_std=0.013532]
+Epoch 007  train=9.9305 (rate=9.976 mut=0.830 cons=0.027 top=-0.099 br=0.377417 stop=0.000 pll=0.377 semi=0.003)  val=nan  lr=9.95e-05  [mut_entropy=0.115 mut_w=1.699 mut_w_max=3.170]  [br_pred_std=0.002408 br_target_std=0.014594]
+Epoch 008  train=10.2435 (rate=10.296 mut=0.857 cons=0.027 top=-0.113 br=0.362947 stop=0.000 pll=0.378 semi=0.003)  val=nan  lr=9.93e-05  [mut_entropy=0.119 mut_w=1.765 mut_w_max=3.273]  [br_pred_std=0.003988 br_target_std=0.014044]
+Epoch 009  train=10.9401 (rate=11.003 mut=0.916 cons=0.029 top=-0.134 br=0.347595 stop=0.000 pll=0.377 semi=0.003)  val=nan  lr=9.91e-05  [mut_entropy=0.130 mut_w=1.877 mut_w_max=3.597]  [br_pred_std=0.006724 br_target_std=0.014079]
+Epoch 010  train=9.6077 (rate=9.647 mut=0.803 cons=0.027 top=-0.087 br=0.348570 stop=0.000 pll=0.376 semi=0.002)  val=nan  lr=9.89e-05  [mut_entropy=0.116 mut_w=1.716 mut_w_max=3.195]  [br_pred_std=0.005592 br_target_std=0.015488]
+Epoch 011  train=10.6548 (rate=10.710 mut=0.891 cons=0.027 top=-0.118 br=0.340364 stop=0.000 pll=0.376 semi=0.003)  val=nan  lr=9.87e-05  [mut_entropy=0.126 mut_w=1.828 mut_w_max=3.470]  [br_pred_std=0.004539 br_target_std=0.014432]
+Epoch 012  train=10.1055 (rate=10.160 mut=0.845 cons=0.030 top=-0.117 br=0.343188 stop=0.000 pll=0.377 semi=0.003)  val=nan  lr=9.84e-05  [mut_entropy=0.118 mut_w=1.701 mut_w_max=3.249]  [br_pred_std=0.003672 br_target_std=0.013871]
+Epoch 013  train=10.3132 (rate=10.369 mut=0.863 cons=0.030 top=-0.119 br=0.333026 stop=0.000 pll=0.376 semi=0.003)  val=nan  lr=9.82e-05  [mut_entropy=0.128 mut_w=1.880 mut_w_max=3.521]  [br_pred_std=0.005458 br_target_std=0.015248]
+Epoch 014  train=9.9002 (rate=9.953 mut=0.828 cons=0.029 top=-0.113 br=0.325571 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.79e-05  [mut_entropy=0.123 mut_w=1.772 mut_w_max=3.398]  [br_pred_std=0.006192 br_target_std=0.014427]
+Epoch 015  train=9.8182 (rate=9.873 mut=0.822 cons=0.029 top=-0.117 br=0.311411 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.76e-05  [mut_entropy=0.126 mut_w=1.818 mut_w_max=3.458]  [br_pred_std=0.007530 br_target_std=0.014121]
+Epoch 016  train=10.6688 (rate=10.738 mut=0.893 cons=0.033 top=-0.146 br=0.299628 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.72e-05  [mut_entropy=0.134 mut_w=1.945 mut_w_max=3.692]  [br_pred_std=0.007159 br_target_std=0.014530]
+Epoch 017  train=9.9645 (rate=10.020 mut=0.834 cons=0.029 top=-0.119 br=0.301324 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.69e-05  [mut_entropy=0.122 mut_w=1.752 mut_w_max=3.360]  [br_pred_std=0.006905 br_target_std=0.013717]
+Epoch 018  train=10.3902 (rate=10.448 mut=0.869 cons=0.033 top=-0.124 br=0.304388 stop=0.001 pll=0.377 semi=0.005)  val=nan  lr=9.65e-05  [mut_entropy=0.130 mut_w=1.890 mut_w_max=3.573]  [br_pred_std=0.005507 br_target_std=0.014416]
+Epoch 019  train=9.9688 (rate=10.026 mut=0.834 cons=0.032 top=-0.122 br=0.314293 stop=0.000 pll=0.378 semi=0.003)  val=nan  lr=9.61e-05  [mut_entropy=0.125 mut_w=1.834 mut_w_max=3.435]  [br_pred_std=0.001100 br_target_std=0.013554]
+Epoch 020  train=11.2915 (rate=11.363 mut=0.945 cons=0.038 top=-0.150 br=0.311552 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.57e-05  [mut_entropy=0.138 mut_w=2.041 mut_w_max=3.793]  [br_pred_std=0.001410 br_target_std=0.014328]
+Epoch 021  train=9.2487 (rate=9.298 mut=0.774 cons=0.030 top=-0.107 br=0.316452 stop=0.000 pll=0.377 semi=0.003)  val=nan  lr=9.53e-05  [mut_entropy=0.118 mut_w=1.748 mut_w_max=3.253]  [br_pred_std=0.000932 br_target_std=0.015103]
+Epoch 022  train=9.1724 (rate=9.224 mut=0.767 cons=0.031 top=-0.111 br=0.312703 stop=0.001 pll=0.377 semi=0.002)  val=nan  lr=9.48e-05  [mut_entropy=0.122 mut_w=1.818 mut_w_max=3.344]  [br_pred_std=0.001027 br_target_std=0.013692]
+Epoch 023  train=9.4988 (rate=9.556 mut=0.795 cons=0.034 top=-0.122 br=0.309501 stop=0.000 pll=0.378 semi=0.002)  val=nan  lr=9.44e-05  [mut_entropy=0.120 mut_w=1.733 mut_w_max=3.313]  [br_pred_std=0.000643 br_target_std=0.013932]
+Epoch 024  train=10.1861 (rate=10.253 mut=0.853 cons=0.038 top=-0.141 br=0.303856 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.39e-05  [mut_entropy=0.135 mut_w=2.012 mut_w_max=3.707]  [br_pred_std=0.000955 br_target_std=0.014318]
+Epoch 025  train=9.4371 (rate=9.486 mut=0.789 cons=0.033 top=-0.106 br=0.303988 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.34e-05  [mut_entropy=0.121 mut_w=1.765 mut_w_max=3.323]  [br_pred_std=0.001092 br_target_std=0.014434]
+Epoch 026  train=10.0956 (rate=10.152 mut=0.845 cons=0.037 top=-0.121 br=0.296759 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.28e-05  [mut_entropy=0.126 mut_w=1.836 mut_w_max=3.475]  [br_pred_std=0.000421 br_target_std=0.014749]
+Epoch 027  train=10.3505 (rate=10.416 mut=0.866 cons=0.040 top=-0.140 br=0.296443 stop=0.000 pll=0.377 semi=0.003)  val=nan  lr=9.23e-05  [mut_entropy=0.135 mut_w=1.974 mut_w_max=3.724]  [br_pred_std=0.001279 br_target_std=0.013560]
+Epoch 028  train=9.5382 (rate=9.600 mut=0.798 cons=0.037 top=-0.132 br=0.295149 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.17e-05  [mut_entropy=0.130 mut_w=1.923 mut_w_max=3.561]  [br_pred_std=0.000952 br_target_std=0.014237]
+Epoch 029  train=10.1315 (rate=10.194 mut=0.848 cons=0.039 top=-0.132 br=0.293151 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=9.11e-05  [mut_entropy=0.128 mut_w=1.874 mut_w_max=3.542]  [br_pred_std=0.000802 br_target_std=0.014392]
+Epoch 030  train=9.7572 (rate=9.788 mut=0.814 cons=0.039 top=-0.072 br=0.290789 stop=0.017 pll=0.377 semi=0.003)  val=nan  lr=9.05e-05  [mut_entropy=0.130 mut_w=1.959 mut_w_max=3.579]  [br_pred_std=0.002902 br_target_std=0.014564]
+Epoch 031  train=10.3185 (rate=10.382 mut=0.863 cons=0.040 top=-0.135 br=0.286159 stop=0.000 pll=0.377 semi=0.003)  val=nan  lr=8.99e-05  [mut_entropy=0.129 mut_w=1.855 mut_w_max=3.578]  [br_pred_std=0.002667 br_target_std=0.014624]
+Epoch 032  train=10.0997 (rate=10.160 mut=0.845 cons=0.042 top=-0.129 br=0.283317 stop=0.000 pll=0.376 semi=0.003)  val=nan  lr=8.93e-05  [mut_entropy=0.131 mut_w=1.970 mut_w_max=3.605]  [br_pred_std=0.001186 br_target_std=0.013984]
+Epoch 033  train=9.0036 (rate=9.057 mut=0.753 cons=0.037 top=-0.115 br=0.282264 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=8.86e-05  [mut_entropy=0.122 mut_w=1.832 mut_w_max=3.349]  [br_pred_std=0.001330 br_target_std=0.014223]
+Epoch 034  train=9.7561 (rate=9.817 mut=0.817 cons=0.039 top=-0.130 br=0.282807 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=8.80e-05  [mut_entropy=0.126 mut_w=1.816 mut_w_max=3.474]  [br_pred_std=0.001365 br_target_std=0.014488]
+Epoch 035  train=9.8970 (rate=9.955 mut=0.828 cons=0.040 top=-0.123 br=0.275117 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=8.73e-05  [mut_entropy=0.133 mut_w=2.013 mut_w_max=3.632]  [br_pred_std=0.001028 br_target_std=0.014505]
+Epoch 036  train=8.4392 (rate=8.487 mut=0.706 cons=0.036 top=-0.103 br=0.273333 stop=0.000 pll=0.378 semi=0.003)  val=nan  lr=8.66e-05  [mut_entropy=0.118 mut_w=1.766 mut_w_max=3.242]  [br_pred_std=0.000391 br_target_std=0.015201]
+Epoch 037  train=9.9089 (rate=9.971 mut=0.829 cons=0.041 top=-0.132 br=0.268380 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=8.59e-05  [mut_entropy=0.132 mut_w=1.931 mut_w_max=3.643]  [br_pred_std=0.000246 br_target_std=0.014584]
+Epoch 038  train=9.2790 (rate=9.333 mut=0.776 cons=0.039 top=-0.116 br=0.269078 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=8.51e-05  [mut_entropy=0.124 mut_w=1.831 mut_w_max=3.400]  [br_pred_std=0.000496 br_target_std=0.014098]
+Epoch 039  train=9.6572 (rate=9.718 mut=0.808 cons=0.044 top=-0.129 br=0.266660 stop=0.000 pll=0.377 semi=0.002)  val=nan  lr=8.44e-05  [mut_entropy=0.133 mut_w=1.990 mut_w_max=3.631]  [br_pred_std=0.000637 br_target_std=0.014093]
+Epoch 040  train=8.8759 (rate=8.928 mut=0.742 cons=0.038 top=-0.112 br=0.267823 stop=0.000 pll=0.378 semi=0.002)  val=nan  lr=8.36e-05  [mut_entropy=0.120 mut_w=1.763 mut_w_max=3.290]  [br_pred_std=0.000226 br_target_std=0.014666]
+
+Early stopping at epoch 40 (no improvement for 40 epochs)
+
+Best val loss: inf  -> checkpoints/ab_oas_1m_v1/best.pt
+Traceback (most recent call last):
+  File "/vast/home/n/nnori/DiscreteTreeFlows/scripts/train.py", line 1205, in <module>
+    main()
+  File "/vast/home/n/nnori/DiscreteTreeFlows/scripts/train.py", line 1086, in main
+    ckpt = torch.load(ckpt_dir / "best.pt", map_location=device, weights_only=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/vast/home/n/nnori/.conda/envs/treesbm/lib/python3.11/site-packages/torch/serialization.py", line 1530, in load
+    with _open_file_like(f, "rb") as opened_file:
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/vast/home/n/nnori/.conda/envs/treesbm/lib/python3.11/site-packages/torch/serialization.py", line 795, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/vast/home/n/nnori/.conda/envs/treesbm/lib/python3.11/site-packages/torch/serialization.py", line 776, in __init__
+    super().__init__(open(name, mode))  # noqa: SIM115
+                     ^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'checkpoints/ab_oas_1m_v1/best.pt'

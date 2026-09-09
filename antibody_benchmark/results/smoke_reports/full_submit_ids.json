@@ -1,0 +1,16 @@
+{
+  "submitted_utc": "2026-08-11T00:13:43.117979Z",
+  "n_trees": 82,
+  "n_rollouts": 20,
+  "config": "antibody_benchmark/configs/full.yaml",
+  "samples_dir": "antibody_benchmark/results/samples/<model>/<family>/rollout_*.json",
+  "summary_dir": "antibody_benchmark/results/summary/",
+  "logs_dir": "/vast/projects/pranam/lab/nnori/antibody_benchmark/logs/",
+  "jobs": {
+    "thrifty": "7517208",
+    "dasm_thrifty": "7517209",
+    "treesbm": "7517210",
+    "cosine": "7517211",
+    "evaluate": "7517212"
+  }
+}

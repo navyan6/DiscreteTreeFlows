@@ -1,0 +1,49 @@
+\subsection{Model hyperparameters}
+\label{app:model_hyperparameters}
+
+\begin{table}[H]
+\centering
+\caption{TreeSBM SARS-CoV-2 model hyperparameters.}
+\label{tab:app_hyperparameters}
+\begin{tabular}{ll}
+\toprule
+Hyperparameter & Value \\
+\midrule
+Tree encoder layers & 4 \\
+Hidden dimension & 128 \\
+Attention heads & 8 \\
+pLM reference & ESM-2 8M (\texttt{facebook/esm2\_t6\_8M\_UR50D}) \\
+Mutation head depth & 2 \\
+Branching head depth & 2 \\
+Branch-length head depth & 2 \\
+Dropout & 0.1 \\
+Optimizer & AdamW \\
+Learning rate & $1\times10^{-4}$ \\
+Batch size & 1 \\
+Training epochs & 14 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sampling settings}
+\label{app:sampling_settings}
+
+\begin{table}[H]
+\centering
+\caption{TreeSBM SARS-CoV-2 Model sampling settings.}
+\label{tab:app_sampling_settings}
+\begin{tabular}{ll}
+\toprule
+Sampling parameter & Value \\
+\midrule
+Evolutionary horizon & 50 \\
+Maximum nodes & 400 \\
+Maximum branching factor & 2 \\
+Mutation temperature & 1.0 \\
+Branching temperature & 1.0 (scale 6.0) \\
+Stop threshold & none \\
+Number of generated trees $K$ & 100 \\
+Random seeds & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

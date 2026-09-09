@@ -1,0 +1,44 @@
+{
+  "mode": "empirical_anarci_substring",
+  "n_used": 999754,
+  "n_miss_anarci": 0,
+  "n_no_cdr_span": 246,
+  "min_occupancy": 0.25,
+  "n_hot_sites": 27,
+  "frac_hot": 0.16875000298023224,
+  "mean_occupancy_hot": 0.6820181097883413,
+  "cdr_span_len_top": {
+    "8": 1382025,
+    "7": 295017,
+    "10": 243681,
+    "9": 100544,
+    "13": 95384,
+    "12": 86260,
+    "11": 77572,
+    "3": 57145,
+    "6": 34844,
+    "14": 14646,
+    "15": 12497,
+    "16": 8772,
+    "17": 8559,
+    "5": 3517,
+    "2": 2656
+  },
+  "imgt_ranges_ref": [
+    [
+      27,
+      38
+    ],
+    [
+      56,
+      65
+    ],
+    [
+      105,
+      117
+    ]
+  ],
+  "max_seq_len": 160,
+  "fasta": "data/ab_t5_1m/sequences.fasta",
+  "anarci": "data/ab_t5_1m/anarci.tsv"
+}

@@ -1,0 +1,74 @@
+{
+  "virus": "covid",
+  "cache": "/vast/home/n/nnori/DiscreteTreeFlows/benchmarks/results/coverage_cache_covid_N16_eabs",
+  "mask": "results/covid_mutfreq_vs_lit/mut_hotspot_mask_pmc_lit.pt",
+  "K_max": 100,
+  "n_roots_scored": 5,
+  "cells": [
+    {
+      "horizon_bucket": "all",
+      "method": "neutral_bd",
+      "n_roots": 5,
+      "lit_hotspot_mut_frac": 0.011509826745631445,
+      "aa_acc_given_hit": 0.828125,
+      "mut_recovery": 0.005325534070702026,
+      "cons_retention": 1.0
+    }
+  ],
+  "per_root": [
+    {
+      "root_id": "NODE_0000000",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.0,
+      "n_mut_leaves_scored": 360,
+      "method": "neutral_bd",
+      "horizon_bucket": null,
+      "aa_acc_given_hit": 0.65625,
+      "mut_recovery": 0.009763756695086393,
+      "cons_retention": 1.0
+    },
+    {
+      "root_id": "NODE_0000162",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.007914338919925512,
+      "n_mut_leaves_scored": 537,
+      "method": "neutral_bd",
+      "horizon_bucket": null,
+      "aa_acc_given_hit": 1.0,
+      "mut_recovery": 0.0008873114463176575,
+      "cons_retention": 1.0
+    },
+    {
+      "root_id": "NODE_0000179",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.012991833704528583,
+      "n_mut_leaves_scored": 449,
+      "method": "neutral_bd",
+      "horizon_bucket": null
+    },
+    {
+      "root_id": "NODE_0000271",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.026701440635866866,
+      "n_mut_leaves_scored": 671,
+      "method": "neutral_bd",
+      "horizon_bucket": null
+    },
+    {
+      "root_id": "NODE_0000282",
+      "n_trees": 100,
+      "n_gen_leaves": 1600,
+      "lit_hotspot_mut_frac": 0.009941520467836258,
+      "n_mut_leaves_scored": 855,
+      "method": "neutral_bd",
+      "horizon_bucket": null,
+      "aa_acc_given_hit": NaN,
+      "mut_recovery": NaN,
+      "cons_retention": 1.0
+    }
+  ]
+}

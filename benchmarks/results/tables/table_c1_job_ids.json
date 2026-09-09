@@ -1,0 +1,114 @@
+{
+  "submitted_at": "2026-08-16T17:10:39.208935+00:00",
+  "host": "betty",
+  "protocol": "Appendix C.1 gap fill: Neutral/AR(+H3 TreeSBM) pLM NLL + Ab free-topo baselines",
+  "jobs": {
+    "c1nll_covid": "7635749",
+    "c1nll_h3": "7635750",
+    "c1nll_hivg": "7635751",
+    "c1nll_h3ts": "7635752",
+    "c1ab_bl": "7635753",
+    "c1ab_nll": "7635754",
+    "c1ab_tsnll": "7635755"
+  },
+  "fills": {
+    "c1nll_covid": "SARS-CoV-2 Spike Neutral CTMC + Autoregressive tree-edit pLM NLL",
+    "c1nll_h3": "Influenza HA H3N2 Neutral CTMC + Autoregressive tree-edit pLM NLL",
+    "c1nll_hivg": "HIV Env Neutral CTMC + Autoregressive tree-edit pLM NLL (geo)",
+    "c1nll_h3ts": "Influenza HA H3N2 TreeSBM pLM NLL",
+    "c1ab_bl": "Antibody lineages Tree-KL/Split-KL/RF/Quartet/Branch W1 (all 3 methods)",
+    "c1ab_nll": "Antibody lineages Neutral CTMC + Autoregressive tree-edit pLM NLL",
+    "c1ab_tsnll": "Antibody lineages TreeSBM (OAS) pLM NLL"
+  },
+  "artifacts": {
+    "c1nll_covid": "checkpoints/eval_table5_covid_baselines_plmnll.json",
+    "c1nll_h3": "checkpoints/eval_table5_h3n2_baselines_plmnll.json",
+    "c1nll_hivg": "checkpoints/eval_table5_hiv_geo_baselines_plmnll.json",
+    "c1nll_h3ts": "checkpoints/eval_enrichment_h3n2_v3_lit_hotspot_mrs0.5_plmnll.json",
+    "c1ab_bl": "benchmarks/results/tables/ab_oas/table_empirical_N16.csv (+ sim_neutral)",
+    "c1ab_nll": "checkpoints/eval_table5_ab_oas_baselines_plmnll.json",
+    "c1ab_tsnll": "checkpoints/eval_enrichment_ab_oas_mrs0.5_plmnll.json"
+  },
+  "last_status_at": "2026-08-16T19:51:22.891593+00:00",
+  "status": {
+    "c1nll_covid": {
+      "job": "7635749",
+      "state": "COMPLETED",
+      "exit": "0:0",
+      "artifact": "checkpoints/eval_table5_covid_baselines_plmnll.json",
+      "filled": {
+        "Neutral plm_nll": 0.475,
+        "AR plm_nll": 0.461
+      }
+    },
+    "c1nll_h3": {
+      "job": "7635750",
+      "state": "COMPLETED",
+      "exit": "0:0",
+      "artifact": "checkpoints/eval_table5_h3n2_baselines_plmnll.json",
+      "filled": {
+        "Neutral plm_nll": 0.466,
+        "AR plm_nll": 0.462
+      }
+    },
+    "c1nll_hivg": {
+      "job": "7635751",
+      "state": "COMPLETED",
+      "exit": "0:0",
+      "artifact": "checkpoints/eval_table5_hiv_geo_baselines_plmnll.json",
+      "filled": {
+        "Neutral plm_nll": 0.532,
+        "AR plm_nll": 0.521
+      }
+    },
+    "c1nll_h3ts": {
+      "job": "7635752",
+      "state": "RUNNING",
+      "elapsed": "00:55:22",
+      "note": "H3 TreeSBM plm_nll still RUNNING"
+    },
+    "c1ab_bl": {
+      "job": "7635753",
+      "state": "RUNNING",
+      "elapsed": "00:55:22",
+      "note": "Ab free-topo metrics still RUNNING"
+    },
+    "c1ab_nll": {
+      "job": "7635754",
+      "state": "COMPLETED",
+      "exit": "0:0",
+      "artifact": "checkpoints/eval_table5_ab_oas_baselines_plmnll.json",
+      "filled": {
+        "Neutral plm_nll": 0.513,
+        "AR plm_nll": 0.466
+      }
+    },
+    "c1ab_tsnll": {
+      "job": "7635755",
+      "state": "COMPLETED",
+      "exit": "0:0",
+      "elapsed": "00:07:25",
+      "end": "2026-08-16T13:18:06",
+      "artifact": "checkpoints/eval_enrichment_ab_oas_mrs0.5_plmnll.json",
+      "filled": {
+        "TreeSBM plm_nll": 0.451
+      }
+    }
+  },
+  "tex_remaining_dashes": [
+    "Influenza HA H1N1 Neutral/AR/TreeSBM all C.1 columns (pending 7646375–77)"
+  ],
+  "h1n1_swap": {
+    "submitted_at": "2026-08-18T03:53:24.889361+00:00",
+    "replaces": "HIV Env",
+    "dataset_label": "Influenza HA H1N1",
+    "best_treesbm": "checkpoints/h1n1_v2_lit_hotspot/best.pt",
+    "split": "geo data/h1n1 (Table 5 / C.3); not leafholdout or temporal",
+    "jobs": {
+      "c1h1_bl": "7646375",
+      "c1nll_h1": "7646376",
+      "c1nll_h1ts": "7646377"
+    },
+    "note": "See table_c1_h1n1_job_ids.json. All H1N1 C.1 cells are -- until these COMPLETED."
+  }
+}

@@ -1,0 +1,17 @@
+\begin{table}[t]\centering
+\caption{Tree generation on held-out roots (empirical)}
+\begin{tabular}{lcccccc}
+\toprule
+Method & Tree-KL $\downarrow$ & Split-KL $\downarrow$ & RF $\downarrow$ & Quartet $\downarrow$ & Branch-W1 $\downarrow$ & Term-edit $\downarrow$ \\
+\midrule
+neutral\_bd & 0.693 $\pm$ 0.000 & 93.157 $\pm$ 5.605 & 0.972 $\pm$ 0.004 & 0.668 $\pm$ 0.016 & 0.004 $\pm$ 0.001 & 0.272 $\pm$ 0.066 \\
+empirical\_bd & 0.693 $\pm$ 0.000 & 93.267 $\pm$ 5.618 & 0.972 $\pm$ 0.004 & 0.669 $\pm$ 0.017 & 0.004 $\pm$ 0.001 & 0.272 $\pm$ 0.066 \\
+plm\_prior & 0.693 $\pm$ 0.000 & 92.382 $\pm$ 5.287 & 0.968 $\pm$ 0.006 & 0.666 $\pm$ 0.017 & 0.004 $\pm$ 0.001 & 0.273 $\pm$ 0.066 \\
+artreeformer\_adapted & 0.693 $\pm$ 0.000 & 95.007 $\pm$ 5.591 & 0.984 $\pm$ 0.003 & 0.670 $\pm$ 0.018 & 0.005 $\pm$ 0.002 & 0.270 $\pm$ 0.066 \\
+phylovae\_adapted & 0.693 $\pm$ 0.000 & 93.769 $\pm$ 5.542 & 0.979 $\pm$ 0.004 & 0.672 $\pm$ 0.018 & 0.005 $\pm$ 0.002 & 0.270 $\pm$ 0.066 \\
+phylaflow & 0.693 $\pm$ 0.000 & 96.508 $\pm$ 5.466 & 0.985 $\pm$ 0.005 & 0.709 $\pm$ 0.012 & 0.010 $\pm$ 0.003 & 0.270 $\pm$ 0.066 \\
+phylaflow\_adapted & 0.693 $\pm$ 0.000 & 93.092 $\pm$ 5.265 & 0.973 $\pm$ 0.004 & 0.664 $\pm$ 0.021 & 0.005 $\pm$ 0.002 & 0.270 $\pm$ 0.066 \\
+treesbm & 0.693 $\pm$ 0.000 & 113.376 $\pm$ 3.343 & 0.977 $\pm$ 0.005 & 0.678 $\pm$ 0.007 & 0.009 $\pm$ 0.003 & 0.373 $\pm$ 0.083 \\
+\bottomrule
+\end{tabular}
+\end{table}

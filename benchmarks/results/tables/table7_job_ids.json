@@ -1,0 +1,220 @@
+{
+  "host": "betty",
+  "data": "data/covid/test",
+  "ckpt": "checkpoints/covid_v5_mutrec/best.pt",
+  "protocol": "MODE=enrich mrs=0.5 max_trees=20 --ablate-bridge (rows 1-6); pLM NLL default-on",
+  "esmc": {
+    "status": "rewired_hf_synthyra",
+    "model_id": "Synthyra/ESMplusplus_small",
+    "note": "HF AutoModelForMaskedLM port of ESMC-300M; attn sdpa/eager; no fair-esm; no PYTHONPATH=python_esmc. biohub/ESMC-300M needs native transformers esmc (not in 5.13-5.15).",
+    "prior_failures": "7585981/82 PYTHONPATH flash_attn/libcudart; 7575912/13 fair-esm missing esm.models"
+  },
+  "progen2": {
+    "status": "rewired_enijkamp_official_chunked_longseq_COMPLETED_n20",
+    "repo": "/vast/projects/pranam/lab/nnori/progen2",
+    "model_id": "progen2-small",
+    "checkpoint": "/vast/projects/pranam/lab/nnori/progen2/checkpoints/progen2-small",
+    "source": "https://github.com/enijkamp/progen2.git + GCS progen2-small.tar.gz",
+    "limitation": "Causal LM left-context next-token AA log-probs (likelihood.py style), not masked LM.",
+    "long_seq_fix": "PROGEN2_MAX_CTX=1024; Spike L\u22481273 scored via sliding left-context chunks (no silent truncate). Prefer progen2-small.",
+    "transformers_v5_shims": "get_head_mask + model_parallel_utils stub; manual load_state_dict (avoid from_pretrained all_tied_weights_keys).",
+    "prior_failures": "7585983 get_head_mask; 7575914 stub; hugohrban HF AutoModel path abandoned; 7627571 COMPLETED_partial_n3 (ctx 1024 vs L~1273)"
+  },
+  "roadblocks": {
+    "esmc": "cleared (smoke shape [1,32,20] on Betty MIG)",
+    "progen2": "cleared for progen2-small (smoke shape [1,32,20]); large/xlarge may OOM on mig45",
+    "tree_kl": "Only from 7575017 COMPLETED; Tree-KL=ln2 all methods. Not per R0 backend.",
+    "coverage": "Cov@e2\u22480.775 for JTT/ESM2/TreeSBM on groups 4,5,7,9,10. ESM-C/ProGen2 Cov@100 jobs 7628260/61/62 UNKNOWN (Betty SSH timeout Day 3+4; leave Cov \u2014; no resubmit without sacct).",
+    "plm_nll": "COMPLETED: 7626622-25 + 7627569-70 + 7627918 (ProGen2 n=20). Prior 7627571 n=3 superseded. Cov@100 7628260/61/62 UNKNOWN."
+  },
+  "jobs": [
+    {
+      "job_id": "7575908",
+      "name": "t7_jtt_nofit",
+      "mode": "enrich",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7575909",
+      "name": "t7_esm2_650m_nofit",
+      "mode": "enrich",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7575911",
+      "name": "t7_esm2_650m_fit",
+      "mode": "enrich",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7575912",
+      "name": "t7_esmc_nofit",
+      "mode": "enrich",
+      "status": "FAILED_fair_esm"
+    },
+    {
+      "job_id": "7575913",
+      "name": "t7_esmc_fit",
+      "mode": "enrich",
+      "status": "FAILED_fair_esm"
+    },
+    {
+      "job_id": "7575914",
+      "name": "t7_progen2_fit",
+      "mode": "enrich",
+      "status": "FAILED_stub"
+    },
+    {
+      "job_id": "7575915",
+      "name": "t7_treesbm_fit",
+      "mode": "enrich",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7575916",
+      "name": "t7_cov_tsbm",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585981",
+      "name": "t7_esmc_nf",
+      "mode": "enrich",
+      "status": "FAILED_libcudart"
+    },
+    {
+      "job_id": "7585982",
+      "name": "t7_esmc_f",
+      "mode": "enrich",
+      "status": "FAILED_libcudart"
+    },
+    {
+      "job_id": "7585983",
+      "name": "t7_progen",
+      "mode": "enrich",
+      "status": "COMPLETED_0trees_get_head_mask"
+    },
+    {
+      "job_id": "7585984",
+      "name": "t7c_jtt_nofit",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585985",
+      "name": "t7c_esm2_650m_nofit",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585986",
+      "name": "t7c_esm2_650m_fit",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7585987",
+      "name": "t7c_treesbm_fit",
+      "mode": "coverage_K100",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7626622",
+      "name": "t7nll_jtt",
+      "mode": "enrich_plm_nll",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7626623",
+      "name": "t7nll_esm2_nofit",
+      "mode": "enrich_plm_nll",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7626624",
+      "name": "t7nll_esm2_fit",
+      "mode": "enrich_plm_nll",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7626625",
+      "name": "t7nll_treesbm",
+      "mode": "enrich_plm_nll",
+      "status": "COMPLETED"
+    },
+    {
+      "job_id": "7627569",
+      "name": "t7_esmc_nofit",
+      "mode": "enrich",
+      "status": "COMPLETED",
+      "backend": "esmc",
+      "model_id": "Synthyra/ESMplusplus_small",
+      "flags": "--ablate-bridge --fitness-beta 0 mrs=0.5 n=20"
+    },
+    {
+      "job_id": "7627570",
+      "name": "t7_esmc_fit",
+      "mode": "enrich",
+      "status": "COMPLETED",
+      "backend": "esmc",
+      "model_id": "Synthyra/ESMplusplus_small",
+      "flags": "--ablate-bridge --fitness-beta 1.0 mrs=0.5 n=20"
+    },
+    {
+      "job_id": "7627571",
+      "name": "t7_progen2_fit",
+      "mode": "enrich",
+      "status": "COMPLETED_partial_n3",
+      "backend": "progen2",
+      "model_id": "progen2-small",
+      "flags": "--ablate-bridge --fitness-beta 1.0 mrs=0.5 n=20",
+      "note": "SUPERSEDED: 3/20 trees; tensor 1024 vs ~1273 Spike length. Do not paste as primary."
+    },
+    {
+      "job_id": "7627917",
+      "name": "t7_p2_smoke",
+      "mode": "smoke_long_spike",
+      "status": "COMPLETED",
+      "backend": "progen2",
+      "model_id": "progen2-small",
+      "note": "L=1273 Spike-like seq; chunked log_mutation_rates \u2192 (1,1280,20)"
+    },
+    {
+      "job_id": "7627918",
+      "name": "t7_progen2_fit",
+      "mode": "enrich",
+      "status": "COMPLETED",
+      "backend": "progen2",
+      "model_id": "progen2-small",
+      "dependency": "afterok:7627917",
+      "flags": "--ablate-bridge --fitness-beta 1.0 mrs=0.5 n=20 covid_v5_mutrec",
+      "note": "n=20 after chunked long-seq; mut=0.1126 aa|hit=0.3978 cons=0.9855 ant=0.0048 plm_nll=0.4546; supersedes 7627571"
+    },
+    {
+      "job_id": "7628260",
+      "name": "t7_cov_esmc_nofit",
+      "mode": "coverage_K100",
+      "status": "UNKNOWN_Betty_SSH_timeout_Day4",
+      "backend": "esmc",
+      "note": "Do not invent Cov; do not resubmit until sacct; pull CSV when Betty reachable"
+    },
+    {
+      "job_id": "7628261",
+      "name": "t7_cov_esmc_fit",
+      "mode": "coverage_K100",
+      "status": "UNKNOWN_Betty_SSH_timeout_Day4",
+      "backend": "esmc",
+      "note": "Do not invent Cov; do not resubmit until sacct; pull CSV when Betty reachable"
+    },
+    {
+      "job_id": "7628262",
+      "name": "t7_cov_progen2_fit",
+      "mode": "coverage_K100",
+      "status": "UNKNOWN_Betty_SSH_timeout_Day4",
+      "backend": "progen2",
+      "note": "Do not invent Cov; do not resubmit until sacct; pull CSV when Betty reachable"
+    }
+  ],
+  "updated_at": "2026-08-15T17:30:00Z",
+  "queue": "ProGen2 enrich 7627918 COMPLETED; Cov@100 7628260/61/62 UNKNOWN (Betty SSH port 22 timeout Day 4); D.2 mapped offline"
+}
