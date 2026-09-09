@@ -1,0 +1,10 @@
+# Python packages needed for the pan-viral *data* pipeline
+# (inventory → fetch/CDS → mafft/FastTree/augur/translate).
+#
+# Pip alone is not enough: mafft, FastTree, and nextstrain-augur are native
+# tools. Prefer the conda env in environment.yml, then:
+#   pip install -r requirements.txt
+#
+# Stage 3 stops after translate by default, so torch/ESM are NOT required here.
+
+biopython>=1.83

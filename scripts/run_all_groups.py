@@ -12,6 +12,7 @@ Usage:
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import traceback
@@ -25,7 +26,11 @@ from Bio.Seq import Seq
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data" / "train"
 AUGUR_BIN = os.environ.get("AUGUR_BIN", "augur")  # override with full path if needed
-FASTTREE_BIN = "fasttree"
+# bioconda installs "FastTree"; some builds expose "fasttree".
+FASTTREE_BIN = os.environ.get(
+    "FASTTREE_BIN",
+    next((b for b in ("FastTree", "fasttree") if shutil.which(b)), "FastTree"),
+)
 
 # Set by main() before workers are spawned
 INPUT_PREFIX = "master_h3n2"   # prefix of split input files: {PREFIX}_group_{NNN}.fasta

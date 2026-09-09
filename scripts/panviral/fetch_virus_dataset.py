@@ -38,6 +38,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -51,7 +52,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-MAFFT = "/vast/home/n/nnori/.conda/envs/treesbm/bin/mafft"
+# Prefer PATH (conda env activate / TREESBM_PY's bin). Override with MAFFT_BIN.
+MAFFT = os.environ.get("MAFFT_BIN") or shutil.which("mafft") or "mafft"
 
 # Antigenic surface proteins first: those are the ones under immune selection,
 # which is what TreeSBM is being asked to forecast. "polyprotein" is last and

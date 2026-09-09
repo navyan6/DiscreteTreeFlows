@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import random
 import shutil
 import subprocess
@@ -30,7 +31,9 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-ENV = Path("/vast/home/n/nnori/.conda/envs/treesbm/bin")
+# Use the active env's bin (conda activate / PATH). Override with TREESBM_PY.
+_py = os.environ.get("TREESBM_PY") or shutil.which("python3") or shutil.which("python")
+ENV = Path(_py).resolve().parent if _py else Path("/usr/bin")
 
 
 def sh(cmd: list[str], stdout_to: Path | None = None,

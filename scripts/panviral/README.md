@@ -2,12 +2,36 @@
 
 Build trees for every eukaryotic virus with enough NCBI genomes: inventory → fetch & extract the antigenic CDS → align / FastTree / root / ASR.
 
-## Run it
-
-On a Betty login node, from the repo root:
+## 1. One-time setup (do not use someone else's conda path)
 
 ```bash
-git pull
+git clone <this-repo> && cd DiscreteTreeFlows
+
+# creates conda env `treesbm-data` with biopython + mafft + FastTree + augur
+conda env create -f scripts/panviral/environment.yml
+conda activate treesbm-data
+
+# sanity check (imports + binaries)
+bash scripts/panviral/check_deps.sh
+```
+
+If you already have an env with those tools:
+
+```bash
+pip install -r scripts/panviral/requirements.txt   # biopython only
+# and ensure mafft, FastTree/fasttree, and augur are on PATH
+```
+
+The root `requirements.txt` / `environment.yml` are for **training** (torch, ESM, etc.) and are heavier than this pipeline needs. Stage 3 stops after translate by default, so torch is not required.
+
+## 2. Run it
+
+On a Betty login node (or any SLURM host), from the repo root, with the env activated:
+
+```bash
+conda activate treesbm-data
+export TREESBM_ROOT=$PWD
+export TREESBM_PY=$(which python)
 bash scripts/panviral/kickoff.sh
 ```
 
@@ -27,7 +51,8 @@ Resume is automatic: re-running `kickoff.sh` skips finished inventory counts, vi
 | `MIN_COUNT` | `150` | min genomes for a virus to qualify |
 | `CHAIN_STAGE3` | `1` | set `0` to stop after CDS fetch (no trees yet) |
 | `TREESBM_ROOT` | `$HOME/DiscreteTreeFlows` | repo path on the cluster |
-| `TREESBM_PY` | Betty `treesbm` conda python | python with biopython / mafft / FastTree / augur |
+| `TREESBM_PY` | auto-detect `treesbm-data` / `treesbm` / `python3` | python that has biopython; its `bin/` is prepended to PATH |
+| `NCBI_API_KEY_FILE` | `~/.ncbi_api_key` | presence only; raises NCBI rate limits |
 
 Example — fetch only, require ≥100 genomes:
 

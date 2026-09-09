@@ -1,0 +1,17 @@
+# Conda env for running the pan-viral data pipeline (no training deps).
+#
+#   conda env create -f scripts/panviral/environment.yml
+#   conda activate treesbm-data
+#   TREESBM_PY=$(which python) bash scripts/panviral/kickoff.sh
+#
+name: treesbm-data
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - biopython>=1.83
+  - mafft
+  - fasttree
+  - nextstrain-augur>=22.0.0

@@ -8,11 +8,11 @@
 # SLURM dependencies, so this is fire-and-forget.
 #
 # Useful knobs (all optional):
-#   TREESBM_ROOT=/path/to/repo          # default: $HOME/DiscreteTreeFlows
-#   TREESBM_PY=/path/to/python          # default: treesbm conda on Betty
-#   MIN_COUNT=150                       # genomes required to qualify a virus
+#   TREESBM_ROOT=/path/to/repo
+#   TREESBM_PY=/path/to/python          # must see biopython + mafft/FastTree/augur on PATH
+#   MIN_COUNT=150
 #   CHAIN_STAGE3=1                      # set 0 to stop after the CDS pull
-#   NCBI_API_KEY_FILE=~/.ncbi_api_key   # presence raises NCBI rate limits
+#   NCBI_API_KEY_FILE=~/.ncbi_api_key
 #
 # Resume is free: inventory caches counts, stage 2 skips viruses with a
 # manifest, stage 3 skips splits that already have rooted trees.
@@ -23,7 +23,6 @@ cd "$REPO"
 mkdir -p logs/panviral data/panviral
 
 if ! command -v sbatch >/dev/null 2>&1; then
-    # Betty login shells sometimes lack SLURM on PATH.
     export PATH="/vast/parcc/sw/slurm/bin:${PATH}"
 fi
 if ! command -v sbatch >/dev/null 2>&1; then
@@ -31,10 +30,36 @@ if ! command -v sbatch >/dev/null 2>&1; then
     exit 1
 fi
 
+resolve_py() {
+    if [ -n "${TREESBM_PY:-}" ]; then
+        echo "$TREESBM_PY"
+        return
+    fi
+    for cand in \
+        "${HOME}/.conda/envs/treesbm-data/bin/python" \
+        "${HOME}/.conda/envs/treesbm/bin/python" \
+        "$(command -v python3 || true)" \
+        "$(command -v python || true)"
+    do
+        if [ -n "$cand" ] && [ -x "$cand" ]; then
+            echo "$cand"
+            return
+        fi
+    done
+    echo "No python found. Create the env first:" >&2
+    echo "  conda env create -f scripts/panviral/environment.yml" >&2
+    echo "  conda activate treesbm-data" >&2
+    echo "  TREESBM_PY=\$(which python) bash scripts/panviral/kickoff.sh" >&2
+    exit 1
+}
+
 export TREESBM_ROOT="$REPO"
-export TREESBM_PY="${TREESBM_PY:-/vast/home/n/nnori/.conda/envs/treesbm/bin/python}"
+export TREESBM_PY="$(resolve_py)"
+export PATH="$(dirname "$TREESBM_PY"):${PATH}"
 export MIN_COUNT="${MIN_COUNT:-150}"
 export CHAIN_STAGE3="${CHAIN_STAGE3:-1}"
+
+bash scripts/panviral/check_deps.sh
 
 echo "repo=$REPO"
 echo "python=$TREESBM_PY"

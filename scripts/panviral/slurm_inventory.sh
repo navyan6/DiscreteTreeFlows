@@ -16,7 +16,17 @@ REPO="${TREESBM_ROOT:-$HOME/DiscreteTreeFlows}"
 cd "$REPO"
 mkdir -p logs/panviral data/panviral
 
-PY=${TREESBM_PY:-/vast/home/n/nnori/.conda/envs/treesbm/bin/python}
+PY=${TREESBM_PY:-}
+if [ -z "$PY" ]; then
+  for cand in "${HOME}/.conda/envs/treesbm-data/bin/python" "${HOME}/.conda/envs/treesbm/bin/python" "$(command -v python3 || true)" "$(command -v python || true)"; do
+    if [ -n "$cand" ] && [ -x "$cand" ]; then PY="$cand"; break; fi
+  done
+fi
+if [ -z "${PY:-}" ] || [ ! -x "$PY" ]; then
+  echo "set TREESBM_PY to a python that has biopython + mafft/FastTree/augur on PATH" >&2
+  exit 1
+fi
+export PATH="$(dirname "$PY"):${PATH}"
 
 echo "host=$(hostname)  start=$(date -Is)  repo=$REPO"
 $PY scripts/panviral/build_virus_inventory.py \
